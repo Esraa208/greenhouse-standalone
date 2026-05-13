@@ -1,0 +1,6 @@
+.gh-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.gh-form-full { grid-column: span 2; }
+.gh-form-section { margin-top: var(--space-6); }
+.gh-form-row { display: flex; gap: var(--space-4); margin-top: var(--space-3); }
+.gh-flex-1 { flex: 1; min-width: 0; }
+.gh-mt-4 { margin-top: var(--space-4); }

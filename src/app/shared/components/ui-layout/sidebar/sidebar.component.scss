@@ -1,0 +1,195 @@
+/* libs/shared/ui-layout/src/lib/sidebar/sidebar.component.scss */
+
+.gh-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+
+  @media (max-width: 1023px) {
+    display: block;
+    pointer-events: none;
+  }
+
+  &--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.gh-sidebar {
+  position: fixed;
+  inset-block: var(--space-4);
+  inset-inline-start: var(--space-4);
+  width: var(--sidebar-width);
+  background-color: var(--color-sidebar);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 50;
+  transition: transform var(--transition-slow);
+
+  /* Mobile: hide off-screen to the inline-start (left/right) */
+  @media (max-width: 1023px) {
+    transform: translateX(calc(var(--sidebar-width) + var(--space-4) + 16px));
+
+    &--open {
+      transform: translateX(0);
+    }
+  }
+
+  /* LTR: hide to left */
+  [dir="ltr"] & {
+    @media (max-width: 1023px) {
+      transform: translateX(calc(-1 * (var(--sidebar-width) + var(--space-4) + 16px)));
+      &--open {
+        transform: translateX(0);
+      }
+    }
+  }
+}
+
+/* Brand */
+.gh-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4) var(--space-4);
+  border-block-end: 1px solid var(--color-sidebar-border);
+  flex-shrink: 0;
+}
+
+.gh-sidebar__logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.gh-sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.gh-sidebar__brand-name {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-sidebar-foreground);
+  white-space: nowrap;
+}
+
+.gh-sidebar__brand-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+}
+
+/* Navigation */
+.gh-sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-3) var(--space-6);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.gh-sidebar__section {
+  margin-block-end: var(--space-2);
+}
+
+.gh-sidebar__section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--color-muted-foreground);
+  transition: background-color var(--transition-fast);
+
+  &:hover {
+    background-color: var(--color-muted);
+  }
+}
+
+.gh-sidebar__section-title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gh-sidebar__chevron {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  transition: transform var(--transition-normal);
+  transform: rotate(90deg);
+
+  &--collapsed {
+    transform: rotate(0deg);
+  }
+}
+
+.gh-sidebar__items {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gh-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-sidebar-foreground);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--color-sidebar-accent);
+    color: var(--color-accent-foreground);
+  }
+
+  &--active {
+    background-color: var(--color-sidebar-accent);
+    color: var(--color-accent-foreground);
+    font-weight: 600;
+  }
+}
+
+.gh-sidebar__item-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.gh-sidebar__item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

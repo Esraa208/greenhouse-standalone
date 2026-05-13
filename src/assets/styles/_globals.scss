@@ -1,0 +1,152 @@
+/* libs/shared/ui/src/styles/_globals.scss */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+ul, ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* RTL Utilities */
+[dir="ltr"] .flip-ltr {
+  transform: scaleX(-1);
+}
+
+/* Layout Utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
+/* Print Utilities */
+@media print {
+  gh-sidebar, gh-topbar, .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Forms & Modal Layout Tokens */
+[ghInput] {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+
+  /* Hide default arrows for selects */
+  &[ghInput]:is(select) {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    
+    /* Elegant SVG Arrow */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 1.25rem;
+    
+    /* RTL Position (Left side) */
+    background-position: left 0.75rem center;
+    padding-left: 2.5rem;
+  }
+
+  /* LTR Override for background position if needed */
+  [dir="ltr"] & {
+    &[ghInput]:is(select) {
+      background-position: right 0.75rem center;
+      padding-left: var(--space-3);
+      padding-right: 2.5rem;
+    }
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.1);
+    background-color: #ffffff;
+  }
+
+  &:disabled {
+    background-color: var(--color-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+.gh-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px dashed var(--color-border);
+}
+
+.gh-form-row {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  flex-wrap: wrap;
+
+  & > * {
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
+.gh-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gh-form-full {
+  grid-column: 1 / -1;
+}
+
+.gh-flex-1 {
+  flex: 1;
+}

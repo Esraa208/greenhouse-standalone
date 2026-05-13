@@ -1,0 +1,9 @@
+:host {
+  display: block;
+  background-color: var(--color-card);
+  border-radius: var(--radius-xl); /* 32px matches React source */
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  padding: var(--space-6);
+  color: var(--color-card-foreground);
+}

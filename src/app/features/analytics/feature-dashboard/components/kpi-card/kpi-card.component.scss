@@ -1,0 +1,102 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.kpi-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow var(--transition-normal);
+  cursor: default;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  &__accent-bar {
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #10b981, #3b82f6, #8b5cf6);
+  }
+
+  &__body {
+    padding: var(--space-6);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+
+  &__label {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    margin: 0 0 var(--space-1);
+    font-weight: 500;
+  }
+
+  &__value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--color-foreground);
+    margin: 0 0 var(--space-2);
+    line-height: 1.2;
+  }
+
+  &__change {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: 0.75rem;
+    font-weight: 500;
+
+    &--up  { color: #16a34a; }
+    &--down { color: #dc2626; }
+  }
+
+  &__change-arrow { font-size: 0.875rem; }
+
+  &__icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.5rem;
+    transition: transform var(--transition-normal);
+
+    .kpi-card:hover & { transform: scale(1.1); }
+
+    &.bg-green  { background: #dcfce7; }
+    &.bg-blue   { background: #dbeafe; }
+    &.bg-purple { background: #f3e8ff; }
+    &.bg-orange { background: #fef3c7; }
+  }
+
+  &__sparkline {
+    margin: auto calc(-1 * var(--space-6)) calc(-1 * var(--space-6));
+    height: 48px;
+
+    canvas {
+      width: 100%;
+      height: 48px;
+      display: block;
+    }
+  }
+}

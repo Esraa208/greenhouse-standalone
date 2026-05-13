@@ -1,0 +1,27 @@
+﻿<div class="gh-input-wrapper">
+  @if (label()) {
+    <label [for]="id()" class="gh-label">
+      {{ label() }}
+    </label>
+  }
+  
+  <input
+    [id]="id()"
+    [type]="type()"
+    [placeholder]="placeholder()"
+    [disabled]="disabled()"
+    [class.has-error]="!!error()"
+    [value]="value()"
+    (input)="handleInput($event)"
+    (blur)="handleBlur()"
+    class="gh-control"
+  />
+
+  @if (error()) {
+    <p class="gh-error-text">{{ error() }}</p>
+  } @else if (hint()) {
+    <p class="gh-hint-text">{{ hint() }}</p>
+  }
+</div>
+
+

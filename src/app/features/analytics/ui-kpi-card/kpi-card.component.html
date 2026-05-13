@@ -1,0 +1,25 @@
+﻿<!-- libs/analytics/ui-kpi-card/src/lib/kpi-card.component.html -->
+<div class="gh-kpi-card">
+  <div class="gh-kpi-card__header">
+    <h3 class="gh-kpi-card__title">{{ title() }}</h3>
+    @if (icon()) {
+      <div class="gh-kpi-card__icon" aria-hidden="true">{{ icon() }}</div>
+    }
+  </div>
+
+  <div class="gh-kpi-card__body">
+    <div class="gh-kpi-card__value">{{ value() }}</div>
+    
+    @if (trend()) {
+      <div class="gh-kpi-card__trend" [class.is-positive]="trend()!.value > 0" [class.is-negative]="trend()!.value < 0">
+        <span class="gh-kpi-card__trend-icon">
+          {{ trend()!.value > 0 ? '↑' : trend()!.value < 0 ? '↓' : '→' }}
+        </span>
+        <span class="gh-kpi-card__trend-value">{{ trend()!.value }}%</span>
+        <span class="gh-kpi-card__trend-label">{{ trend()!.label }}</span>
+      </div>
+    }
+  </div>
+</div>
+
+

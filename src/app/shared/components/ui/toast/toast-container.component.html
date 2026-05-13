@@ -1,0 +1,26 @@
+﻿<!-- libs/shared/ui/src/lib/toast/toast-container.component.html -->
+<div class="gh-toast-container" role="region" aria-live="polite" aria-label="Notifications">
+  @for (toast of toasts(); track trackById($index, toast)) {
+    <div
+      class="gh-toast"
+      [class]="'gh-toast gh-toast--' + toast.variant"
+      role="alert"
+    >
+      <span class="gh-toast__icon">{{ icon(toast.variant) }}</span>
+      <span class="gh-toast__message">{{ toast.message }}</span>
+      <button
+        class="gh-toast__dismiss"
+        type="button"
+        (click)="dismiss(toast.id)"
+        aria-label="Dismiss"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  }
+</div>
+
+

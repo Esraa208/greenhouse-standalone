@@ -1,0 +1,47 @@
+/* libs/shared/ui/src/lib/progress-bar/progress-bar.component.scss */
+
+.gh-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.gh-progress__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gh-progress__label {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+  font-weight: 500;
+}
+
+.gh-progress__value {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  font-weight: 600;
+}
+
+.gh-progress__track {
+  width: 100%;
+  background-color: var(--color-muted);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  &--sm  { height: 4px; }
+  &--md  { height: 8px; }
+  &--lg  { height: 12px; }
+}
+
+.gh-progress__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+
+  &--primary { background-color: var(--color-primary); }
+  &--success { background-color: var(--color-success); }
+  &--warning { background-color: var(--color-warning); }
+  &--danger  { background-color: var(--color-danger); }
+}

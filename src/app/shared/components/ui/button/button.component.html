@@ -1,0 +1,14 @@
+﻿<button [type]="type()" class="gh-btn-inner">
+  @if (loading()) {
+    <span class="gh-spinner"></span>
+  } @else if (icon()) {
+    <span class="gh-btn-icon">
+      <ng-container *ngTemplateOutlet="icon()!"></ng-container>
+    </span>
+  }
+  <span class="gh-btn-content">
+    <ng-content></ng-content>
+  </span>
+</button>
+
+

@@ -1,0 +1,13 @@
+﻿<!-- libs/shared/ui/src/lib/empty-state/empty-state.component.html -->
+<div class="gh-empty-state">
+  <div class="gh-empty-state__icon" aria-hidden="true">{{ icon() }}</div>
+  <h3 class="gh-empty-state__title">{{ title() }}</h3>
+  <p class="gh-empty-state__description">{{ description() }}</p>
+  @if (action()) {
+    <div class="gh-empty-state__action">
+      <ng-container *ngTemplateOutlet="action()!" />
+    </div>
+  }
+</div>
+
+

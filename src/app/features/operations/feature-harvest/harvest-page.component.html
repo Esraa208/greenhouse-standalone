@@ -1,0 +1,205 @@
+﻿<div class="harvest-page" [attr.dir]="i18n.dir()">
+  <gh-page-header
+    [title]="'harvest.page_title' | translate"
+    [subtitle]="'harvest.page_subtitle' | translate"
+    [buttonLabel]="'harvest.add_button' | translate"
+    (buttonClick)="facade.openCreateModal()"></gh-page-header>
+
+  <gh-table-filters
+    [searchPlaceholder]="'harvest.search' | translate"></gh-table-filters>
+
+  <div class="gh-card">
+    <gh-table [loading]="facade.isLoading()">
+      <thead>
+        <tr>
+          <th>{{ 'harvest.col_date' | translate }}</th>
+          <th>{{ 'harvest.col_batch' | translate }}</th>
+          <th>{{ 'harvest.col_crop' | translate }}</th>
+          <th>{{ 'harvest.col_quantity' | translate }}</th>
+          <th>{{ 'harvest.col_weight' | translate }}</th>
+          <th>{{ 'harvest.col_value' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of facade.items(); track trackById($index, item)) {
+          <tr>
+            <td>
+              <div class="harvest-page__icon-cell">
+                <span>📅</span>
+                <span dir="ltr">{{ item.harvestDate | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="harvest-page__icon-cell">
+                <span>🌱</span>
+                <span class="font-bold">{{ item.batchNumber }}</span>
+              </div>
+            </td>
+            <td>{{ item.cropTypeName }}</td>
+            <td>
+              <gh-badge variant="active">
+                {{ item.quantityHarvested | number }} {{ 'common.plants' | translate }}
+              </gh-badge>
+            </td>
+            <td>
+              <div class="harvest-page__stack">
+                <span class="font-bold">{{ item.netWeight | number:'1.2-2' }} {{ 'common.kg' | translate }}</span>
+                @if (item.rootWeight > 0) {
+                  <span class="harvest-page__text-small">{{ 'harvest.roots_label' | translate }}: {{ item.rootWeight | number:'1.2-2' }} {{ 'common.kg' | translate }}</span>
+                }
+              </div>
+            </td>
+            <td>
+              @if (item.harvestValue) {
+                <div class="harvest-page__icon-cell harvest-page__value-text">
+                  <span>💰</span>
+                  <span>{{ item.harvestValue | number:'1.2-2' }} {{ 'common.sar' | translate }}</span>
+                </div>
+              } @else {
+                <span class="text-muted">—</span>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="text-center py-12">
+              <gh-empty-state icon="📦" [description]="'harvest.empty' | translate"></gh-empty-state>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </gh-table>
+  </div>
+
+  <gh-modal
+    [isOpen]="facade.isModalOpen()"
+    (isOpenChange)="!$event && facade.closeModal()"
+    [title]="'harvest.modal_add' | translate"
+    size="lg">
+    
+    <div class="harvest-page__modal-layout" [formGroup]="harvestForm">
+      
+      <div class="harvest-page__layers-section">
+        <h3 class="harvest-page__section-title">{{ 'harvest.modal_select_layers' | translate }}</h3>
+        
+        <div class="harvest-page__cascade-grid">
+          <gh-form-group [label]="'common.location' | translate">
+            <select ghInput>
+              <option value="">{{ 'common.all' | translate }}</option>
+            </select>
+          </gh-form-group>
+          <gh-form-group [label]="'common.greenhouse' | translate">
+            <select ghInput>
+              <option value="">{{ 'common.all' | translate }}</option>
+            </select>
+          </gh-form-group>
+          <gh-form-group [label]="'common.zone' | translate">
+            <select ghInput>
+              <option value="">{{ 'common.all' | translate }}</option>
+            </select>
+          </gh-form-group>
+          <gh-form-group [label]="'systems.col_name' | translate">
+            <select ghInput>
+              <option value="">{{ 'common.all' | translate }}</option>
+            </select>
+          </gh-form-group>
+        </div>
+
+        <div class="harvest-page__layers-list">
+          <div class="harvest-page__layer-item">
+            <div class="harvest-page__layer-info">
+              <strong>الطبقة 1</strong>
+              <span>نظام NFT-1 • BTH-2026-001 (خس أخضر)</span>
+              <span>120 {{ 'common.plants' | translate }}</span>
+            </div>
+            <gh-button variant="outline" size="sm" (click)="facade.addLayer('layer-1')">
+              {{ 'common.add' | translate }}
+            </gh-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="harvest-page__calc-section">
+        <h3 class="harvest-page__section-title">{{ 'harvest.modal_weight_section' | translate }}</h3>
+        
+        <div class="harvest-page__selected-layers">
+          @for (layer of facade.addedLayers(); track layer) {
+            <div class="harvest-page__selected-item">
+              <span>{{ layer }}</span>
+              <div class="harvest-page__qty-actions">
+                <input ghInput type="number" class="harvest-page__qty-input" [value]="facade.allocationQtys()[layer + '-alloc']" (input)="facade.setAllocationQty(layer + '-alloc', +$any($event.target).value)" />
+                <gh-button variant="outline" size="sm" (click)="facade.removeLayer(layer)">
+                  <span>❌</span>
+                </gh-button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="harvest-page__summary-card">
+          <span class="text-muted">{{ 'harvest.total_plants' | translate }}</span>
+          <span class="harvest-page__summary-val">{{ facade.totalHarvestedPlants() | number }} {{ 'common.plants' | translate }}</span>
+        </div>
+
+        <gh-form-group [label]="'harvest.form_weight_label' | translate" [errorMessage]="'harvest.form_weight_error' | translate" [control]="harvestForm.controls.totalWeight">
+          <input ghInput type="number" step="0.1" [placeholder]="'harvest.form_weight_placeholder' | translate" formControlName="totalWeight" />
+        </gh-form-group>
+
+        <label class="harvest-page__checkbox">
+          <input type="checkbox" formControlName="hasRoots" />
+          <span>{{ 'harvest.form_has_roots' | translate }}</span>
+        </label>
+
+        @if (harvestForm.controls.hasRoots.value) {
+          <gh-form-group [label]="'harvest.form_root_weight_label' | translate" [control]="harvestForm.controls.rootWeightPerPlant">
+            <input ghInput type="number" [placeholder]="'harvest.form_root_weight_placeholder' | translate" formControlName="rootWeightPerPlant" />
+          </gh-form-group>
+          
+          <div class="harvest-page__calc-row">
+            <span>{{ 'harvest.calc_root_weight' | translate }}</span>
+            <span class="font-bold text-danger">{{ (harvestForm.controls.rootWeightPerPlant.value! * facade.totalHarvestedPlants() / 1000) || 0 | number:'1.2-2' }} {{ 'common.kg' | translate }}</span>
+          </div>
+        }
+
+        <div class="harvest-page__calc-row harvest-page__calc-row--highlight">
+          <span>{{ 'harvest.calc_net_weight' | translate }}</span>
+          <span class="font-bold">{{ computedNetWeight | number:'1.2-2' }} {{ 'common.kg' | translate }}</span>
+        </div>
+
+        <div class="harvest-page__divider"></div>
+
+        <gh-form-group [label]="'harvest.form_price_label' | translate" [errorMessage]="'harvest.form_price_error' | translate" [control]="harvestForm.controls.pricePerKg">
+          <input ghInput type="number" step="0.5" [placeholder]="'harvest.form_price_placeholder' | translate" formControlName="pricePerKg" />
+        </gh-form-group>
+
+        <div class="harvest-page__calc-row harvest-page__calc-row--success">
+          <span>{{ 'harvest.calc_total_value' | translate }}</span>
+          <span class="font-bold">{{ computedTotalValue | number:'1.2-2' }} {{ 'common.sar' | translate }}</span>
+        </div>
+
+        <gh-form-group [label]="'harvest.form_customer_label' | translate" [errorMessage]="'harvest.form_customer_error' | translate" [control]="harvestForm.controls.customerId">
+          <select ghInput formControlName="customerId">
+            <option value="">{{ 'harvest.form_customer_placeholder' | translate }}</option>
+            @for (c of facade.customers(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </gh-form-group>
+
+        <gh-form-group [label]="'common.notes' | translate" [control]="harvestForm.controls.notes">
+          <textarea ghInput [placeholder]="'harvest.form_notes_placeholder' | translate" formControlName="notes" rows="2"></textarea>
+        </gh-form-group>
+      </div>
+
+    </div>
+
+    <div slot="footer" class="modal-footer-actions">
+      <gh-button variant="outline" (click)="facade.closeModal()">{{ 'common.cancel' | translate }}</gh-button>
+      <gh-button variant="primary" [disabled]="harvestForm.invalid || facade.totalHarvestedPlants() === 0" (click)="submitHarvest()">
+        {{ 'common.save' | translate }}
+      </gh-button>
+    </div>
+  </gh-modal>
+</div>
+
+

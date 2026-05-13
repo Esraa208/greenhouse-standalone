@@ -1,0 +1,17 @@
+﻿<!-- libs/shared/ui/src/lib/table/table.component.html -->
+<div class="gh-table-wrapper" [class.gh-table-wrapper--loading]="loading()">
+  @if (loading()) {
+    <div class="gh-table-wrapper__overlay" role="status" aria-busy="true" aria-live="polite">
+      <span class="gh-table-wrapper__spinner" aria-hidden="true"></span>
+    </div>
+  }
+  <table
+    class="gh-table"
+    [class.gh-table--striped]="striped()"
+    [class.gh-table--hoverable]="hoverable()"
+  >
+    <ng-content />
+  </table>
+</div>
+
+

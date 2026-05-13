@@ -1,0 +1,27 @@
+﻿<div class="gh-select-wrapper">
+  @if (label()) {
+    <label [for]="id()" class="gh-label">{{ label() }}</label>
+  }
+
+  <ng-select
+    [items]="effectiveOptions()"
+    bindLabel="label"
+    bindValue="value"
+    [ngModel]="value()"
+    (ngModelChange)="onNgSelectChange($event)"
+    [placeholder]="placeholder()"
+    [notFoundText]="notFoundText()"
+    [clearable]="false"
+    [searchable]="false"
+    [disabled]="disabled()"
+    [class.has-error]="!!error()"
+    (blur)="onBlur()"
+    appearance="outline"
+  />
+
+  @if (error()) {
+    <p class="gh-error-text">{{ error() }}</p>
+  } @else if (hint()) {
+    <p class="gh-hint-text">{{ hint() }}</p>
+  }
+</div>

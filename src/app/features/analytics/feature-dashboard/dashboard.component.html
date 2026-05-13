@@ -1,0 +1,75 @@
+﻿<!-- libs/analytics/feature-dashboard/src/lib/dashboard.component.html -->
+<div class="gh-dashboard">
+  <gh-page-header
+    [title]="'nav.dashboard' | translate"
+    [description]="'مرحباً بك في لوحة التحكم الخاصة بنظام إدارة الصوب'"
+  ></gh-page-header>
+
+  @if (isLoading()) {
+    <div class="gh-dashboard__kpi-grid">
+      @for (i of [1,2,3,4]; track i) {
+        <gh-skeleton height="120px" borderRadius="var(--radius-xl)"></gh-skeleton>
+      }
+    </div>
+  } @else if (data(); as d) {
+    <!-- KPI Cards (Top Row) -->
+    <div class="gh-dashboard__kpi-grid">
+      <gh-kpi-card
+        title="إجمالي الإنتاج"
+        [value]="(d.metrics.totalProduction | arabicNumeral) + ' ' + ('common.kg' | translate)"
+        icon="🌱"
+        [trend]="{ value: d.metrics.productionTrend, label: 'مقارنة بالشهر الماضي' }"
+      ></gh-kpi-card>
+
+      <gh-kpi-card
+        title="الدفعات النشطة"
+        [value]="d.metrics.activeBatches | arabicNumeral"
+        icon="📦"
+        [trend]="{ value: d.metrics.batchesTrend, label: 'دفعة جديدة هذا الأسبوع' }"
+      ></gh-kpi-card>
+
+      <gh-kpi-card
+        title="الخسائر"
+        [value]="(d.metrics.lossesKg | arabicNumeral) + ' ' + ('common.kg' | translate)"
+        icon="📉"
+        [trend]="{ value: d.metrics.lossesTrend, label: 'أقل من المعدل' }"
+      ></gh-kpi-card>
+
+      <gh-kpi-card
+        title="الإيرادات"
+        [value]="(d.metrics.revenue | arabicNumeral) + ' ر.س'"
+        icon="💰"
+        [trend]="{ value: d.metrics.revenueTrend, label: 'مقارنة بالشهر الماضي' }"
+      ></gh-kpi-card>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="gh-dashboard__charts-grid">
+      <!-- Main Area Chart -->
+      <gh-card class="gh-dashboard__chart-main">
+        <h3 class="gh-dashboard__chart-title">حجم الإنتاج والإيرادات</h3>
+        <div class="gh-dashboard__chart-container">
+          <gh-line-chart [chartData]="productionChartData()"></gh-line-chart>
+        </div>
+      </gh-card>
+
+      <!-- Zone Bar Chart -->
+      <gh-card class="gh-dashboard__chart-side">
+        <h3 class="gh-dashboard__chart-title">إنتاج المناطق</h3>
+        <div class="gh-dashboard__chart-container gh-dashboard__chart-container--small">
+          <gh-bar-chart [chartData]="zoneChartData()"></gh-bar-chart>
+        </div>
+      </gh-card>
+
+      <!-- Crop Doughnut Chart -->
+      <gh-card class="gh-dashboard__chart-side">
+        <h3 class="gh-dashboard__chart-title">توزيع المحاصيل</h3>
+        <div class="gh-dashboard__chart-container gh-dashboard__chart-container--small">
+          <gh-doughnut-chart [chartData]="cropChartData()"></gh-doughnut-chart>
+        </div>
+      </gh-card>
+    </div>
+  }
+</div>
+
+

@@ -1,0 +1,277 @@
+﻿<div class="reports-page" [attr.dir]="i18n.dir()">
+
+  <gh-page-header
+    [title]="'reports.page_title' | translate"
+    [subtitle]="'reports.page_subtitle' | translate"
+    [buttonLabel]="'reports.export_button' | translate"
+    (buttonClick)="facade.exportReport()" />
+
+  <!-- FILTERS -->
+  <div class="reports-page__filters">
+    <select class="reports-page__filter-select"
+      (change)="onReportTypeChange($event)">
+      <option value="financial">
+        {{ 'reports.type_financial' | translate }}
+      </option>
+      <option value="operational">
+        {{ 'reports.type_operational' | translate }}
+      </option>
+      <option value="crops">
+        {{ 'reports.type_crops' | translate }}
+      </option>
+    </select>
+
+    <select class="reports-page__filter-select"
+      (change)="onDateRangeChange($event)">
+      <option value="week">
+        {{ 'reports.range_week' | translate }}
+      </option>
+      <option value="month" selected>
+        {{ 'reports.range_month' | translate }}
+      </option>
+      <option value="quarter">
+        {{ 'reports.range_quarter' | translate }}
+      </option>
+      <option value="year">
+        {{ 'reports.range_year' | translate }}
+      </option>
+    </select>
+  </div>
+
+  <!-- LOADING -->
+  @if (facade.isLoading()) {
+    <div class="reports-page__loading">
+      <span class="reports-page__spinner"></span>
+    </div>
+  }
+
+  @if (!facade.isLoading() && facade.kpi(); as kpi) {
+
+    <!-- KPI CARDS -->
+    <div class="reports-page__kpi-grid">
+      <div class="reports-page__kpi-card">
+        <div class="reports-page__kpi-icon reports-page__kpi-icon--green">
+          💰
+        </div>
+        <div>
+          <p class="reports-page__kpi-label">
+            {{ 'reports.kpi_harvest_value' | translate }}
+          </p>
+          <p class="reports-page__kpi-value">
+            {{ kpi.totalHarvestValue | number:'1.0-0' }}
+            {{ 'common.sar' | translate }}
+          </p>
+          <p class="reports-page__kpi-trend reports-page__kpi-trend--up">
+            ↑ +12%
+          </p>
+        </div>
+      </div>
+
+      <div class="reports-page__kpi-card">
+        <div class="reports-page__kpi-icon reports-page__kpi-icon--yellow">
+          ⚖️
+        </div>
+        <div>
+          <p class="reports-page__kpi-label">
+            {{ 'reports.kpi_harvest_kg' | translate }}
+          </p>
+          <p class="reports-page__kpi-value">
+            {{ kpi.totalHarvestKg | number }}
+            {{ 'common.kg' | translate }}
+          </p>
+          <p class="reports-page__kpi-trend reports-page__kpi-trend--up">
+            ↑ +8%
+          </p>
+        </div>
+      </div>
+
+      <div class="reports-page__kpi-card">
+        <div class="reports-page__kpi-icon reports-page__kpi-icon--red">
+          📦
+        </div>
+        <div>
+          <p class="reports-page__kpi-label">
+            {{ 'reports.kpi_harvested_batches' | translate }}
+          </p>
+          <p class="reports-page__kpi-value">
+            {{ kpi.harvestedBatches }}
+            {{ 'reports.kpi_batch_unit' | translate }}
+          </p>
+          <p class="reports-page__kpi-trend--muted">
+            {{ 'reports.kpi_of_total' | translate:{ total: '' + kpi.totalBatches } }}
+          </p>
+        </div>
+      </div>
+
+      <div class="reports-page__kpi-card">
+        <div class="reports-page__kpi-icon reports-page__kpi-icon--blue">
+          📊
+        </div>
+        <div>
+          <p class="reports-page__kpi-label">
+            {{ 'reports.kpi_avg_productivity' | translate }}
+          </p>
+          <p class="reports-page__kpi-value">
+            {{ kpi.avgProductivityKgPerBatch }}
+            {{ 'reports.kpi_kg_per_batch' | translate }}
+          </p>
+          <p class="reports-page__kpi-trend reports-page__kpi-trend--up">
+            ↑ +5%
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CROP REVENUE SECTION -->
+    <div class="reports-page__card">
+      <h2 class="reports-page__card-title">
+        {{ 'reports.section_crop_revenue' | translate }}
+      </h2>
+      <p class="reports-page__card-subtitle">
+        {{ 'reports.section_crop_revenue_sub' | translate }}
+      </p>
+
+      <div class="reports-page__crop-list">
+        @for (crop of facade.cropRevenues(); track crop.cropName) {
+          <div class="reports-page__crop-item">
+            <div class="reports-page__crop-row">
+              <div class="reports-page__crop-info">
+                <span class="reports-page__crop-name">
+                  {{ crop.cropName }}
+                </span>
+                <p class="reports-page__crop-sub">
+                  {{ crop.detail }}
+                </p>
+              </div>
+              <div class="reports-page__crop-right">
+                <span class="reports-page__crop-amount">
+                  {{ crop.revenue | number }}
+                  {{ 'common.sar' | translate }}
+                </span>
+                <gh-badge variant="inactive">
+                  {{ crop.percentage }}%
+                </gh-badge>
+              </div>
+            </div>
+            <gh-progress-bar
+              [value]="crop.percentage"
+              [variant]="crop.progressVariant" />
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- BOTTOM GRID -->
+    <div class="reports-page__bottom-grid">
+
+      <!-- Production Stats -->
+      <div class="reports-page__card">
+        <h2 class="reports-page__card-title">
+          {{ 'reports.section_prod_stats' | translate }}
+        </h2>
+
+        <div class="reports-page__stat-list">
+          @for (stat of facade.prodStats(); track stat.labelKey; let last = $last) {
+            <div class="reports-page__stat-row"
+              [class.reports-page__stat-row--last]="last">
+              <span class="reports-page__stat-label">
+                {{ stat.labelKey | translate }}
+              </span>
+              @if (stat.isBadge) {
+                <gh-badge variant="active">{{ stat.value }}</gh-badge>
+              } @else {
+                <span
+                  class="reports-page__stat-value"
+                  [class.reports-page__stat-value--success]="stat.colorClass === 'success'"
+                  [class.reports-page__stat-value--danger]="stat.colorClass === 'danger'"
+                  [class.reports-page__stat-value--primary]="stat.colorClass === 'primary'">
+                  {{ stat.value }}
+                </span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Monthly Trend -->
+      <div class="reports-page__card">
+        <h2 class="reports-page__card-title">
+          {{ 'reports.section_monthly' | translate }}
+        </h2>
+
+        <div class="reports-page__trend-list">
+          @for (month of facade.monthlyTrend(); track month.monthLabel) {
+            <div class="reports-page__trend-item">
+              <div class="reports-page__trend-row">
+                <div class="reports-page__trend-label">
+                  📅 {{ month.monthLabel }}
+                </div>
+                <span class="reports-page__trend-amount">
+                  {{ month.amount | number }}
+                  {{ 'common.sar' | translate }}
+                </span>
+              </div>
+              <gh-progress-bar
+                [value]="month.progressValue"
+                [variant]="month.progressVariant" />
+            </div>
+          }
+        </div>
+
+        <!-- Insight card -->
+        <div class="reports-page__insight-card">
+          <span class="reports-page__insight-icon">↑</span>
+          <div>
+            <p class="reports-page__insight-title">
+              {{ 'reports.insight_positive' | translate }}
+            </p>
+            <p class="reports-page__insight-text">
+              {{ 'reports.insight_comparison' | translate }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BEST PERFORMERS -->
+    <div class="reports-page__card">
+      <h2 class="reports-page__card-title">
+        {{ 'reports.section_best' | translate }}
+      </h2>
+      <p class="reports-page__card-subtitle">
+        {{ 'reports.section_best_sub' | translate }}
+      </p>
+
+      <div class="reports-page__performers-grid">
+        @for (p of facade.bestPerformers(); track p.rank) {
+          <div class="reports-page__performer {{ p.gradientClass }}">
+            <div class="reports-page__performer-header">
+              <gh-badge [variant]="p.badgeVariant">
+                {{ p.rankKey | translate }}
+              </gh-badge>
+              <span class="reports-page__performer-emoji">
+                {{ p.rankEmoji }}
+              </span>
+            </div>
+            <h3 class="reports-page__performer-name">
+              {{ p.cropName }}
+            </h3>
+            <p class="reports-page__performer-weight">
+              {{ p.weightKg | number }} {{ 'common.kg' | translate }}
+            </p>
+            <p class="reports-page__performer-revenue">
+              {{ p.revenue | number }} {{ 'common.sar' | translate }}
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+
+  } @else if (!facade.isLoading()) {
+    <gh-empty-state [title]="'reports.no_data' | translate" />
+  }
+
+</div>
+
+

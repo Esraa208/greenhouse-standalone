@@ -1,0 +1,41 @@
+@if (totalCount() > 0) {
+  <nav class="gh-pagination" aria-label="Pagination">
+    <div class="gh-pagination__info">
+      <span>{{ rangeStart() }}–{{ rangeEnd() }} / {{ totalCount() }}</span>
+    </div>
+
+    @if (totalPages() > 1) {
+      <div class="gh-pagination__controls">
+        <button
+          class="gh-pagination__btn gh-pagination__btn--nav"
+          [disabled]="!hasPrev()"
+          (click)="prev()"
+          aria-label="Previous page">
+          ‹
+        </button>
+
+        @for (page of pages(); track $index) {
+          @if (page === '...') {
+            <span class="gh-pagination__ellipsis">…</span>
+          } @else {
+            <button
+              class="gh-pagination__btn"
+              [class.gh-pagination__btn--active]="page === currentPage()"
+              (click)="goToPage(page)"
+              [attr.aria-current]="page === currentPage() ? 'page' : null">
+              {{ page }}
+            </button>
+          }
+        }
+
+        <button
+          class="gh-pagination__btn gh-pagination__btn--nav"
+          [disabled]="!hasNext()"
+          (click)="next()"
+          aria-label="Next page">
+          ›
+        </button>
+      </div>
+    }
+  </nav>
+}

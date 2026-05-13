@@ -1,0 +1,63 @@
+﻿<!-- libs/shared/ui-layout/src/lib/topbar/topbar.component.html -->
+<header class="gh-topbar">
+
+  <!-- Mobile hamburger -->
+  @if (!isDesktop()) {
+    <button
+      class="gh-topbar__hamburger"
+      (click)="toggleSidebar()"
+      [attr.aria-label]="'topbar.open_menu' | translate"
+      type="button"
+      id="sidebar-toggle"
+    >
+      <span class="gh-hamburger-line"></span>
+      <span class="gh-hamburger-line"></span>
+      <span class="gh-hamburger-line"></span>
+    </button>
+  }
+
+  <!-- Greeting -->
+  <div class="gh-topbar__greeting">
+    <span class="gh-topbar__greeting-text">{{ greeting() | translate }}</span>
+    <span class="gh-topbar__user-name">👋</span>
+  </div>
+
+  <!-- Actions -->
+  <div class="gh-topbar__actions">
+
+    <!-- Language switch -->
+    <div class="gh-topbar__lang-switch" role="group" [attr.aria-label]="'topbar.switch_language' | translate">
+      <button
+        class="gh-lang-btn"
+        [class.gh-lang-btn--active]="currentLang() === 'ar'"
+        (click)="switchLang('ar')"
+        type="button"
+        id="lang-ar"
+      >ع</button>
+      <button
+        class="gh-lang-btn"
+        [class.gh-lang-btn--active]="currentLang() === 'en'"
+        (click)="switchLang('en')"
+        type="button"
+        id="lang-en"
+      >EN</button>
+    </div>
+
+    <!-- Dark mode toggle -->
+    <button
+      class="gh-topbar__icon-btn"
+      (click)="toggleTheme()"
+      [attr.aria-label]="(isDarkMode() ? 'topbar.toggle_light' : 'topbar.toggle_dark') | translate"
+      type="button"
+      id="theme-toggle"
+    >
+      {{ isDarkMode() ? '☀️' : '🌙' }}
+    </button>
+
+    <!-- User avatar -->
+    <gh-avatar [name]="'topbar.profile' | translate" size="sm"></gh-avatar>
+
+  </div>
+</header>
+
+

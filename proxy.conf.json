@@ -1,0 +1,8 @@
+{
+  "/api": {
+    "target": "https://greenhouseapis.shipsync.it.com",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  }
+}

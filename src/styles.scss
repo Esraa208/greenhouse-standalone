@@ -1,0 +1,8 @@
+/* You can add global styles to this file, and also import other style files */
+@use './assets/styles/tokens';
+@use './assets/styles/typography';
+@use './assets/styles/globals';
+@use './assets/styles/page-shell';
+
+/* ng-select base theme */
+@import '@ng-select/ng-select/themes/default.theme.css';

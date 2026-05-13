@@ -1,0 +1,63 @@
+:host {
+  display: block;
+}
+
+.gh-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.gh-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+.gh-control {
+  display: flex;
+  height: 40px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-input-bg);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-foreground);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+  &::placeholder {
+    color: var(--color-muted-foreground);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-ring);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    background-color: var(--color-muted);
+    opacity: 0.7;
+  }
+
+  &.has-error {
+    border-color: var(--color-danger);
+    &:focus {
+      box-shadow: 0 0 0 2px var(--color-danger-bg);
+    }
+  }
+}
+
+.gh-error-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.gh-hint-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted-foreground);
+  margin: 0;
+}

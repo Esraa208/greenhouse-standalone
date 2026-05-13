@@ -1,0 +1,55 @@
+@if (isOpen()) {
+    <div
+      class="dml__backdrop"
+      (click)="closed.emit()"
+      role="button"
+      tabindex="-1"
+      [attr.aria-label]="'common.close' | translate"
+    ></div>
+
+    <div class="dml__container" role="alertdialog" aria-modal="true">
+      <div class="dml__header">
+        <h2 class="dml__title">{{ 'common.confirm_delete' | translate }}</h2>
+        <button class="dml__close-btn" (click)="closed.emit()" [attr.aria-label]="'common.close' | translate">×</button>
+      </div>
+
+      <div class="dml__body">
+        <div class="dml__icon-wrapper">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <h3 class="dml__confirm-title">{{ 'common.delete_permanent' | translate }}</h3>
+        <p class="dml__confirm-text">
+          {{ 'common.delete_confirm_prefix' | translate }}
+          <strong>{{ itemName() }}</strong>
+          {{ 'common.delete_confirm_suffix' | translate }}
+        </p>
+
+        @if (!canDelete()) {
+          <div class="dml__warning-banner" role="alert">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>{{ warningMessage() }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="dml__footer">
+        <button class="dml__btn-cancel" (click)="closed.emit()">
+          {{ 'common.cancel' | translate }}
+        </button>
+        <button
+          class="dml__btn-delete"
+          [disabled]="!canDelete()"
+          (click)="confirmed.emit()"
+        >
+          {{ 'common.delete_confirm_action' | translate }}
+        </button>
+      </div>
+    </div>
+  }

@@ -1,0 +1,235 @@
+<gh-crud-page-shell class="batches-page" [dir]="i18n.dir()">
+
+  <div data-gh-crud-slot="header">
+    <gh-page-header
+      [title]="'batches.page_title' | translate"
+      [subtitle]="'batches.page_subtitle' | translate"
+      [buttonLabel]="'batches.add_button' | translate"
+      (buttonClick)="navigateToPlanting()">
+    </gh-page-header>
+  </div>
+
+  <div data-gh-crud-slot="filters">
+  <gh-table-filters
+    [searchPlaceholder]="'batches.search' | translate"
+    [search]="facade.filters().searchQuery"
+    [sort]="facade.filters().sortBy"
+    [sortOptions]="sortOptions()"
+    [showStatus]="false"
+    (searchChange)="facade.patchFilters({ searchQuery: $event })"
+    (sortChange)="updateSortFilter($event)">
+  </gh-table-filters>
+
+  <!-- Secondary Filter Row -->
+  <div class="batches-page__secondary-filters">
+    <div class="batches-page__filter-group">
+      <span class="batches-page__filter-label">{{ 'batches.col_status' | translate }}</span>
+      <div class="batches-page__filter-pills">
+        @for (opt of statusOptions(); track opt.value) {
+          <gh-button
+            [variant]="facade.filters().status === opt.value ? 'primary' : 'outline'"
+            size="sm"
+            (click)="updateStatusFilter(opt.value)">
+            {{ opt.label }}
+          </gh-button>
+        }
+      </div>
+    </div>
+    <div class="batches-page__filter-group">
+      <span class="batches-page__filter-label">{{ 'batches.col_crop' | translate }}</span>
+      <div class="batches-page__filter-pills">
+        @for (opt of cropTypeOptions(); track opt.value) {
+          <gh-button
+            [variant]="facade.filters().cropType === opt.value ? 'primary' : 'outline'"
+            size="sm"
+            (click)="updateCropTypeFilter(opt.value)">
+            {{ opt.label }}
+          </gh-button>
+        }
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div data-gh-crud-slot="body">
+    <gh-entity-list-section
+      [loading]="facade.isLoading()"
+      [itemCount]="facade.filteredItems().length"
+      emptyTitleKey="batches.empty">
+        <thead>
+          <tr>
+            <th>{{ 'batches.col_number' | translate }}</th>
+            <th>{{ 'batches.col_crop' | translate }}</th>
+            <th>{{ 'batches.col_location' | translate }}</th>
+            <th>{{ 'batches.col_quantity' | translate }}</th>
+            <th>{{ 'batches.col_date' | translate }}</th>
+            <th>{{ 'batches.col_status' | translate }}</th>
+            <th>{{ 'batches.col_growth' | translate }}</th>
+            <th>{{ 'batches.col_actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of facade.filteredItems(); track row.id) {
+            <tr class="gh-table__row">
+              <td>
+                <div class="batches-page__batch-cell">
+                  <span>🌱</span>
+                  <span class="batches-page__batch-number">{{ row.batchNumber }}</span>
+                </div>
+              </td>
+              <td><span class="batches-page__crop">{{ row.cropType }}</span></td>
+              <td>
+                <div class="batches-page__location">
+                  <span>{{ row.location }}</span>
+                  <span class="batches-page__greenhouse">{{ row.greenhouse }}</span>
+                </div>
+              </td>
+              <td>
+                <div>
+                  <span class="batches-page__quantity">
+                    {{ row.quantity | number }} {{ 'common.plants' | translate }}
+                  </span>
+                  <div class="batches-page__initial">
+                    {{ 'batches.col_from' | translate }} {{ row.initialQuantity | number }}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="batches-page__date">
+                  {{ (row.plantingDate || row.plantedDate) | date:'shortDate':'':i18n.currentLang() }}
+                </div>
+              </td>
+              <td>
+                <gh-badge [variant]="statusVariant(row)">
+                  {{ ('batches.status_' + row.status) | translate }}
+                </gh-badge>
+              </td>
+              <td>
+                <div class="batches-page__growth">
+                  <div class="batches-page__growth-header">
+                    <span class="batches-page__stage">{{ growthStageLabel(row) }}</span>
+                    <span class="batches-page__days">
+                      {{ facade.daysElapsed(row) }} / {{ row.growthDurationDays || row.totalDays }}
+                      {{ 'common.days' | translate }}
+                    </span>
+                  </div>
+                  <gh-progress-bar
+                    [value]="facade.daysElapsed(row)"
+                    [max]="row.growthDurationDays || row.totalDays || 1"
+                    [variant]="progressVariant(row)"
+                    size="sm">
+                  </gh-progress-bar>
+                </div>
+              </td>
+              <td>
+                <div class="cell-actions">
+                  <gh-button variant="ghost" size="sm" (click)="facade.openViewModal(row)">
+                    👁️ {{ 'common.view' | translate }}
+                  </gh-button>
+                  @if (row.status === 'active') {
+                    <gh-button variant="ghost" size="sm" (click)="facade.openDeleteModal(row)">
+                      🗑️ {{ 'common.delete' | translate }}
+                    </gh-button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+    </gh-entity-list-section>
+  </div>
+
+  <!-- View Details Modal -->
+  <gh-modal
+    [isOpen]="facade.isViewModalOpen()"
+    [title]="'batches.modal_details' | translate"
+    size="md"
+    (closed)="facade.closeViewModal()">
+    @if (facade.viewingItem(); as batch) {
+      <div class="batches-page__details">
+        <div class="batches-page__details-header">
+          <div class="batches-page__details-title">
+            <h2>{{ batch.batchNumber }}</h2>
+            <p>{{ batch.cropType }}</p>
+          </div>
+          <gh-badge [variant]="statusVariant(batch)">
+            {{ ('batches.status_' + batch.status) | translate }}
+          </gh-badge>
+        </div>
+        <div class="batches-page__details-content">
+          <div class="batches-page__details-group">
+            <h4>{{ 'batches.details_location' | translate }}</h4>
+            <div class="batches-page__details-card">
+              <div class="batches-page__details-field">
+                <span class="batches-page__field-label">{{ 'common.location' | translate }}</span>
+                <span class="batches-page__field-value">{{ batch.location }}</span>
+              </div>
+              <div class="batches-page__details-field">
+                <span class="batches-page__field-label">{{ 'common.greenhouse' | translate }}</span>
+                <span class="batches-page__field-value">{{ batch.greenhouse }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="batches-page__details-group">
+            <h4>{{ 'batches.details_quantity' | translate }}</h4>
+            <div class="batches-page__details-card batches-page__details-card--row">
+              <div class="batches-page__details-field">
+                <span class="batches-page__field-label">{{ 'batches.col_quantity' | translate }}</span>
+                <span class="batches-page__field-value batches-page__field-value--large">{{ batch.quantity | number }}</span>
+              </div>
+              <div class="batches-page__details-divider"></div>
+              <div class="batches-page__details-field batches-page__details-field--end">
+                <span class="batches-page__field-label">{{ 'batches.col_from' | translate }}</span>
+                <span class="batches-page__field-value batches-page__field-value--muted">{{ batch.initialQuantity | number }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="batches-page__details-group">
+          <h4>{{ 'batches.details_timeline' | translate }}</h4>
+          <div class="batches-page__details-card batches-page__details-card--full">
+            <div class="batches-page__timeline-grid">
+              <div class="batches-page__details-field">
+                <span class="batches-page__field-label">{{ 'batches.col_date' | translate }}</span>
+                <span class="batches-page__field-value">{{ (batch.plantingDate || batch.plantedDate) | date:'mediumDate':'':i18n.currentLang() }}</span>
+              </div>
+              <div class="batches-page__details-field">
+                <span class="batches-page__field-label">{{ 'batches.growth_duration' | translate }}</span>
+                <span class="batches-page__field-value">{{ batch.growthDurationDays || batch.totalDays }} {{ 'common.days' | translate }}</span>
+              </div>
+              <div class="batches-page__details-field batches-page__details-field--end">
+                <span class="batches-page__field-label">{{ 'batches.growth_stage' | translate }}</span>
+                <span class="batches-page__field-value batches-page__field-value--primary">{{ growthStageLabel(batch) }}</span>
+              </div>
+            </div>
+            <gh-progress-bar
+              [value]="facade.daysElapsed(batch)"
+              [max]="batch.growthDurationDays || batch.totalDays || 1"
+              [variant]="progressVariant(batch)"
+              size="md">
+            </gh-progress-bar>
+            <div class="batches-page__progress-label">
+              {{ facade.daysElapsed(batch) }} / {{ batch.growthDurationDays || batch.totalDays }} {{ 'common.days' | translate }}
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+    <div slot="footer" class="modal-footer-actions">
+      <gh-button variant="outline" (click)="facade.closeViewModal()">{{ 'common.close' | translate }}</gh-button>
+    </div>
+  </gh-modal>
+
+  <!-- Delete Confirmation -->
+  <gh-delete-confirm-modal
+    [isOpen]="facade.isDeleteModalOpen()"
+    [itemName]="facade.deletingItem()?.batchNumber ?? ''"
+    [canDelete]="true"
+    [warningMessage]="'batches.delete_warning' | translate"
+    (closed)="facade.closeDeleteModal()"
+    (confirmed)="facade.confirmDelete()">
+  </gh-delete-confirm-modal>
+
+</gh-crud-page-shell>
+
+

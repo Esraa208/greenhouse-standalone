@@ -1,0 +1,66 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+:host(.gh-badge-default) {
+  background-color: var(--color-muted);
+  color: var(--color-foreground);
+}
+
+:host(.gh-badge-success) {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+:host(.gh-badge-warning) {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+:host(.gh-badge-danger) {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+:host(.gh-badge-info) {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+/* active = green (same as success) */
+:host(.gh-badge-active) {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+/* inactive = muted purple */
+:host(.gh-badge-inactive) {
+  background-color: var(--color-muted);
+  color: var(--color-muted-foreground);
+}
+
+/* full = green */
+:host(.gh-badge-full) {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+/* partial = amber */
+:host(.gh-badge-partial) {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+/* empty = muted */
+:host(.gh-badge-empty) {
+  background-color: var(--color-muted);
+  color: var(--color-muted-foreground);
+}

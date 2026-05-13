@@ -1,0 +1,197 @@
+﻿import { DestroyRef, WritableSignal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
+import { merge, Observable, Subject } from 'rxjs';
+import { debounceTime, finalize, switchMap } from 'rxjs/operators';
+import type { PaginatedResult } from './list-query';
+
+/** Shared filter fields for infrastructure list facades. */
+export type ListFacadeFilters = {
+  searchQuery: string;
+  status: string;
+  sortBy: string;
+};
+
+/**
+ * Applies a filter patch and triggers the correct reload stream (debounced search vs immediate).
+ * Skips network reload when only `sortBy` changes (client-side sort).
+ */
+/** Update filter signals only (no server refetch). Client-side search/status/filter on `#items`. */
+export function patchListFiltersClientOnly<F extends ListFacadeFilters>(
+  patch: Partial<F>,
+  filters: WritableSignal<F>,
+  pageNumber: WritableSignal<number>
+): void {
+  filters.update((curr) => ({ ...curr, ...patch }));
+  if (Object.prototype.hasOwnProperty.call(patch, 'searchQuery')) {
+    pageNumber.set(1);
+  }
+}
+
+export function applyListFilterPatch<F extends ListFacadeFilters>(
+  patch: Partial<F>,
+  filters: WritableSignal<F>,
+  pageNumber: WritableSignal<number>,
+  reloadNow$: Subject<void>,
+  reloadSearch$: Subject<void>
+): void {
+  filters.update((curr) => ({ ...curr, ...patch }));
+  const patchKeys = Object.keys(patch);
+  const hasSearch = Object.prototype.hasOwnProperty.call(patch, 'searchQuery');
+  const hasStatus = Object.prototype.hasOwnProperty.call(patch, 'status');
+  const hasSort = Object.prototype.hasOwnProperty.call(patch, 'sortBy');
+  const hasOtherFilter = patchKeys.some((k) => k !== 'sortBy');
+  if (hasSearch || hasStatus || hasOtherFilter) {
+    pageNumber.set(1);
+  }
+  if (hasSearch) {
+    reloadSearch$.next();
+  } else if (hasStatus) {
+    reloadNow$.next();
+  } else if (hasSort) {
+    reloadNow$.next();
+  } else if (patchKeys.length > 0) {
+    reloadNow$.next();
+  }
+}
+
+/**
+ * Wires `reloadNow$` + debounced `reloadSearch$` into a single list load subscription.
+ * Supports both `Observable<T[]>` (legacy) and `Observable<PaginatedResult<T>>`.
+ */
+export function bindListReloadStream<T>(opts: {
+  destroyRef: DestroyRef;
+  reloadNow$: Subject<void>;
+  reloadSearch$: Subject<void>;
+  debounceMs?: number;
+  load: () => Observable<PaginatedResult<T>>;
+  setItems: (items: T[]) => void;
+  setLoading: (v: boolean) => void;
+  setError: (msg: string | null) => void;
+  setPagination?: (p: { totalCount: number; pageNumber: number; pageSize: number; totalPages: number }) => void;
+}): void {
+  const debounceMs = opts.debounceMs ?? 350;
+  merge(opts.reloadNow$, opts.reloadSearch$.pipe(debounceTime(debounceMs)))
+    .pipe(
+      switchMap(() => {
+        opts.setLoading(true);
+        opts.setError(null);
+        return opts.load().pipe(finalize(() => opts.setLoading(false)));
+      }),
+      takeUntilDestroyed(opts.destroyRef)
+    )
+    .subscribe({
+      next: (result) => {
+        opts.setItems(result.items);
+        opts.setPagination?.({
+          totalCount: result.totalCount,
+          pageNumber: result.pageNumber,
+          pageSize: result.pageSize,
+          totalPages: result.totalPages,
+        });
+      },
+      error: (err: unknown) => {
+        opts.setError(err instanceof Error ? err.message : String(err));
+      },
+    });
+}
+
+/**
+ * Runs a mutation then reloads the full list (create / update / delete flow).
+ */
+export function subscribeMutationReloadList<T>(opts: {
+  destroyRef: DestroyRef;
+  mutation$: Observable<unknown>;
+  reloadList: () => Observable<T[]>;
+  setLoading: (v: boolean) => void;
+  setError: (msg: string | null) => void;
+  setItems: (items: T[]) => void;
+  onError?: (message: string) => void;
+}): void {
+  opts.setLoading(true);
+  opts.setError(null);
+  opts.mutation$
+    .pipe(
+      switchMap(() => opts.reloadList()),
+      finalize(() => opts.setLoading(false)),
+      takeUntilDestroyed(opts.destroyRef)
+    )
+    .subscribe({
+      next: (items) => opts.setItems(items),
+      error: (err: unknown) => {
+        const message = extractApiErrorMessage(err);
+        opts.setError(message);
+        opts.onError?.(message);
+      },
+    });
+}
+
+/**
+ * Uses the mutation response body only (e.g. created/updated row with server `id`) — **no extra GET list**.
+ * Aligns with Swagger flows where POST/PUT return the entity.
+ */
+export function subscribeMutationWithResult<T>(opts: {
+  destroyRef: DestroyRef;
+  mutation$: Observable<T>;
+  setLoading: (v: boolean) => void;
+  setError: (msg: string | null) => void;
+  onSuccess: (result: T) => void;
+  onError?: (message: string) => void;
+}): void {
+  opts.setLoading(true);
+  opts.setError(null);
+  opts.mutation$
+    .pipe(finalize(() => opts.setLoading(false)), takeUntilDestroyed(opts.destroyRef))
+    .subscribe({
+      next: (result) => opts.onSuccess(result),
+      error: (err: unknown) => {
+        const message = extractApiErrorMessage(err);
+        opts.setError(message);
+        opts.onError?.(message);
+      },
+    });
+}
+
+/** For DELETE / no response body: update local list without refetching. */
+export function subscribeMutationWithVoid(opts: {
+  destroyRef: DestroyRef;
+  mutation$: Observable<unknown>;
+  setLoading: (v: boolean) => void;
+  setError: (msg: string | null) => void;
+  onSuccess: () => void;
+  onError?: (message: string) => void;
+}): void {
+  opts.setLoading(true);
+  opts.setError(null);
+  opts.mutation$
+    .pipe(finalize(() => opts.setLoading(false)), takeUntilDestroyed(opts.destroyRef))
+    .subscribe({
+      next: () => opts.onSuccess(),
+      error: (err: unknown) => {
+        const message = extractApiErrorMessage(err);
+        opts.setError(message);
+        opts.onError?.(message);
+      },
+    });
+}
+
+export function extractApiErrorMessage(err: unknown): string {
+  if (err instanceof HttpErrorResponse) {
+    const apiMessage = (err.error as { message?: unknown } | null | undefined)?.message;
+    if (typeof apiMessage === 'string' && apiMessage.trim()) {
+      return apiMessage;
+    }
+    if (typeof err.message === 'string' && err.message.trim()) {
+      return err.message;
+    }
+  }
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+  return String(err);
+}
+
+
+
+
+

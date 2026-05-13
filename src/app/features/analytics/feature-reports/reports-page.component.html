@@ -1,0 +1,100 @@
+<div class="reports-page">
+  <gh-page-header
+    [title]="'nav.reports' | translate"
+    [subtitle]="'reports.page_subtitle' | translate"
+  >
+    <ng-template>
+      <gh-button variant="outline" size="sm">
+        <span>📥</span> {{ 'reports.btn_export' | translate }}
+      </gh-button>
+    </ng-template>
+  </gh-page-header>
+
+  <div class="reports-page__controls">
+    <gh-segmented-control
+      [options]="[{label: 'reports.tab_summary' | translate, value: 'summary'}, {label: 'reports.tab_costs' | translate, value: 'costs'}]"
+      [value]="activeTab()"
+      (valueChange)="onTabChange($event)" />
+  </div>
+
+  <div class="gh-card">
+    <gh-table [loading]="isLoading()">
+      <!-- SUMMARY TAB -->
+      @if (activeTab() === 'summary') {
+        <thead>
+          <tr>
+            <th>{{ 'reports.col_period' | translate }}</th>
+            <th>{{ 'reports.col_revenue' | translate }}</th>
+            <th>{{ 'reports.col_costs' | translate }}</th>
+            <th>{{ 'reports.col_profit' | translate }}</th>
+            <th>{{ 'reports.col_production' | translate }}</th>
+            <th>{{ 'reports.col_loss_rate' | translate }}</th>
+            <th>{{ 'reports.col_status' | translate }}</th>
+            <th>{{ 'reports.col_actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of summaries(); track trackBySummaryId($index, item)) {
+            <tr>
+              <td class="font-bold">
+                <div class="flex items-center gap-2">
+                  <span>📅</span>
+                  <span>{{ item.period }}</span>
+                </div>
+              </td>
+              <td class="text-success">{{ item.totalRevenue | arabicNumeral }} {{ 'reports.currency' | translate }}</td>
+              <td class="text-danger">{{ item.totalCosts | arabicNumeral }} {{ 'reports.currency' | translate }}</td>
+              <td class="font-bold" [class.text-danger]="item.netProfit < 0" [class.text-success]="item.netProfit > 0">
+                {{ item.netProfit > 0 ? '+' : '' }}{{ item.netProfit | arabicNumeral }} {{ 'reports.currency' | translate }}
+              </td>
+              <td>{{ item.totalProduction | arabicNumeral }}</td>
+              <td>{{ item.lossRate | arabicNumeral }}%</td>
+              <td>
+                <gh-badge [variant]="item.status === 'published' ? 'success' : 'default'">
+                  {{ (item.status === 'published' ? 'reports.status_published' : 'reports.status_draft') | translate }}
+                </gh-badge>
+              </td>
+              <td>
+                <div class="cell-actions">
+                  <gh-button variant="ghost" size="sm" (click)="download(item.id)">
+                    📥 {{ 'reports.btn_download' | translate }}
+                  </gh-button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      }
+
+      <!-- COSTS MATRIX TAB -->
+      @if (activeTab() === 'costs') {
+        <thead>
+          <tr>
+            <th>{{ 'reports.col_category' | translate }}</th>
+            <th>{{ 'reports.col_month' | translate }}</th>
+            <th>{{ 'reports.col_amount' | translate }}</th>
+            <th>{{ 'reports.col_variance' | translate }}</th>
+            <th>{{ 'reports.col_notes' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of costMatrix(); track trackByCostId($index, item)) {
+            <tr>
+              <td class="font-bold">{{ item.category }}</td>
+              <td>{{ item.month }}</td>
+              <td class="font-mono">{{ item.amount | arabicNumeral }} {{ 'reports.currency' | translate }}</td>
+              <td>
+                <span class="variance-badge" [class.variance-badge--danger]="item.variance > 0" [class.variance-badge--success]="item.variance <= 0">
+                  {{ item.variance > 0 ? '+' : '' }}{{ item.variance | arabicNumeral }}%
+                </span>
+              </td>
+              <td class="text-muted">{{ item.notes || '-' }}</td>
+            </tr>
+          }
+        </tbody>
+      }
+    </gh-table>
+  </div>
+</div>
+
+

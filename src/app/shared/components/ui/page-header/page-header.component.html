@@ -1,0 +1,38 @@
+﻿<!-- libs/shared/ui/src/lib/page-header/page-header.component.html -->
+<div class="gh-page-header">
+  <div class="gh-page-header__content">
+    @if (breadcrumbs().length > 0) {
+      <div class="gh-page-header__breadcrumbs">
+        @for (item of breadcrumbs(); track item.label; let last = $last) {
+          <span class="gh-breadcrumb__item" [class.gh-breadcrumb__item--active]="last">
+            {{ item.label }}
+          </span>
+          @if (!last) {
+            <span class="gh-breadcrumb__sep">/</span>
+          }
+        }
+      </div>
+    }
+  
+    <h1 class="gh-page-header__title">{{ title() }}</h1>
+    
+    @if (subtitle() || description()) {
+      <p class="gh-page-header__subtitle">{{ subtitle() || description() }}</p>
+    }
+  </div>
+
+  <div class="gh-page-header__actions">
+    @if (buttonLabel()) {
+      <button class="gh-page-header__btn" (click)="buttonClick.emit()">
+        <span class="gh-page-header__btn-icon">+</span>
+        {{ buttonLabel() }}
+      </button>
+    }
+    
+    @if (actions()) {
+      <ng-container *ngTemplateOutlet="actions()!"></ng-container>
+    }
+  </div>
+</div>
+
+

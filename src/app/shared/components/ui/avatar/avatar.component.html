@@ -1,0 +1,8 @@
+﻿<!-- libs/shared/ui/src/lib/avatar/avatar.component.html -->
+@if (imageUrl()) {
+  <img [src]="imageUrl()!" [alt]="name()" class="gh-avatar__img" />
+} @else {
+  <span class="gh-avatar__initials">{{ initials() }}</span>
+}
+
+

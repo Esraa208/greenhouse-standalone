@@ -1,0 +1,275 @@
+﻿<div class="pipes-page" [attr.dir]="i18n.dir()">
+
+  <gh-page-header
+    [title]="'pipes.page_title' | translate"
+    [subtitle]="'pipes.page_subtitle' | translate"
+    [buttonLabel]="'pipes.add_button' | translate"
+    (buttonClick)="facade.openCreateModal()" />
+
+  <!-- Filter Row 1: search + sort + status -->
+  <gh-table-filters
+    [searchPlaceholder]="'pipes.search' | translate"
+    [search]="facade.filters().searchQuery"
+    [status]="facade.filters().status"
+    [sort]="facade.filters().sortBy"
+    [sortOptions]="sortOptions()"
+    (searchChange)="facade.patchFilters({ searchQuery: $event })"
+    (statusChange)="onStatusFilterChange($event)"
+    (sortChange)="onSortFilterChange($event)" />
+
+  <!-- Filter Row 2: hierarchical location → greenhouse → zone → system → layer -->
+  <div class="gh-filter-row-secondary">
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().locationId"
+      (change)="facade.patchFilters({ locationId: $any($event.target).value, greenhouseId: 'all', zoneId: 'all', systemId: 'all', layerId: 'all' })"
+      id="gh-pipes-filter-location"
+    >
+      <option value="all">{{ 'pipes.filter_all_locations' | translate }}</option>
+      @for (loc of filterLocations(); track loc.id) {
+        <option [value]="loc.id">{{ loc.name }}</option>
+      }
+    </select>
+
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().greenhouseId"
+      (change)="facade.patchFilters({ greenhouseId: $any($event.target).value, zoneId: 'all', systemId: 'all', layerId: 'all' })"
+      id="gh-pipes-filter-greenhouse"
+    >
+      <option value="all">{{ 'pipes.filter_all_greenhouses' | translate }}</option>
+      @for (gh of filterGreenhouses(); track gh.id) {
+        <option [value]="gh.id">{{ gh.name }}</option>
+      }
+    </select>
+
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().zoneId"
+      (change)="facade.patchFilters({ zoneId: $any($event.target).value, systemId: 'all', layerId: 'all' })"
+      id="gh-pipes-filter-zone"
+    >
+      <option value="all">{{ 'pipes.filter_all_zones' | translate }}</option>
+      @for (z of filterZones(); track z.id) {
+        <option [value]="z.id">{{ z.name }}</option>
+      }
+    </select>
+
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().systemId"
+      (change)="facade.patchFilters({ systemId: $any($event.target).value, layerId: 'all' })"
+      id="gh-pipes-filter-system"
+    >
+      <option value="all">{{ 'pipes.filter_all_systems' | translate }}</option>
+      @for (sys of filterSystems(); track sys.id) {
+        <option [value]="sys.id">{{ sys.name }}</option>
+      }
+    </select>
+
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().layerId"
+      (change)="facade.patchFilters({ layerId: $any($event.target).value })"
+      id="gh-pipes-filter-layer"
+    >
+      <option value="all">{{ 'pipes.filter_all_layers' | translate }}</option>
+      @for (layer of filterLayers(); track layer.id) {
+        <option [value]="layer.id">{{ layer.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="gh-card">
+    @if (facade.isLoading() && filteredItems().length === 0) {
+      <div class="gh-card__list-loading" role="status" aria-busy="true" aria-live="polite">
+        <span class="gh-card__list-loading-spinner" aria-hidden="true"></span>
+      </div>
+    } @else if (!facade.isLoading() && filteredItems().length === 0) {
+      <gh-empty-state [title]="'pipes.empty' | translate" />
+    } @else {
+      <gh-table [loading]="facade.isLoading()">
+        <thead>
+          <tr>
+            <th>{{ 'pipes.col_name' | translate }}</th>
+            <th>{{ 'pipes.col_layer' | translate }}</th>
+            <th>{{ 'pipes.col_capacity' | translate }}</th>
+            <th>{{ 'pipes.col_fill_state' | translate }}</th>
+            <th>{{ 'pipes.col_occupancy' | translate }}</th>
+            <th>{{ 'pipes.col_status' | translate }}</th>
+            <th>{{ 'pipes.col_actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of filteredItems(); track row.id) {
+            <tr>
+              <!-- Col 1: pipe icon + name -->
+              <td>
+                <div class="cell-with-icon">
+                  <span class="cell-icon cell-icon--primary">🪈</span>
+                  <span class="cell-name">{{ row.name }}</span>
+                </div>
+              </td>
+              <!-- Col 2: layer name -->
+              <td><span class="cell-muted">{{ row.layerName }}</span></td>
+              <!-- Col 3: capacity "N نبتة" -->
+              <td>
+                <span class="cell-number">{{ row.capacity | number }} {{ 'pipes.unit_plant' | translate }}</span>
+              </td>
+              <!-- Col 4: fill-state badge (ممتلئ / جزئي / فارغ) -->
+              <td>
+                @if (row.occupiedCapacity === row.capacity && row.capacity > 0) {
+                  <gh-badge variant="full">{{ 'pipes.fill_full' | translate }}</gh-badge>
+                } @else if (row.occupiedCapacity > 0) {
+                  <gh-badge variant="partial">{{ 'pipes.fill_partial' | translate }}</gh-badge>
+                } @else {
+                  <gh-badge variant="empty">{{ 'pipes.fill_empty' | translate }}</gh-badge>
+                }
+              </td>
+              <!-- Col 5: occupancy progress bar "N / N (N%)" -->
+              <td>
+                <div class="occupancy-cell">
+                  <div class="occupancy-text">
+                    <span>{{ row.occupiedCapacity | number }} / {{ row.capacity | number }}
+                      ({{ utilizationPct(row) }}%)</span>
+                  </div>
+                  <gh-progress-bar
+                    [value]="row.occupiedCapacity"
+                    [max]="row.capacity"
+                    size="sm"
+                    [variant]="utilizationPct(row) === 100 ? 'warning' : row.occupiedCapacity > 0 ? 'warning' : 'success'"
+                  />
+                </div>
+              </td>
+              <!-- Col 6: status badge -->
+              <td>
+                <gh-badge [variant]="statusVariant(row.status)">
+                  {{ (row.status === 'active' ? 'common.active' : 'common.inactive') | translate }}
+                </gh-badge>
+              </td>
+              <!-- Col 7: actions — حذف disabled if has plants -->
+              <td>
+                <div class="cell-actions">
+                  <gh-button variant="ghost" size="sm" (click)="openEditModal(row)">
+                    ✏️ {{ 'common.edit' | translate }}
+                  </gh-button>
+                  <gh-button variant="ghost" size="sm"
+                    [disabled]="row.occupiedCapacity > 0"
+                    (click)="facade.openDeleteModal(row)">
+                    🗑️ {{ 'common.delete' | translate }}
+                  </gh-button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </gh-table>
+      <gh-pagination
+        [currentPage]="facade.currentPage()"
+        [totalPages]="facade.totalPages()"
+        [totalCount]="facade.totalCount()"
+        [pageSize]="facade.pageSize()"
+        (pageChange)="facade.goToPage($event)" />
+    }
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <gh-modal
+    [isOpen]="facade.isModalOpen()"
+    (isOpenChange)="!$event && facade.closeModal()"
+    [title]="(facade.editingItem() ? 'pipes.modal_edit' : 'pipes.modal_add') | translate"
+    size="md"
+  >
+    <div [formGroup]="form">
+      <!-- Name -->
+      <gh-form-group
+        [label]="'pipes.form_name_label' | translate"
+        [control]="form.get('name')!"
+        [errorMessage]="'pipes.form_name_error' | translate">
+        <input ghInput type="text" formControlName="name"
+          [placeholder]="'pipes.form_name_placeholder' | translate" />
+      </gh-form-group>
+
+      <!-- Capacity -->
+      <gh-form-group
+        [label]="'pipes.form_capacity_label' | translate"
+        [control]="form.get('capacity')!"
+        [errorMessage]="'pipes.form_capacity_error' | translate">
+        <input ghInput type="number" formControlName="capacity" min="0"
+          (keydown)="$event.key === '-' || $event.key === 'e' || $event.key === '+' ? $event.preventDefault() : null" />
+      </gh-form-group>
+
+      <div class="gh-form-row">
+        <gh-select class="gh-flex-1"
+          formControlName="locationId"
+          [items]="modalLocations()"
+          [placeholder]="'pipes.filter_all_locations' | translate"
+          (selectionChange)="onLocationChange($event)"
+        />
+        <gh-select class="gh-flex-1"
+          formControlName="greenhouseId"
+          [items]="availableGreenhouses()"
+          [placeholder]="'pipes.filter_all_greenhouses' | translate"
+          (selectionChange)="onGreenhouseChange($event)"
+        />
+      </div>
+
+      <div class="gh-form-row">
+        <gh-select class="gh-flex-1"
+          formControlName="zoneId"
+          [items]="availableZones()"
+          [placeholder]="'pipes.filter_all_zones' | translate"
+          (selectionChange)="onZoneChange($event)"
+        />
+        <gh-select class="gh-flex-1"
+          formControlName="systemId"
+          [items]="availableSystems()"
+          [placeholder]="'pipes.filter_all_systems' | translate"
+          (selectionChange)="onSystemChange($event)"
+        />
+      </div>
+
+      <!-- Layer -->
+      <div class="gh-form-row">
+        <gh-select class="gh-flex-1"
+          formControlName="layerId"
+          [items]="availableLayers()"
+          [placeholder]="'pipes.form_layer_placeholder' | translate"
+        />
+      </div>
+
+      @if (facade.editingItem()) {
+      <div class="gh-form-section">
+        <gh-form-group
+          [label]="'pipes.form_status_label' | translate"
+          [control]="form.get('status')!">
+          <gh-segmented-control
+            [options]="statusOptions()"
+            [value]="form.get('status')?.value ?? 'active'"
+            (valueChange)="setStatus($event)" />
+        </gh-form-group>
+      </div>
+      }
+    </div>
+
+    <div slot="footer" class="flex gap-3">
+      <gh-button variant="outline" (click)="facade.closeModal()">
+        {{ 'common.cancel' | translate }}
+      </gh-button>
+      <gh-button variant="primary" [disabled]="form.invalid" (click)="submitForm()">
+        {{ (facade.editingItem() ? 'common.save' : 'pipes.add_button') | translate }}
+      </gh-button>
+    </div>
+  </gh-modal>
+
+  <!-- Delete Modal -->
+  <gh-delete-confirm-modal
+    [isOpen]="facade.isDeleteModalOpen()"
+    [itemName]="facade.deletingItem()?.name ?? ''"
+    [canDelete]="(facade.deletingItem()?.occupiedCapacity ?? 0) === 0"
+    [warningMessage]="'pipes.delete_warning' | translate"
+    (closed)="facade.closeDeleteModal()"
+    (confirmed)="facade.confirmDelete()" />
+</div>
+
+

@@ -1,0 +1,28 @@
+﻿<!-- libs/shared/ui-layout/src/lib/main-layout/main-layout.component.html -->
+<div class="gh-layout">
+
+  <!-- Sidebar -->
+  <gh-sidebar
+    [(isOpen)]="sidebarOpen"
+    [currentRoute]="currentRoute()"
+  ></gh-sidebar>
+
+  <!-- Main area -->
+  <div class="gh-layout__main">
+
+    <!-- TopBar -->
+    <gh-topbar [(sidebarOpen)]="sidebarOpen"></gh-topbar>
+
+    <!-- Page content -->
+    <main class="gh-layout__content" id="main-content" role="main">
+      <router-outlet></router-outlet>
+    </main>
+
+  </div>
+
+  <!-- Global toast notifications -->
+  <gh-toast-container></gh-toast-container>
+
+</div>
+
+

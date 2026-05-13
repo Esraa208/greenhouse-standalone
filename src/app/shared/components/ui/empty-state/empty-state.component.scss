@@ -1,0 +1,39 @@
+/* libs/shared/ui/src/lib/empty-state/empty-state.component.scss */
+
+.gh-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  background-color: var(--color-card);
+  border-radius: var(--radius-xl);
+  border: 1px dashed var(--color-border);
+}
+
+.gh-empty-state__icon {
+  font-size: 3rem;
+  margin-block-end: var(--space-4);
+  opacity: 0.8;
+}
+
+.gh-empty-state__title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.gh-empty-state__description {
+  margin: 0 0 var(--space-6) 0;
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.gh-empty-state__action {
+  display: flex;
+  justify-content: center;
+}

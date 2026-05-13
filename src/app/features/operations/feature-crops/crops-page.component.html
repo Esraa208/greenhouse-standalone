@@ -1,0 +1,167 @@
+﻿<div class="crops-page" [attr.dir]="i18n.dir()">
+
+  <!-- Page Header -->
+  <gh-page-header
+    [title]="'crops.page_title' | translate"
+    [subtitle]="'crops.page_subtitle' | translate"
+    [buttonLabel]="'crops.add_button' | translate"
+    (buttonClick)="facade.openCreateModal()"
+  ></gh-page-header>
+
+  <!-- Filter Bar (search + sort only — no status filter on Crops) -->
+  <gh-table-filters
+    [searchPlaceholder]="'crops.search' | translate"
+    [search]="facade.filters().searchQuery"
+    [sort]="facade.filters().sortBy"
+    [sortOptions]="sortOptions()"
+    [showStatus]="false"
+    (searchChange)="facade.patchFilters({ searchQuery: $event })"
+    (sortChange)="updateSortFilter($event)"
+  ></gh-table-filters>
+
+  <!-- Data Table -->
+  <div class="gh-card">
+    @if (facade.filteredItems().length === 0) {
+      <gh-empty-state [title]="'crops.empty' | translate"></gh-empty-state>
+    } @else {
+      <gh-table [striped]="true">
+        <thead>
+          <tr>
+            <th>{{ 'crops.col_name'     | translate }}</th>
+            <th>{{ 'crops.col_duration' | translate }}</th>
+            <th>{{ 'crops.col_batches'  | translate }}</th>
+            <th>{{ 'crops.col_plants'   | translate }}</th>
+            <th>{{ 'crops.col_actions'  | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of facade.filteredItems(); track row.id) {
+            <tr class="gh-table__row">
+
+              <!-- اسم المحصول -->
+              <td>
+                <div class="crops-page__name-cell">
+                  <span>🌱</span>
+                  <span class="crops-page__name">{{ row.name }}</span>
+                </div>
+              </td>
+
+              <!-- مدة النمو -->
+              <td>
+                <div class="crops-page__duration-cell">
+                  <span>{{ row.growthDuration }} {{ 'common.days' | translate }}</span>
+                </div>
+              </td>
+
+              <!-- الدُفعات النشطة -->
+              <td>
+                @if (row.activeBatches > 0) {
+                  <gh-badge variant="active">
+                    {{ row.activeBatches }} {{ 'crops.col_batch_count' | translate }}
+                  </gh-badge>
+                } @else {
+                  <gh-badge variant="inactive">
+                    {{ 'crops.col_no_batches' | translate }}
+                  </gh-badge>
+                }
+              </td>
+
+              <!-- إجمالي النباتات -->
+              <td>
+                <span class="crops-page__quantity">
+                  {{ row.totalPlants | number:'1.0-0' }}
+                  {{ 'common.plants' | translate }}
+                </span>
+              </td>
+
+              <!-- الإجراءات -->
+              <td>
+                <div class="cell-actions">
+                  <gh-button variant="ghost" size="sm"
+                    (click)="facade.openEditModal(row)">
+                    ✏️ {{ 'common.edit' | translate }}
+                  </gh-button>
+                  <gh-button variant="ghost" size="sm"
+                    [disabled]="!facade.canDelete(row.id)"
+                    (click)="facade.openDeleteModal(row)">
+                    🗑️ {{ 'common.delete' | translate }}
+                  </gh-button>
+                </div>
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </gh-table>
+      <gh-pagination
+        [currentPage]="facade.currentPage()"
+        [totalPages]="facade.totalPages()"
+        [totalCount]="facade.totalCount()"
+        [pageSize]="facade.pageSize()"
+        (pageChange)="facade.goToPage($event)" />
+    }
+  </div>
+
+  <!-- Create / Edit Modal -->
+  <gh-modal
+    [isOpen]="facade.isModalOpen()"
+    [title]="(facade.editingItem() ? 'crops.modal_edit' : 'crops.modal_add') | translate"
+    size="md"
+    (closed)="facade.closeModal()"
+  >
+    <div [formGroup]="form">
+      <gh-form-group
+        [label]="'crops.form_name_label' | translate"
+        [control]="form.get('name')!"
+        [errorMessage]="'crops.form_name_error' | translate"
+      >
+        <input
+          ghInput
+          formControlName="name"
+          [placeholder]="'crops.form_name_placeholder' | translate"
+        />
+      </gh-form-group>
+
+      <gh-form-group
+        [label]="'crops.form_duration_label' | translate"
+        [control]="form.get('growthDuration')!"
+        [errorMessage]="'crops.form_duration_error' | translate"
+        [helperText]="'crops.form_duration_hint' | translate"
+      >
+        <input
+          ghInput
+          type="number"
+          formControlName="growthDuration"
+          [placeholder]="'crops.form_duration_placeholder' | translate"
+        />
+      </gh-form-group>
+
+      <div class="crops-page__modal-notice">
+        {{ 'crops.modal_notice' | translate }}
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div slot="footer" class="modal-footer-actions">
+      <gh-button variant="outline" (click)="facade.closeModal()">
+        {{ 'common.cancel' | translate }}
+      </gh-button>
+      <gh-button variant="primary" [disabled]="form.invalid" (click)="submitForm()">
+        {{ (facade.editingItem() ? 'common.save' : 'common.add') | translate }}
+      </gh-button>
+    </div>
+  </gh-modal>
+
+  <!-- Delete Confirmation Modal -->
+  <gh-delete-confirm-modal
+    [isOpen]="facade.isDeleteModalOpen()"
+    [itemName]="facade.deletingItem()?.name ?? ''"
+    [canDelete]="facade.canDelete(facade.deletingItem()?.id ?? '')"
+    [warningMessage]="'crops.delete_warning' | translate"
+    (closed)="facade.closeDeleteModal()"
+    (confirmed)="facade.confirmDelete()"
+  ></gh-delete-confirm-modal>
+
+</div>
+
+

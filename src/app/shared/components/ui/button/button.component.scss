@@ -1,0 +1,110 @@
+:host {
+  display: inline-block;
+}
+
+:host(.gh-btn-full) {
+  display: block;
+  width: 100%;
+}
+
+.gh-btn-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  border-radius: var(--radius-xl); /* pill shape 32px */
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-primary-ring);
+  }
+}
+
+/* Base states */
+:host([disabled]) .gh-btn-inner {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+:host(.gh-btn-sm) .gh-btn-inner {
+  height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+:host(.gh-btn-md) .gh-btn-inner {
+  height: 48px;
+  padding: 0 var(--space-6);
+  font-size: var(--font-size-base);
+}
+
+:host(.gh-btn-lg) .gh-btn-inner {
+  height: 56px;
+  padding: 0 var(--space-8);
+  font-size: var(--font-size-lg);
+}
+
+/* Variants */
+:host(.gh-btn-primary) .gh-btn-inner {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  box-shadow: var(--shadow-sm);
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+  }
+}
+
+:host(.gh-btn-secondary) .gh-btn-inner {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  &:hover:not(:disabled) {
+    background-color: var(--color-border);
+  }
+}
+
+:host(.gh-btn-outline) .gh-btn-inner {
+  background-color: transparent;
+  border-color: var(--color-border);
+  color: var(--color-foreground);
+  &:hover:not(:disabled) {
+    background-color: var(--color-muted);
+  }
+}
+
+:host(.gh-btn-ghost) .gh-btn-inner {
+  background-color: transparent;
+  color: var(--color-foreground);
+  border-color: transparent;
+  &:hover:not(:disabled) {
+    background-color: var(--color-muted);
+  }
+}
+
+:host(.gh-btn-destructive) .gh-btn-inner {
+  background-color: var(--color-danger);
+  color: #fff;
+  &:hover:not(:disabled) {
+    background-color: var(--color-danger);
+    opacity: 0.9;
+  }
+}
+
+/* Spinner */
+.gh-spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}

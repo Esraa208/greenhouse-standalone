@@ -1,0 +1,213 @@
+﻿// ── Card ──────────────────────────────────────────────────────────
+.gh-card {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.gh-card__list-loading {
+  min-height: 12rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6, 1.5rem);
+}
+
+.gh-card__list-loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary, #7c3aed);
+  border-radius: 50%;
+  animation: gh-card-list-loading-spin 0.7s linear infinite;
+}
+
+@keyframes gh-card-list-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ── Table ─────────────────────────────────────────────────────────
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gh-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead tr {
+    border-bottom: 1px solid var(--color-border);
+    background: rgba(147, 51, 234, 0.03);
+  }
+
+  th {
+    padding: 0.75rem 1rem;
+    text-align: right;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-foreground);
+    white-space: nowrap;
+  }
+
+  td { padding: 1rem; vertical-align: middle; }
+
+  &__row {
+    border-bottom: 1px solid var(--color-border);
+    transition: background var(--transition-fast);
+    &:last-child { border-bottom: none; }
+    &:hover { background: rgba(147, 51, 234, 0.02); }
+  }
+}
+
+// ── Cell Helpers ──────────────────────────────────────────────────
+.cell-with-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cell-icon {
+  font-size: 1rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+
+  &--muted { color: var(--color-muted-foreground); }
+  &--small, &.cell-icon-sm { font-size: 0.85rem; opacity: 0.8; }
+}
+
+.cell-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.cell-muted {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+}
+
+.cell-text {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+
+// ── Utilization Cell ──────────────────────────────────────────────
+.utilization-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+  &__text {
+    font-size: 0.875rem;
+    color: var(--color-foreground);
+  }
+  &__text--sm {
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+  }
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--color-muted);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  &--thin { height: 4px; }
+
+  &__fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.6s ease;
+
+    &--success { background: #10b981; }
+    &--warning { background: #f59e0b; }
+    &--gray { background: #e5e7eb; }
+  }
+}
+
+// ── Badges ────────────────────────────────────────────────────────
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &--success { background: #dcfce7; color: #16a34a; }
+  &--warning { background: #fef9c3; color: #ca8a04; }
+  &--info { background: #eff6ff; color: #3b82f6; }
+  &--default { background: #f3e8ff; color: #7c3aed; }
+}
+
+// ── Action Buttons ────────────────────────────────────────────────
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.action-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #3f3f46;
+  transition: all 0.2s;
+  padding: 0;
+  white-space: nowrap;
+
+  svg { transition: transform 0.2s; }
+  &:hover { color: var(--color-primary); svg { transform: scale(1.1); } }
+  &.delete:hover { color: #ef4444; }
+  &:disabled {
+    opacity: 0.5; color: #a1a1aa; cursor: not-allowed;
+    &:hover, &:hover svg { color: #a1a1aa; transform: none; }
+  }
+}
+
+// ── Results Count ─────────────────────────────────────────────────
+.results-count {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+  margin: 0;
+}
+
+// ── Empty State ───────────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-4);
+  gap: var(--space-3);
+
+  &__icon {
+    font-size: 3rem;
+    opacity: 0.3;
+  }
+  h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-foreground);
+    margin: 0;
+  }
+  p {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    margin: 0;
+    text-align: center;
+  }
+}
+

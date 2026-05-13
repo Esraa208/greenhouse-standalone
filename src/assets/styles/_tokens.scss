@@ -1,0 +1,129 @@
+/* libs/shared/ui/src/styles/_tokens.scss */
+
+:root {
+  /* ── Brand Colors (match React source exactly) ── */
+  --color-primary:           #9333ea;
+  --color-primary-foreground:#ffffff;
+  --color-primary-hover:     rgba(147, 51, 234, 0.9);
+  --color-primary-light:     #f3e8ff;
+  --color-primary-ring:      rgba(147, 51, 234, 0.2);
+
+  /* ── Background & Surface ── */
+  --color-background:        #f5f5f7;
+  --color-card:              #ffffff;
+  --color-card-foreground:   #1a1a1a;
+  --color-popover:           #ffffff;
+  --color-background-primary: var(--color-card);
+  --color-background-secondary: var(--color-muted);
+
+  /* ── Text ── */
+  --color-foreground:        #1a1a1a;
+  --color-muted-foreground:  #6b7280;
+  --color-text-primary:      var(--color-foreground);
+  --color-text-secondary:    var(--color-muted-foreground);
+
+  /* ── UI Elements ── */
+  --color-border:            #e5e7eb;
+  --color-border-tertiary:   var(--color-border);
+  --color-input-bg:          #ffffff;
+  --color-muted:             #f3f4f6;
+  --color-accent:            #faf5ff;
+  --color-accent-foreground: #7c3aed;
+
+  /* ── Semantic ── */
+  --color-success:           #16a34a;
+  --color-success-bg:        #dcfce7;
+  --color-warning:           #d97706;
+  --color-warning-bg:        #fef9c3;
+  --color-danger:            #ef4444;
+  --color-danger-bg:         #fee2e2;
+  --color-info:              #2563eb;
+  --color-info-bg:           #dbeafe;
+
+  /* ── Sidebar ── */
+  --color-sidebar:           #ffffff;
+  --color-sidebar-foreground:#1a1a1a;
+  --color-sidebar-accent:    #faf5ff;
+  --color-sidebar-border:    #e5e7eb;
+
+  /* ── Gradients ── */
+  --gradient-purple: linear-gradient(135deg, #e9d5ff 0%, #fae8ff 100%);
+  --gradient-pink:   linear-gradient(135deg, #fce7f3 0%, #fae8ff 100%);
+  --gradient-violet: linear-gradient(135deg, #ddd6fe 0%, #f3e8ff 100%);
+
+  /* ── Charts ── */
+  --color-chart-1: #9333ea;
+  --color-chart-2: #ec4899;
+  --color-chart-3: #8b5cf6;
+  --color-chart-4: #d946ef;
+  --color-chart-5: #a855f7;
+
+  /* ── Spacing (4px base grid) ── */
+  --space-1: 0.25rem;  /* 4px  */
+  --space-2: 0.5rem;   /* 8px  */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-14: 3.5rem;  /* 56px */
+  --space-16: 4rem;    /* 64px */
+  --space-20: 5rem;    /* 80px */
+
+  /* ── Border Radius (match React rounded-[Xpx] classes) ── */
+  --radius-sm:   0.5rem;   /* 8px  - inner elements */
+  --radius-md:   1rem;     /* 16px - inputs, dropdowns */
+  --radius-lg:   1.5rem;   /* 24px - modals inner */
+  --radius-xl:   2rem;     /* 32px - cards, buttons, sidebar */
+  --radius-full: 9999px;   /* badges, avatars */
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07),
+               0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08),
+               0 4px 6px -4px rgba(0,0,0,0.05);
+
+  /* ── Typography ── */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                 'Cairo', 'Noto Sans Arabic', sans-serif;
+  --font-family-code: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-size-xs:   12px;
+  --font-size-sm:   14px;
+  --font-size-base: 16px;
+  --font-size-lg:   18px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+  --font-size-3xl:  30px;
+
+  /* ── Sidebar Dimensions ── */
+  --sidebar-width:          18rem;   /* 288px */
+  --sidebar-width-mobile:   0px;
+  --topbar-height:          4rem;    /* 64px  */
+
+  /* ── Transitions ── */
+  --transition-fast:   150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow:   300ms ease;
+}
+
+/* Dark Mode */
+[data-theme="dark"] {
+  --color-background:       #0d1117;
+  --color-card:             #161b22;
+  --color-foreground:       #e6edf3;
+  --color-muted-foreground: #8b949e;
+  --color-text-primary:      var(--color-foreground);
+  --color-text-secondary:    var(--color-muted-foreground);
+  --color-border:           #30363d;
+  --color-input-bg:         #21262d;
+  --color-muted:            #21262d;
+  --color-sidebar:          #161b22;
+  --color-sidebar-border:   #30363d;
+  --color-sidebar-foreground: #e6edf3;
+  --color-background-primary: var(--color-card);
+  --color-background-secondary: var(--color-muted);
+  --color-border-tertiary:   var(--color-border);
+}

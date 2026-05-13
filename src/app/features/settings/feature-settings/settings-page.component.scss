@@ -1,0 +1,116 @@
+.gh-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.gh-settings-controls {
+  margin-bottom: var(--space-2);
+}
+
+.gh-settings-card {
+  background-color: var(--color-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+
+  &--table {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+.gh-settings-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.gh-settings-card__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-foreground);
+
+  .gh-settings-card--table & {
+    font-size: var(--font-size-base);
+  }
+}
+
+.gh-settings-section-title {
+  margin: var(--space-6) 0 var(--space-4);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.gh-settings-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.gh-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+/* User Table Specifics */
+.gh-table-container {
+  overflow-x: auto;
+}
+
+.gh-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+
+  [dir="ltr"] & {
+    text-align: left;
+  }
+
+  th, td {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--font-size-sm);
+  }
+
+  th {
+    color: var(--color-muted-foreground);
+    font-weight: 600;
+  }
+
+  tbody tr {
+    transition: background-color var(--transition-fast);
+    &:last-child td { border-bottom: none; }
+    &:hover { background-color: var(--color-muted); }
+  }
+}
+
+.gh-font-semibold {
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.gh-table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

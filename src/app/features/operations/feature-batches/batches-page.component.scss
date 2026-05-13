@@ -1,0 +1,254 @@
+/* libs/operations/feature-batches/src/lib/batches-page.component.scss */
+
+.batches-page {
+  padding: var(--space-6);
+
+  // ── Secondary filter bar ──────────────────────────────────────────────
+  &__secondary-filters {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  &__filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__filter-label {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  // ── Table cells ───────────────────────────────────────────────────────
+  &__batch-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__batch-number {
+    font-weight: 700;
+    color: var(--color-foreground);
+    letter-spacing: -0.01em;
+  }
+
+  &__crop {
+    font-weight: 500;
+    color: var(--color-foreground);
+  }
+
+  &__location {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--color-foreground);
+  }
+
+  &__greenhouse {
+    color: var(--color-muted-foreground);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    margin-block-start: var(--space-1);
+  }
+
+  &__quantity {
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+  }
+
+  &__initial {
+    color: var(--color-muted-foreground);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    margin-block-start: var(--space-1);
+  }
+
+  &__date {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-foreground);
+  }
+
+  // ── Growth / progress column ──────────────────────────────────────────
+  &__growth {
+    min-inline-size: var(--space-48);
+    max-inline-size: var(--space-64);
+  }
+
+  &__growth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-block-end: var(--space-2);
+  }
+
+  &__stage {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+
+  &__days {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+
+    // Keep digit direction LTR in RTL layouts
+    [dir='rtl'] & {
+      direction: ltr;
+      display: inline-block;
+    }
+  }
+
+  // ── Details modal ─────────────────────────────────────────────────────
+  &__details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  &__details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-block-end: var(--space-4);
+    border-block-end: 1px solid var(--color-border);
+    padding-block-end: var(--space-4);
+  }
+
+  &__details-title {
+    h2 {
+      font-size: var(--font-size-2xl);
+      font-weight: 700;
+      color: var(--color-foreground);
+      margin: 0;
+    }
+    p {
+      color: var(--color-muted-foreground);
+      font-weight: 500;
+      margin: 0;
+    }
+  }
+
+  &__details-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  &__details-group {
+    h4 {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--color-foreground);
+      margin-block-end: var(--space-3);
+    }
+  }
+
+  &__details-card {
+    background: var(--color-muted);
+    padding: var(--space-4);
+    border-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    &--row {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    &--full {
+      padding: var(--space-6);
+    }
+  }
+
+  &__details-field {
+    display: flex;
+    flex-direction: column;
+
+    &--end {
+      align-items: flex-end;
+    }
+  }
+
+  &__field-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-muted-foreground);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  &__field-value {
+    font-weight: 700;
+    color: var(--color-foreground);
+
+    &--large {
+      font-size: var(--font-size-xl);
+      color: var(--color-primary);
+    }
+
+    &--muted {
+      color: var(--color-muted-foreground);
+    }
+
+    &--primary {
+      color: var(--color-primary);
+    }
+  }
+
+  &__details-divider {
+    block-size: var(--space-10);
+    inline-size: 1px;
+    background: var(--color-border);
+  }
+
+  &__timeline-grid {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-block-end: var(--space-4);
+  }
+
+  &__progress-label {
+    margin-block-start: var(--space-2);
+    text-align: center;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-muted-foreground);
+  }
+}
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+.modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.cell-actions {
+  display: flex;
+  gap: var(--space-2);
+}

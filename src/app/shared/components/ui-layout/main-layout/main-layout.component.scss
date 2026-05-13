@@ -1,0 +1,25 @@
+/* libs/shared/ui-layout/src/lib/main-layout/main-layout.component.scss */
+
+.gh-layout {
+  display: block;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.gh-layout__main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: var(--space-4);
+
+  /* Desktop: offset for the sidebar on the inline-start */
+  @media (min-width: 1024px) {
+    margin-inline-start: calc(var(--sidebar-width) + var(--space-4) + var(--space-4));
+  }
+}
+
+.gh-layout__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

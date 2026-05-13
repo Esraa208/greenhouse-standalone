@@ -1,0 +1,100 @@
+/* libs/shared/ui/src/lib/table/table.component.scss */
+
+.gh-table-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-card);
+
+  &--loading {
+    .gh-table {
+      pointer-events: none;
+      opacity: 0.55;
+    }
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-card) 65%, transparent);
+    border-radius: inherit;
+  }
+
+  &__spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary, #7c3aed);
+    border-radius: 50%;
+    animation: gh-table-spin 0.7s linear infinite;
+  }
+
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar { height: 6px; }
+  &::-webkit-scrollbar-track { background: var(--color-muted); }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+  }
+}
+
+@keyframes gh-table-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+
+  /* Headers */
+  ::ng-deep thead tr {
+    border-block-end: 1px solid var(--color-border);
+    background-color: rgba(147, 51, 234, 0.03);
+  }
+
+  ::ng-deep th {
+    padding: var(--space-4) var(--space-5);
+    text-align: start;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--color-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    background-color: transparent;
+  }
+
+  /* Rows */
+  ::ng-deep tbody tr {
+    border-block-end: 1px solid var(--color-border);
+    transition: background-color var(--transition-fast);
+
+    &:last-child { border-block-end: none; }
+  }
+
+  /* Cells */
+  ::ng-deep td {
+    padding: var(--space-4) var(--space-5);
+    vertical-align: middle;
+  }
+
+  /* Striped */
+  &--striped ::ng-deep tbody tr:nth-child(even) {
+    // background-color: rgba(0, 0, 0, 0.015);
+  }
+
+  /* Hoverable */
+  &--hoverable ::ng-deep tbody tr:hover {
+    background-color: var(--color-accent);
+  }
+}

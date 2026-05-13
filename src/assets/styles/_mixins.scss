@@ -1,0 +1,56 @@
+/* libs/shared/ui/src/styles/_mixins.scss */
+
+@mixin respond-to($bp) {
+  @if $bp == 'mobile'  { @media (max-width: 767px) { @content; } }
+  @if $bp == 'tablet'  { @media (min-width: 768px) and (max-width: 1023px) { @content; } }
+  @if $bp == 'desktop' { @media (min-width: 1024px) { @content; } }
+  @if $bp == 'wide'    { @media (min-width: 1440px) { @content; } }
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin card-base {
+  background-color: var(--color-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-card-foreground);
+}
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-primary-ring);
+  }
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ── Page shell (filters / selects shared chrome) ────────────────────────
+
+@mixin shell-field-focus {
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-ring);
+  }
+}
+
+@mixin shell-select-surface {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+  cursor: pointer;
+  appearance: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  @include shell-field-focus;
+}

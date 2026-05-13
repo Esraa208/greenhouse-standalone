@@ -1,0 +1,46 @@
+/* libs/shared/ui/src/lib/segmented-control/segmented-control.component.scss */
+
+.gh-segmented {
+  display: inline-flex;
+  background-color: var(--color-muted);
+  border-radius: var(--radius-xl);
+  padding: 4px;
+  gap: 2px;
+}
+
+.gh-segmented__label {
+  cursor: pointer;
+  margin: 0;
+}
+
+.gh-segmented__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.gh-segmented__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-5);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  border-radius: calc(var(--radius-xl) - 4px);
+  transition: all var(--transition-fast);
+
+  &:hover { color: var(--color-foreground); }
+
+  &.is-active {
+    background-color: var(--color-card);
+    color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.gh-segmented__input:focus-visible + .gh-segmented__button {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}

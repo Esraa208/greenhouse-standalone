@@ -1,0 +1,221 @@
+﻿<div class="dashboard" [attr.dir]="i18n.dir()">
+
+  <!-- ── Page Header ── -->
+  <gh-page-header
+    [title]="'dashboard.page_title' | translate"
+    [subtitle]="'dashboard.page_subtitle' | translate"
+  >
+    <ng-template>
+      <div class="dashboard__header-actions">
+        <button class="btn-pill" (click)="setDateRange('30d')"
+          [class.btn-pill--active]="dateRange() === '30d'">
+          <span>📅</span> {{ 'dashboard.filter_30d' | translate }}
+        </button>
+        <button class="btn-pill" (click)="setDateRange('90d')"
+          [class.btn-pill--active]="dateRange() === '90d'">
+          <span>⚙️</span> {{ 'dashboard.filter_90d' | translate }}
+        </button>
+        <button class="btn-pill btn-pill--green">
+          <span>⬇️</span> {{ 'dashboard.btn_export' | translate }}
+        </button>
+      </div>
+    </ng-template>
+  </gh-page-header>
+
+  <!-- ── KPI Cards Grid (6 columns on desktop) ── -->
+  <div class="dashboard__kpi-grid">
+    @for (card of kpiCards(); track card.id) {
+      <gh-kpi-card [card]="card">
+        <span slot="icon">
+          @switch (card.id) {
+            @case ('production') { 📦 }
+            @case ('revenue')    { 💰 }
+            @case ('profit')     { 📈 }
+            @case ('plants')     { 🌱 }
+            @case ('batches')    { 🎯 }
+            @case ('success')    { ✅ }
+          }
+        </span>
+      </gh-kpi-card>
+    }
+  </div>
+
+  <!-- ── Main Charts Section (2/3 + 1/3) ── -->
+  <div class="dashboard__main-charts">
+
+    <!-- Area Chart Card -->
+    <div class="chart-card chart-card--large">
+      <div class="chart-card__header">
+        <div>
+          <h2 class="chart-card__title">{{ 'dashboard.chart_production_revenue' | translate }}</h2>
+          <p class="chart-card__subtitle">
+            {{ 'dashboard.chart_production_revenue_sub' | translate }}
+          </p>
+        </div>
+        <div class="chart-card__legend">
+          <span class="legend-dot legend-dot--green"></span>
+          <span class="legend-label">{{ 'dashboard.legend_production' | translate }}</span>
+          <span class="legend-dot legend-dot--blue"></span>
+          <span class="legend-label">{{ 'dashboard.legend_revenue' | translate }}</span>
+        </div>
+      </div>
+      <div class="chart-card__body">
+        <canvas baseChart
+          [data]="areaChartData()"
+          [options]="areaChartOptions"
+          type="line"
+          style="height: 320px">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Smart Insights Panel -->
+    <div class="chart-card chart-card--insights">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">
+          <span>⚡</span> {{ 'dashboard.insights_title' | translate }}
+        </h2>
+        <p class="chart-card__subtitle">{{ 'dashboard.insights_subtitle' | translate }}</p>
+      </div>
+      <div class="insights-list">
+        @for (insight of insights(); track insight.id) {
+          <div class="insight-card insight-card--{{ insight.type }}">
+            <span class="insight-card__icon">{{ insight.icon }}</span>
+            <div class="insight-card__content">
+              <h4>{{ insight.title }}</h4>
+              <p>{{ insight.message }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Secondary Charts (2 columns) ── -->
+  <div class="dashboard__secondary-charts">
+
+    <!-- Bar Chart -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">{{ 'dashboard.chart_zone_production' | translate }}</h2>
+        <p class="chart-card__subtitle">{{ 'dashboard.chart_zone_production_sub' | translate }}</p>
+      </div>
+      <div class="chart-card__body">
+        <canvas baseChart
+          [data]="barChartData()"
+          [options]="barChartOptions"
+          type="bar"
+          style="height: 280px">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Doughnut Chart -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">{{ 'dashboard.chart_crop_distribution' | translate }}</h2>
+        <p class="chart-card__subtitle">{{ 'dashboard.chart_crop_distribution_sub' | translate }}</p>
+      </div>
+      <div class="chart-card__body chart-card__body--centered">
+        <canvas baseChart
+          [data]="doughnutChartData()"
+          [options]="doughnutChartOptions"
+          type="doughnut"
+          style="height: 280px">
+        </canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Financial Summary ── -->
+  <div class="chart-card">
+    <div class="chart-card__header">
+      <h2 class="chart-card__title">{{ 'dashboard.financial_summary' | translate }}</h2>
+      <p class="chart-card__subtitle">{{ 'dashboard.financial_summary_sub' | translate }}</p>
+    </div>
+    <div class="financial-grid">
+      @for (item of financialItems(); track item.id) {
+        <div class="financial-item">
+          <div class="financial-item__label-row">
+            <span class="financial-item__label">{{ item.label }}</span>
+          </div>
+          <p class="financial-item__value"
+            [class.financial-item__value--highlight]="item.id === 'profit'">
+            {{ item.value }}
+          </p>
+          <div class="progress-bar">
+            <div class="progress-bar__fill"
+              [style.width.%]="item.percent"
+              [style.background]="item.color">
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Operational Metrics ── -->
+  <div class="dashboard__operational">
+
+    <!-- Batch Status -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">{{ 'dashboard.batch_status' | translate }}</h2>
+        <p class="chart-card__subtitle">{{ 'dashboard.batch_status_sub' | translate }}</p>
+      </div>
+      <div class="batch-status-list">
+        @for (status of batchStatuses(); track status.id) {
+          <div class="batch-status-item"
+            [style.background]="status.bgColor">
+            <div class="batch-status-item__icon-wrapper"
+              [style.background]="status.bgColor"
+              [style.border]="'2px solid ' + status.iconColor + '33'">
+              <span>{{ status.icon }}</span>
+            </div>
+            <div class="batch-status-item__info">
+              <p class="batch-status-item__label">{{ status.label }}</p>
+              <p class="batch-status-item__sub">{{ status.subLabel }}</p>
+            </div>
+            <span class="batch-status-item__count"
+              [style.color]="status.iconColor">
+              {{ status.count }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Capacity Overview -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">{{ 'dashboard.capacity_overview' | translate }}</h2>
+        <p class="chart-card__subtitle">{{ 'dashboard.capacity_overview_sub' | translate }}</p>
+      </div>
+      <div class="capacity-list">
+        @for (zone of capacityZones(); track zone.id) {
+          <div class="capacity-item">
+            <div class="capacity-item__header">
+              <span class="capacity-item__name">{{ zone.name }}</span>
+              <span class="capacity-item__numbers">
+                {{ zone.occupied | number }} / {{ zone.total | number }}
+              </span>
+            </div>
+            <div class="progress-bar progress-bar--thick">
+              <div class="progress-bar__fill"
+                [style.width.%]="zone.percent"
+                [style.background]="zone.color">
+              </div>
+            </div>
+            <p class="capacity-item__note"
+              [class.capacity-item__note--warning]="zone.percent >= 90">
+              {{ zone.percent }}% {{ 'dashboard.capacity_full' | translate }} {{ zone.warningNote }}
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+</div>
+
+

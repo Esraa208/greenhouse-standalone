@@ -1,0 +1,57 @@
+﻿<!-- libs/shared/ui/src/lib/table-filters/table-filters.component.html -->
+<div class="gh-table-filters">
+
+  <!-- Search -->
+  <div class="gh-table-filters__search">
+    <span class="gh-table-filters__search-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </span>
+    <input
+      class="gh-table-filters__input"
+      type="search"
+      [value]="search()"
+      (input)="onSearch($any($event.target).value)"
+      [placeholder]="searchPlaceholder()"
+    />
+  </div>
+
+  <div class="gh-table-filters__controls">
+
+    <!-- Sort -->
+    @if (showSort() && sortOptions().length > 0) {
+      <div class="gh-filter-select-wrapper gh-filter-select-wrapper--sort">
+        <span class="gh-filter-icon">⇅</span>
+        <select
+          class="gh-table-filters__select"
+          [value]="sort()"
+          (change)="onSort($any($event.target).value)"
+        >
+          <option value="">{{ 'common.all' | translate }}</option>
+          @for (opt of sortOptions(); track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <!-- Status filter -->
+    @if (showStatus()) {
+      <div class="gh-filter-select-wrapper">
+        <select
+          class="gh-table-filters__select"
+          [value]="status()"
+          (change)="onStatus($any($event.target).value)"
+        >
+          <option value="all">{{ 'filter.status_all' | translate }}</option>
+          <option value="active">{{ 'common.active' | translate }}</option>
+          <option value="inactive">{{ 'common.inactive' | translate }}</option>
+        </select>
+      </div>
+    }
+
+  </div>
+</div>
+
+

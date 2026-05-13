@@ -1,0 +1,44 @@
+{
+  "name": "greenhouse-standalone",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "check:boundaries": "node ./tools/check-boundaries.mjs",
+    "check:i18n": "node ./tools/check-i18n-keys.mjs",
+    "lint": "eslint \"src/app/**/*.ts\"",
+    "check:architecture": "npm run check:boundaries && npm run check:i18n && ng build --configuration=development"
+  },
+  "private": true,
+  "packageManager": "npm@11.6.2",
+  "dependencies": {
+    "@angular/animations": "^21.2.11",
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "@ng-select/ng-select": "^21.8.2",
+    "chart.js": "^4.5.1",
+    "ng2-charts": "^10.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@analogjs/vitest-angular": "^2.5.0",
+    "@angular/build": "^21.2.7",
+    "@angular/cli": "^21.2.7",
+    "@angular/compiler-cli": "^21.2.0",
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "jsdom": "^28.0.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.50.1",
+    "vitest": "^4.0.8"
+  }
+}

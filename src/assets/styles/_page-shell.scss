@@ -1,0 +1,7 @@
+// Shared page shell: lists, tables, filters, forms — not the Angular domain named "infrastructure".
+@forward './page-shell/layout';
+@forward './page-shell/filters';
+@forward './page-shell/surfaces';
+@forward './page-shell/forms-buttons-notes';
+@forward './page-shell/form-layout.shared';
+@forward './page-shell/responsive';

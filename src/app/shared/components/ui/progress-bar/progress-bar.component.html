@@ -1,0 +1,27 @@
+﻿<!-- libs/shared/ui/src/lib/progress-bar/progress-bar.component.html -->
+<div class="gh-progress">
+  @if (label()) {
+    <div class="gh-progress__meta">
+      <span class="gh-progress__label">{{ label() }}</span>
+      @if (showPercentage()) {
+        <span class="gh-progress__value">{{ percentageDisplay() }}</span>
+      }
+    </div>
+  }
+  <div
+    class="gh-progress__track"
+    [class]="'gh-progress__track--' + size()"
+    role="progressbar"
+    [attr.aria-valuenow]="value()"
+    [attr.aria-valuemin]="0"
+    [attr.aria-valuemax]="max()"
+  >
+    <div
+      class="gh-progress__fill"
+      [class]="'gh-progress__fill--' + variant()"
+      [style.width]="barWidth()"
+    ></div>
+  </div>
+</div>
+
+

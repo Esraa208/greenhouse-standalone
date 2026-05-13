@@ -1,0 +1,185 @@
+@media print {
+  .invoices-page > *:not(.invoices-page__print-content) {
+    display: none !important;
+  }
+  .invoices-page__a4-card {
+    inline-size: 210mm;
+    min-block-size: 297mm;
+    box-shadow: none !important;
+  }
+}
+
+.invoices-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+
+  &__filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  &__extra-filters {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  &__customer-cell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__a4-card {
+    background: var(--color-card);
+    padding: var(--space-12);
+    inline-size: 210mm;
+    min-block-size: 297mm;
+    margin-inline: auto;
+    box-shadow: var(--shadow-lg);
+  }
+
+  &__invoice-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-block-end: var(--space-8);
+    padding-block-end: var(--space-6);
+    border-block-end: 2px solid var(--color-border);
+  }
+
+  &__company-logo {
+    inline-size: 96px;
+    block-size: 96px;
+    background: linear-gradient(
+      135deg,
+      var(--color-success-text),
+      var(--color-primary)
+    );
+    border-radius: var(--radius-xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: var(--text-3xl);
+    font-weight: 700;
+  }
+
+  &__company-info {
+    text-align: start;
+  }
+
+  &__company-name {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--color-foreground);
+    margin-block-end: var(--space-1);
+  }
+
+  &__company-dept {
+    font-size: var(--text-sm);
+    color: var(--color-muted-foreground);
+    margin-block-end: var(--space-2);
+  }
+
+  &__meta-grid {
+    display: flex;
+    gap: var(--space-8);
+    margin-block-end: var(--space-6);
+  }
+
+  &__customer-box {
+    background: var(--color-muted);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    margin-block-end: var(--space-6);
+  }
+
+  &__customer-info {
+    display: flex;
+    gap: var(--space-8);
+    margin-block-start: var(--space-2);
+  }
+
+  &__section-title {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--color-foreground);
+    margin-block-end: var(--space-2);
+  }
+
+  &__items-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    margin-block: var(--space-8);
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--text-sm);
+      text-align: center;
+    }
+    thead tr {
+      background: var(--color-muted);
+      th { font-weight: 700; }
+    }
+    &-total td {
+      background: var(--color-muted);
+      font-weight: 700;
+    }
+  }
+
+  &__total-value {
+    color: var(--color-success-text);
+    font-weight: 700;
+    font-size: var(--text-base);
+  }
+
+  &__collection-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8);
+    margin-block-start: var(--space-12);
+    padding-block-start: var(--space-6);
+    border-block-start: 2px solid var(--color-border);
+  }
+
+  &__footer-note {
+    text-align: center;
+    margin-block-start: var(--space-8);
+    font-size: var(--text-xs);
+    color: var(--color-muted-foreground);
+  }
+
+  &__date--overdue {
+    color: var(--color-destructive);
+    font-weight: 600;
+  }
+
+  &__amount {
+    color: var(--color-success-text);
+    font-weight: 600;
+  }
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-muted);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--color-muted-foreground);
+  }
+
+  &__reset-btn {
+    color: var(--color-primary);
+    font-weight: 500;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+}

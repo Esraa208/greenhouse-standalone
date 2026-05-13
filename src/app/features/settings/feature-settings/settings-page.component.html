@@ -1,0 +1,113 @@
+﻿<div class="gh-settings-page">
+  <gh-page-header
+    [title]="'settings.page_title' | translate"
+    [description]="'settings.page_subtitle' | translate"
+  ></gh-page-header>
+
+  <div class="gh-settings-controls">
+    <gh-segmented-control
+      [options]="[
+        {label: 'settings.tab_system' | translate, value: 'system'}, 
+        {label: 'settings.tab_users' | translate, value: 'users'}
+      ]"
+      [value]="activeTab()"
+      (valueChange)="onTabChange($event)"
+    ></gh-segmented-control>
+  </div>
+
+  @if (isLoading() && !settings()) {
+    <div class="gh-settings-loading">
+      <gh-skeleton height="400px" borderRadius="var(--radius-xl)"></gh-skeleton>
+    </div>
+  } @else {
+    <!-- SYSTEM SETTINGS TAB -->
+    @if (activeTab() === 'system') {
+      <div class="gh-settings-card">
+        <h3 class="gh-settings-card__title">{{ 'settings.section_general' | translate }}</h3>
+        <form [formGroup]="form" (ngSubmit)="saveSettings()" class="gh-settings-form">
+          <div class="gh-settings-grid">
+            <gh-select
+              [label]="'settings.label_currency' | translate"
+              [options]="[{label: 'ريال سعودي (SAR)', value: 'SAR'}, {label: 'دولار أمريكي (USD)', value: 'USD'}]"
+              formControlName="defaultCurrency"
+            ></gh-select>
+            <gh-select
+              [label]="'settings.label_date_format' | translate"
+              [options]="[{label: 'DD/MM/YYYY', value: 'DD/MM/YYYY'}, {label: 'YYYY-MM-DD', value: 'YYYY-MM-DD'}]"
+              formControlName="dateFormat"
+            ></gh-select>
+          </div>
+
+          <h4 class="gh-settings-section-title">{{ 'settings.section_thresholds' | translate }}</h4>
+          <div class="gh-settings-grid">
+            <gh-input [label]="'settings.label_temp_high' | translate" type="number" formControlName="alertThresholdTempHigh"></gh-input>
+            <gh-input [label]="'settings.label_temp_low' | translate" type="number" formControlName="alertThresholdTempLow"></gh-input>
+            <gh-input [label]="'settings.label_humidity' | translate" type="number" formControlName="alertThresholdHumidity"></gh-input>
+          </div>
+
+          <div class="gh-settings-actions">
+            <gh-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="form.invalid">
+              {{ 'settings.btn_save' | translate }}
+            </gh-button>
+          </div>
+        </form>
+      </div>
+    }
+
+    <!-- USERS TAB -->
+    @if (activeTab() === 'users') {
+      <div class="gh-settings-card gh-settings-card--table">
+        <div class="gh-settings-card__header">
+          <h3 class="gh-settings-card__title">{{ 'settings.users_list_title' | translate }}</h3>
+          <gh-button variant="primary" size="sm">
+            + {{ 'settings.btn_add_user' | translate }}
+          </gh-button>
+        </div>
+        
+        <div class="gh-table-container">
+          <table class="gh-table">
+            <thead>
+              <tr>
+                <th>{{ 'settings.col_name' | translate }}</th>
+                <th>{{ 'settings.col_email' | translate }}</th>
+                <th>{{ 'settings.col_role' | translate }}</th>
+                <th>{{ 'settings.col_status' | translate }}</th>
+                <th>{{ 'settings.col_actions' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track trackByUserId($index, user)) {
+                <tr>
+                  <td class="gh-font-semibold">{{ user.name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    <gh-badge [variant]="user.role === 'admin' ? 'danger' : user.role === 'manager' ? 'info' : 'default'">
+                      {{ 'settings.role_' + user.role | translate }}
+                    </gh-badge>
+                  </td>
+                  <td>
+                    <gh-badge [variant]="user.status === 'active' ? 'success' : 'default'">
+                      {{ 'settings.status_' + user.status | translate }}
+                    </gh-badge>
+                  </td>
+                  <td>
+                    <div class="gh-table-actions">
+                      <gh-button variant="ghost" size="sm">
+                        {{ 'settings.btn_edit' | translate }}
+                      </gh-button>
+                      <gh-button variant="destructive" size="sm" [disabled]="user.role === 'admin'">
+                        {{ 'settings.btn_deactivate' | translate }}
+                      </gh-button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+</div>
+
+

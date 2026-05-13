@@ -1,0 +1,109 @@
+@use '../mixins' as mx;
+
+// ── Filters Bar ───────────────────────────────────────────────────
+.filters-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+
+  &__search {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 28rem;
+  }
+
+  &__search-icon {
+    position: absolute;
+    inset-inline-end: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--color-muted-foreground);
+    font-size: 0.875rem;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 0.625rem 2.5rem 0.625rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-card);
+    font-size: 0.875rem;
+    color: var(--color-foreground);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+    &::placeholder {
+      color: var(--color-muted-foreground);
+    }
+
+    @include mx.shell-field-focus;
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  &__select {
+    padding: 0.625rem 1rem;
+    min-width: 10rem;
+    @include mx.shell-select-surface;
+
+    &--pad {
+      padding-inline-end: 2.25rem;
+    }
+  }
+}
+
+.select-wrapper {
+  position: relative;
+
+  &__icon {
+    position: absolute;
+    inset-inline-end: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--color-muted-foreground);
+    font-size: 0.875rem;
+  }
+}
+
+// ── Hierarchical Filters ──────────────────────────────────────────
+.hierarchical-filters,
+.gh-filter-row-secondary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.h-filter__select {
+  padding: 0.625rem 1rem;
+  min-width: 14rem;
+  flex: 1;
+  @include mx.shell-select-surface;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.gh-filter-select {
+  padding: 0.625rem 1rem;
+  min-width: 10rem;
+  flex: 1;
+  font-family: inherit;
+  @include mx.shell-select-surface;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

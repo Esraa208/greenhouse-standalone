@@ -1,0 +1,70 @@
+﻿<!-- libs/shared/ui-layout/src/lib/sidebar/sidebar.component.html -->
+
+<!-- Mobile overlay backdrop -->
+<div
+  class="gh-sidebar-backdrop"
+  [class.gh-sidebar-backdrop--visible]="isOpen()"
+  (click)="closeMobile()"
+  aria-hidden="true"
+></div>
+
+<!-- Sidebar panel -->
+<aside class="gh-sidebar" [class.gh-sidebar--open]="isOpen()" role="navigation" aria-label="القائمة الرئيسية">
+
+  <!-- Logo / Brand -->
+  <div class="gh-sidebar__brand">
+    <div class="gh-sidebar__logo">🌿</div>
+    <div class="gh-sidebar__brand-text">
+      <span class="gh-sidebar__brand-name">{{ 'nav.brand_name' | translate }}</span>
+      <span class="gh-sidebar__brand-sub">{{ 'nav.brand_sub' | translate }}</span>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="gh-sidebar__nav">
+    @for (section of sections(); track trackSection($index, section)) {
+      <div class="gh-sidebar__section">
+
+        <!-- Section header -->
+        <button
+          class="gh-sidebar__section-header"
+          (click)="toggleSection(section.titleKey)"
+          [attr.aria-expanded]="!isCollapsed(section.titleKey)"
+          type="button"
+        >
+          <span class="gh-sidebar__section-title">
+            {{ section.titleKey | translate }}
+          </span>
+          <span
+            class="gh-sidebar__chevron"
+            [class.gh-sidebar__chevron--collapsed]="isCollapsed(section.titleKey)"
+            aria-hidden="true"
+          >›</span>
+        </button>
+
+        <!-- Section items -->
+        @if (!isCollapsed(section.titleKey)) {
+          <ul class="gh-sidebar__items" role="list">
+            @for (item of section.items; track trackItem($index, item)) {
+              <li>
+                <a
+                  class="gh-sidebar__item"
+                  [class.gh-sidebar__item--active]="isActive(item.path)"
+                  [routerLink]="item.path"
+                  (click)="closeMobile()"
+                >
+                  <span class="gh-sidebar__item-icon" aria-hidden="true">{{ item.icon }}</span>
+                  <span class="gh-sidebar__item-label">{{ item.labelKey | translate }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+
+      </div>
+    }
+  </nav>
+
+</aside>
+
+

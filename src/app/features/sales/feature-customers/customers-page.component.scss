@@ -1,0 +1,14 @@
+.customers-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+
+  &__purchases {
+    color: var(--color-success-text);
+    font-weight: 600;
+  }
+
+  &__phone {
+    font-variant-numeric: tabular-nums;
+  }
+}
