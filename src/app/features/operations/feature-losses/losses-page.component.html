@@ -1,9 +1,9 @@
-﻿<div class="losses-page" [attr.dir]="i18n.dir()">
+<div class="losses-page" [attr.dir]="i18n.dir()">
   <gh-page-header
     [title]="'losses.page_title' | translate"
     [subtitle]="'losses.page_subtitle' | translate"
     [buttonLabel]="'losses.add_button' | translate"
-    (buttonClick)="facade.openCreateModal()" />
+    (buttonClick)="openRegisterModal()" />
 
   <gh-table-filters
     [searchPlaceholder]="'losses.search' | translate"
@@ -92,133 +92,47 @@
         }
       </tbody>
     </gh-table>
+
+    <gh-pagination
+      [currentPage]="facade.currentPage()"
+      [totalPages]="facade.totalPages()"
+      [totalCount]="facade.totalCount()"
+      [pageSize]="facade.pageSize()"
+      (pageChange)="facade.goToPage($event)" />
   </div>
 
   <gh-modal
-    [isOpen]="facade.isModalOpen()"
-    (isOpenChange)="!$event && facade.closeModal()"
-    [title]="'losses.modal_add' | translate"
-    size="md">
-    
-    <div class="losses-page__modal-content" [formGroup]="lossForm">
-      <gh-segmented-control
-        [options]="[
-          { value: 'infrastructure', label: 'losses.mode_infra' | translate },
-          { value: 'batch', label: 'losses.mode_batch' | translate }
-        ]"
-        [value]="facade.modalMode()"
-        (valueChange)="onModeChange($event)"
-      />
-
-      <div class="losses-page__cascade-grid">
-        @if (facade.modalMode() === 'infrastructure') {
-          <gh-form-group [label]="'common.location' | translate">
-            <select ghInput (change)="facade.setLocationId($any($event.target).value)">
-              <option value="">{{ 'common.all' | translate }}</option>
-              @for (loc of facade.refLocations(); track loc.id) {
-                <option [value]="loc.id">{{ loc.name }}</option>
-              }
-            </select>
-          </gh-form-group>
-          <gh-form-group [label]="'common.greenhouse' | translate">
-            <select ghInput (change)="facade.setGreenhouseId($any($event.target).value)">
-              <option value="">{{ 'common.all' | translate }}</option>
-              @for (gh of facade.filteredModalGreenhouses(); track gh.id) {
-                <option [value]="gh.id">{{ gh.name }}</option>
-              }
-            </select>
-          </gh-form-group>
-          <gh-form-group [label]="'common.zone' | translate">
-            <select ghInput (change)="facade.setZoneId($any($event.target).value)">
-              <option value="">{{ 'common.all' | translate }}</option>
-              @for (z of facade.filteredModalZones(); track z.id) {
-                <option [value]="z.id">{{ z.name }}</option>
-              }
-            </select>
-          </gh-form-group>
-          <gh-form-group [label]="'systems.col_name' | translate">
-            <select ghInput (change)="facade.setSystemId($any($event.target).value)">
-              <option value="">{{ 'common.all' | translate }}</option>
-              @for (s of facade.filteredModalSystems(); track s.id) {
-                <option [value]="s.id">{{ s.name }}</option>
-              }
-            </select>
-          </gh-form-group>
-          <gh-form-group [label]="'layers.col_name' | translate">
-            <select ghInput (change)="facade.setLayerId($any($event.target).value)">
-              <option value="">{{ 'common.all' | translate }}</option>
-              @for (l of facade.filteredModalLayers(); track l.id) {
-                <option [value]="l.id">{{ l.name }}</option>
-              }
-            </select>
-          </gh-form-group>
-          <gh-form-group [label]="'allocations.col_batch' | translate">
-            <select ghInput (change)="facade.setAllocationId($any($event.target).value)">
-              <option value="">{{ 'common.all' | translate }}</option>
-              @for (a of facade.filteredModalAllocations(); track a.id) {
-                <option [value]="a.id">{{ a.batchNumber }} - {{ a.cropType }}</option>
-              }
-            </select>
-          </gh-form-group>
-        } @else {
-          <gh-form-group [label]="'losses.select_batch' | translate" class="losses-page__form-group--full">
-            <select ghInput (change)="facade.setBatchId($any($event.target).value)">
-              <option value="">{{ 'losses.select_batch_placeholder' | translate }}</option>
-              @for (b of facade.refBatches(); track b.id) {
-                <option [value]="b.id">{{ b.batchNumber }} - {{ b.cropType }}</option>
-              }
-            </select>
-          </gh-form-group>
-        }
-      </div>
-
-      <div class="losses-page__summary-card">
-        <span class="text-muted">{{ 'losses.affected_plants' | translate }}</span>
-        <span class="losses-page__summary-val">{{ facade.affectedPlantsCount() | number }} {{ 'common.plants' | translate }}</span>
-      </div>
-
-      <div class="losses-page__form-grid">
-        <gh-form-group [label]="'losses.form_type_label' | translate" [errorMessage]="'losses.form_type_error' | translate" [control]="lossForm.controls.lossType">
-          <select ghInput formControlName="lossType">
-            <option value="">{{ 'losses.form_type_placeholder' | translate }}</option>
-            @for (opt of lossTypeOptions(); track opt.value) {
-              @if (opt.value !== 'all') {
-                <option [value]="opt.value">{{ opt.label }}</option>
-              }
-            }
-          </select>
-        </gh-form-group>
-        <gh-form-group [label]="'losses.form_date_label' | translate" [control]="lossForm.controls.date">
-          <input ghInput type="date" formControlName="date" />
-        </gh-form-group>
-      </div>
-
-      <gh-form-group [label]="'losses.form_reason_label' | translate" [errorMessage]="'losses.form_reason_error' | translate" [control]="lossForm.controls.reason">
-        <input ghInput [placeholder]="'losses.form_reason_placeholder' | translate" formControlName="reason" />
-      </gh-form-group>
-
-      <gh-form-group [label]="'losses.form_notes_label' | translate" [control]="lossForm.controls.notes">
-        <textarea ghInput [placeholder]="'losses.form_notes_placeholder' | translate" formControlName="notes" rows="3"></textarea>
-      </gh-form-group>
-
-      @if (lossForm.valid && facade.affectedPlantsCount() > 0) {
-        <div class="losses-page__warning-box">
-          <span class="text-danger">⚠️</span>
-          <div class="losses-page__warning-text">
-            <strong>{{ 'losses.confirm_title' | translate }}</strong>
-            <p>{{ 'losses.confirm_text' | translate }} {{ facade.affectedPlantsCount() | number }} {{ 'common.plants' | translate }}</p>
-          </div>
-        </div>
-      }
-    </div>
+    [isOpen]="regFacade.isOpen()"
+    (isOpenChange)="!$event && regFacade.closeModal()"
+    [title]="'losses.modal_register_title' | translate"
+    size="lg">
+    <gh-batch-loss-registration-panel
+      [batchSummary]="regFacade.batchSummary()"
+      [layers]="regFacade.layers()"
+      [loading]="regFacade.loading()"
+      [wholeBatch]="regFacade.wholeBatch()"
+      [expandedLayerIds]="regFacade.expandedLayerIds()"
+      [selectedAllocationIds]="regFacade.selectedAllocationIds()"
+      [selectedQuantityMax]="regFacade.selectedQuantityMax()"
+      [showBatchSelect]="true"
+      [batches]="regFacade.refBatches()"
+      [selectedBatchId]="regFacade.selectedBatchId()"
+      [form]="lossForm"
+      (batchIdChange)="regFacade.setBatchId($event)"
+      (wholeBatchChange)="regFacade.toggleWholeBatch($event)"
+      (layerExpandedToggle)="regFacade.toggleLayerExpanded($event)"
+      (layerCheckChange)="regFacade.toggleLayer($event.layerId, $event.checked)"
+      (allocationCheckChange)="regFacade.toggleAllocation($event.allocationId, $event.checked)"
+      (selectAllClick)="regFacade.selectAll()" />
 
     <div slot="footer" class="modal-footer-actions">
-      <gh-button variant="outline" (click)="facade.closeModal()">{{ 'common.cancel' | translate }}</gh-button>
-      <gh-button variant="destructive" [disabled]="lossForm.invalid || facade.affectedPlantsCount() === 0" (click)="submitLoss()">
-        {{ 'common.save' | translate }}
+      <gh-button variant="outline" (click)="regFacade.closeModal()">{{ 'common.cancel' | translate }}</gh-button>
+      <gh-button
+        variant="primary"
+        [disabled]="!canSubmitLoss() || regFacade.loading()"
+        (click)="submitBatchLoss()">
+        {{ 'losses.btn_register_loss' | translate }}
       </gh-button>
     </div>
   </gh-modal>
 </div>
-
-

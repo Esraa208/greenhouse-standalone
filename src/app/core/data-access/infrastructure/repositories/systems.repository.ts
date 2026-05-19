@@ -25,7 +25,7 @@ export class SystemsRepository {
         items: (response.result?.items ?? []).map(s => this.#mapToDomain(s)),
         totalCount: response.result?.totalCount ?? 0,
         pageNumber: response.result?.pageNumber ?? 1,
-        pageSize: response.result?.pageSize ?? 10,
+        pageSize: response.result?.pageSize ?? 50,
         totalPages: response.result?.totalPages ?? 1,
       }))
     );

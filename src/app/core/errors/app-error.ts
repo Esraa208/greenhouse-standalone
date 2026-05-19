@@ -6,6 +6,19 @@ export interface AppError {
   details?: unknown;
 }
 
+function pickFirstApiMessage(
+  payload?: { message?: unknown; detail?: unknown; title?: unknown },
+  fallback?: string,
+): string | undefined {
+  const candidates = [payload?.message, payload?.detail, payload?.title, fallback];
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
 export function isAppError(error: unknown): error is AppError {
   if (!error || typeof error !== 'object') return false;
   const candidate = error as Partial<AppError>;
@@ -16,18 +29,32 @@ export function normalizeAppError(error: unknown): AppError {
   if (isAppError(error)) return error;
 
   if (error instanceof HttpErrorResponse) {
-    const payload = error.error as { code?: unknown; message?: unknown; detailize?: unknown; details?: unknown } | null | undefined;
-    const message =
-      typeof payload?.message === 'string' && payload.message.trim()
-        ? payload.message
-        : typeof error.message === 'string' && error.message.trim()
-          ? error.message
-          : 'A network error occurred.';
+    const payload = error.error as {
+      code?: unknown;
+      message?: unknown;
+      title?: unknown;
+      detail?: unknown;
+      detailize?: unknown;
+      details?: unknown;
+    } | string | null | undefined;
 
+    const payloadMessage =
+      typeof payload === 'string' && payload.trim()
+        ? payload.trim()
+        : pickFirstApiMessage(
+            payload && typeof payload === 'object' ? payload : undefined,
+            error.message,
+          );
+    const message = payloadMessage ?? 'A network error occurred.';
+
+    const payloadObj = payload && typeof payload === 'object' ? payload : undefined;
     return {
-      code: typeof payload?.code === 'number' || typeof payload?.code === 'string' ? payload.code : error.status || -1,
+      code:
+        typeof payloadObj?.code === 'number' || typeof payloadObj?.code === 'string'
+          ? payloadObj.code
+          : error.status || -1,
       message,
-      details: payload?.details ?? payload?.detailize ?? error.error,
+      details: payloadObj?.details ?? payloadObj?.detailize ?? error.error,
     };
   }
 

@@ -13,7 +13,10 @@ import {
   LossRefBatch,
   LossType as LossTypeStr,
 } from '../models/loss.model';
-import { API_BASE_URL } from '@app/core/data-access/infrastructure';
+import type { CreateBatchLossDto } from '../models/loss-registration.model';
+import { AllocationsRepository } from './allocations.repository';
+import type { AllocationRow } from '../models/allocation.model';
+import { API_BASE_URL, PaginatedResult } from '@app/core/data-access/infrastructure';
 import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiLossItem, ApiBatchItem, ApiDistributionItem,
@@ -30,28 +33,58 @@ interface ApiLossCreateResponse {
 export class LossesRepository {
   readonly #http = inject(HttpClient);
   readonly #apiUrl = inject(API_BASE_URL);
+  readonly #allocationsRepo = inject(AllocationsRepository);
 
-  getAll(pageNumber = 1, search = ''): Observable<LossRow[]> {
+  getAll(pageNumber = 1, batchId?: number, pipeId?: number, lossType?: number): Observable<PaginatedResult<LossRow>> {
     const params: Record<string, string | number | boolean> = { PageNumber: pageNumber };
-    if (search) params['Search'] = search;
+    if (batchId) params['BatchId'] = batchId;
+    if (pipeId) params['PipeId'] = pipeId;
+    if (lossType) params['LossType'] = lossType;
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Losses, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiLossItem>>(url, { params }).pipe(
       map(response => {
-        const items = response.result?.items ?? [];
-        return items.map(apiLoss => this.#mapToDomain(apiLoss));
+        const items = (response.result?.items ?? []).map(apiLoss => this.#mapToDomain(apiLoss));
+        return {
+          items,
+          totalCount: response.result?.totalCount ?? 0,
+          pageNumber: response.result?.pageNumber ?? 1,
+          pageSize: response.result?.pageSize ?? 50,
+          totalPages: response.result?.totalPages ?? 1,
+        };
       })
     );
   }
 
   getById(id: string): Observable<LossRow> {
     return this.getAll().pipe(
-      map(items => {
-        const found = items.find(i => i.id === id);
+      map(result => {
+        const found = result.items.find(i => i.id === id);
         if (!found) throw new Error(`Loss record with id ${id} not found`);
         return found;
       })
     );
+  }
+
+  getAllocationsByBatch(batchId: string): Observable<AllocationRow[]> {
+    return this.#allocationsRepo
+      .getAll(1, '', { StockBatchId: Number(batchId) })
+      .pipe(map((result) => result.items.filter((row) => row.status === 'active')));
+  }
+
+  createBatchLoss(dto: CreateBatchLossDto): Observable<void> {
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Losses, ApiAction.Create)}`;
+    const payload: ApiCreateLossCommand = {
+      batchId: Number(dto.batchId),
+      lossType: this.#mapLossTypeToApi(dto.lossType),
+      reason: dto.reason,
+      currentUserId: 'system',
+      items: dto.items.map((item) => ({
+        distributionId: Number(item.distributionId),
+        quantity: item.quantity,
+      })),
+    };
+    return this.#http.post<ApiLossCreateResponse>(url, payload).pipe(map(() => undefined));
   }
 
   create(dto: CreateLossDto): Observable<LossRow> {

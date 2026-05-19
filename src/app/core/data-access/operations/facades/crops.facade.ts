@@ -1,9 +1,10 @@
 /* libs/operations/data-access/src/lib/facades/crops.facade.ts */
 import { computed, inject, Injectable, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, Subject } from 'rxjs';
-import { debounceTime, switchMap } from 'rxjs/operators';
+import { finalize } from 'rxjs';
+import { Subject } from 'rxjs';
 import { CropsRepository } from '../repositories/crops.repository';
+import { bindListReloadStream } from '../../infrastructure/entity-list-facade.helpers';
 import { GhToastService } from '@app/core';
 import { TranslationService } from '@app/core';
 import { normalizeAppError } from '@app/core/errors/app-error';
@@ -69,43 +70,20 @@ export class CropsFacade {
   // --- SECTION 5: Methods ---
 
   constructor() {
-    const handleResult = (result: { items: CropRow[]; totalCount: number; totalPages: number; pageSize: number }) => {
-      this.#items.set(result.items);
-      this.#totalCount.set(result.totalCount);
-      this.#totalPages.set(result.totalPages);
-      this.#pageSize.set(result.pageSize);
-    };
-
-    this.#reloadNow$
-      .pipe(
-        switchMap(() => {
-          this.#isLoading.set(true);
-          this.#error.set(null);
-          return this.#repo.getAll(this.#listQuery()).pipe(finalize(() => this.#isLoading.set(false)));
-        }),
-        takeUntilDestroyed(this.#destroyRef)
-      )
-      .subscribe({
-        next: handleResult,
-        error: (err: unknown) => this.#error.set(normalizeAppError(err).message),
-      });
-
-    this.#reloadSearch$
-      .pipe(
-        debounceTime(350),
-        switchMap(() => {
-          this.#isLoading.set(true);
-          this.#error.set(null);
-          return this.#repo.getAll(this.#listQuery()).pipe(finalize(() => this.#isLoading.set(false)));
-        }),
-        takeUntilDestroyed(this.#destroyRef)
-      )
-      .subscribe({
-        next: handleResult,
-        error: (err: unknown) => this.#error.set(normalizeAppError(err).message),
-      });
-
-    this.loadAll();
+    bindListReloadStream({
+      destroyRef: this.#destroyRef,
+      reloadNow$: this.#reloadNow$,
+      reloadSearch$: this.#reloadSearch$,
+      load: () => this.#repo.getAll(this.#listQuery()),
+      setItems: (items) => this.#items.set(items),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      setPagination: (p) => {
+        this.#totalCount.set(p.totalCount);
+        this.#totalPages.set(p.totalPages);
+        this.#pageSize.set(p.pageSize);
+      },
+    });
   }
 
   #listQuery() {
@@ -113,7 +91,7 @@ export class CropsFacade {
     return {
       pageNumber: this.#pageNumber(),
       search: f.searchQuery,
-      setOrder: f.sortBy,
+      setOrder: f.sortBy === 'all' ? undefined : f.sortBy,
     };
   }
 

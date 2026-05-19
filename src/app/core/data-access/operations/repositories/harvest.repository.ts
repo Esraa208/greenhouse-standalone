@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { HarvestRow, CreateHarvestDto, HarvestRefCustomer } from '../models/harvest.model';
-import { API_BASE_URL } from '@app/core/data-access/infrastructure';
+import { API_BASE_URL, PaginatedResult } from '@app/core/data-access/infrastructure';
 import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiHarvestItem, ApiCreateHarvestDto, ApiCustomerItem
@@ -15,33 +15,41 @@ export class HarvestRepository {
   readonly #http = inject(HttpClient);
   readonly #apiUrl = inject(API_BASE_URL);
 
-  getAll(stockBatchId?: string): Observable<HarvestRow[]> {
+  getAll(stockBatchId?: string): Observable<PaginatedResult<HarvestRow>> {
     const params: Record<string, string | number> = {};
     if (stockBatchId) params['stockBatchId'] = Number(stockBatchId);
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Harvest, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiHarvestItem> | ApiHarvestItem[]>(url, { params }).pipe(
       map(response => {
-        const items = Array.isArray(response) ? response : (response as ApiPaginatedResult<ApiHarvestItem>).result?.items ?? [];
-        return items.map(apiHarvest => ({
+        const rawItems = Array.isArray(response) ? response : (response as ApiPaginatedResult<ApiHarvestItem>).result?.items ?? [];
+        const items = rawItems.map(apiHarvest => ({
           id: String(apiHarvest.id),
           batchNumber: `BTH-${apiHarvest.stockBatchId}`,
-          cropTypeName: '', // Not returned by API
+          cropTypeName: '',
           quantityHarvested: apiHarvest.totalQuantity || 0,
-          rootWeight: 0, // Calculated difference or not returned
+          rootWeight: 0,
           netWeight: apiHarvest.netWeight || 0,
           harvestValue: apiHarvest.value || 0,
           harvestDate: apiHarvest.date || new Date().toISOString(),
-          customerName: '', // Link by customerId if available
+          customerName: '',
         }));
+        const paginated = !Array.isArray(response) ? (response as ApiPaginatedResult<ApiHarvestItem>).result : null;
+        return {
+          items,
+          totalCount: paginated?.totalCount ?? items.length,
+          pageNumber: paginated?.pageNumber ?? 1,
+          pageSize: paginated?.pageSize ?? 50,
+          totalPages: paginated?.totalPages ?? 1,
+        };
       })
     );
   }
 
   getById(id: string): Observable<HarvestRow> {
     return this.getAll().pipe(
-      map(items => {
-        const row = items.find((m) => m.id === id);
+      map(result => {
+        const row = result.items.find((m) => m.id === id);
         if (!row) throw new Error('Harvest not found');
         return row;
       })

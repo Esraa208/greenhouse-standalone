@@ -1,4 +1,4 @@
-﻿/* libs/operations/data-access/src/lib/models/crop.model.ts */
+/* libs/operations/data-access/src/lib/models/crop.model.ts */
 
 /**
  * Domain interface for a single Crop record in the management system.
@@ -27,7 +27,8 @@ export type CropSortKey =
  */
 export interface CropFilters {
   searchQuery: string;
-  sortBy: CropSortKey;
+  /** `'all'` = no server sort (only `PageNumber` sent). */
+  sortBy: CropSortKey | 'all';
 }
 
 /**
@@ -35,7 +36,7 @@ export interface CropFilters {
  */
 export const DEFAULT_CROP_FILTERS: CropFilters = {
   searchQuery: '',
-  sortBy: 'name-asc',
+  sortBy: 'all',
 };
 
 /**

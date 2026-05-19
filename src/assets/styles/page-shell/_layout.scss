@@ -1,8 +1,9 @@
-﻿// ── Generic Page Container ─────────────────────────────────────────
+// ── Generic Page Container ─────────────────────────────────────────
 .zones-page, .systems-page, .layers-page, .pipes-page, .locations-page, .greenhouses-page,
 .crops-page, .batches-page, .allocations-page, .losses-page, .harvest-page,
 .customers-page, .invoices-page,
-.dashboard, .reports-page {
+.dashboard, .reports-page,
+.gh-wizard-page {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);

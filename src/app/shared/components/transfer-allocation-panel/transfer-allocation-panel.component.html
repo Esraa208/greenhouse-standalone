@@ -1,0 +1,176 @@
+<section class="gh-transfer-source" aria-labelledby="transfer-source-title">
+  <span class="gh-transfer-source__icon" aria-hidden="true">📦</span>
+  <div>
+    <h3 id="transfer-source-title" class="gh-transfer-source__title">
+      {{ 'allocations.move_selected_title' | translate }}
+    </h3>
+    <p class="gh-transfer-source__batch">{{ item().batchNumber }} - {{ item().cropType }}</p>
+    <p class="gh-transfer-source__location">
+      <span class="gh-transfer-source__location-label">{{ 'allocations.move_current_location' | translate }}:</span>
+      {{ item().location }} ← {{ item().greenhouse }}
+    </p>
+    <p class="gh-transfer-source__path">{{ item().zone }} • {{ item().system }} • {{ item().layer }}</p>
+    <p class="gh-transfer-source__qty">
+      {{ 'allocations.move_qty_label' | translate }}: {{ item().quantity | number }} {{ 'common.plants' | translate }}
+    </p>
+  </div>
+</section>
+
+<h3 class="gh-transfer-section-title">{{ 'allocations.move_target_title' | translate }}</h3>
+
+<div class="gh-transfer-grid">
+  <div class="gh-transfer-grid__field">
+    <label class="gh-transfer-grid__label" for="transfer-location">
+      <span aria-hidden="true">📍</span> {{ 'allocations.field_location' | translate }}
+    </label>
+    <select
+      id="transfer-location"
+      class="form-select"
+      [value]="locationId()"
+      (change)="locationIdChange.emit(selectValue($event))">
+      <option value="">{{ 'allocations.move_select_location' | translate }}</option>
+      @for (loc of locations(); track loc.id) {
+        <option [value]="loc.id">{{ loc.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="gh-transfer-grid__field">
+    <label class="gh-transfer-grid__label" for="transfer-greenhouse">
+      <span aria-hidden="true">🏠</span> {{ 'allocations.field_greenhouse' | translate }}
+    </label>
+    <select
+      id="transfer-greenhouse"
+      class="form-select"
+      [disabled]="!locationId()"
+      [value]="greenhouseId()"
+      (change)="greenhouseIdChange.emit(selectValue($event))">
+      <option value="">{{ 'allocations.move_select_gh' | translate }}</option>
+      @for (gh of greenhouses(); track gh.id) {
+        <option [value]="gh.id">{{ gh.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="gh-transfer-grid__field">
+    <label class="gh-transfer-grid__label" for="transfer-zone">
+      <span aria-hidden="true">↗</span> {{ 'allocations.field_zone' | translate }}
+    </label>
+    <select
+      id="transfer-zone"
+      class="form-select"
+      [disabled]="!greenhouseId()"
+      [value]="zoneId()"
+      (change)="zoneIdChange.emit(selectValue($event))">
+      <option value="">{{ 'allocations.move_select_zone' | translate }}</option>
+      @for (z of zones(); track z.id) {
+        <option [value]="z.id">{{ z.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="gh-transfer-grid__field">
+    <label class="gh-transfer-grid__label" for="transfer-system">
+      <span aria-hidden="true">🏠</span> {{ 'allocations.field_system' | translate }}
+    </label>
+    <select
+      id="transfer-system"
+      class="form-select"
+      [disabled]="!zoneId()"
+      [value]="systemId()"
+      (change)="systemIdChange.emit(selectValue($event))">
+      <option value="">{{ 'allocations.move_select_system' | translate }}</option>
+      @for (s of systems(); track s.id) {
+        <option [value]="s.id">{{ s.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="gh-transfer-grid__field gh-transfer-grid__field--full">
+    <label class="gh-transfer-grid__label" for="transfer-layer">
+      <span aria-hidden="true">▤</span> {{ 'allocations.field_layer' | translate }}
+    </label>
+    <select
+      id="transfer-layer"
+      class="form-select"
+      [disabled]="!systemId()"
+      [value]="layerId()"
+      (change)="layerIdChange.emit(selectValue($event))">
+      <option value="">{{ 'allocations.move_select_layer' | translate }}</option>
+      @for (l of layers(); track l.id) {
+        <option [value]="l.id">{{ l.name }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+@if (showPathPreview()) {
+  <div class="gh-transfer-path-preview" role="status">
+    <p class="gh-transfer-path-preview__title">{{ 'allocations.move_path_preview' | translate }}:</p>
+    <p class="gh-transfer-path-preview__path">
+      @for (segment of pathSegments(); track segment; let last = $last) {
+        <span>{{ segment }}</span>
+        @if (!last) {
+          <span class="gh-transfer-path-preview__sep" aria-hidden="true">←</span>
+        }
+      }
+    </p>
+  </div>
+}
+
+<section class="gh-transfer-qty" aria-labelledby="transfer-qty-title">
+  <div class="gh-transfer-qty__head">
+    <h3 id="transfer-qty-title" class="gh-transfer-qty__title">{{ 'allocations.move_qty_title' | translate }}</h3>
+    <p class="gh-transfer-qty__available">
+      {{ 'allocations.move_available' | translate }}: {{ maxQuantity() | number }} {{ 'common.plants' | translate }}
+    </p>
+  </div>
+
+  <div class="gh-transfer-qty__field">
+    <input
+      id="transfer-quantity"
+      type="number"
+      class="gh-transfer-qty__input"
+      [value]="quantity()"
+      [min]="1"
+      [max]="maxQuantity()"
+      (input)="quantityChange.emit(inputNumber($event))" />
+    <span class="gh-transfer-qty__unit">{{ 'common.plants' | translate }}</span>
+  </div>
+
+  <div class="gh-transfer-pct-grid" role="group" [attr.aria-label]="'allocations.move_qty_title' | translate">
+    @for (preset of pctPresets; track preset.fraction) {
+      <button
+        type="button"
+        class="gh-transfer-pct-btn"
+        [class.gh-transfer-pct-btn--active]="isPctActive(preset.fraction)"
+        [disabled]="maxQuantity() <= 0"
+        (click)="quantityPctChange.emit(preset.fraction)">
+        {{ preset.labelKey | translate }}
+      </button>
+    }
+  </div>
+</section>
+
+@if (quantityExceeded()) {
+  <p class="gh-transfer-status gh-transfer-status--error" role="alert">
+    {{ 'allocations.move_qty_exceeded' | translate }}
+  </p>
+} @else if (showQuantityStatus()) {
+  <p class="gh-transfer-status" role="status">
+    @if (quantity() === maxQuantity()) {
+      {{ 'allocations.move_all_msg' | translate }}
+      ({{ quantity() | number }} {{ 'common.plants' | translate }})
+    } @else {
+      {{ 'allocations.move_partial_msg' | translate }}
+      {{ quantity() | number }} {{ 'common.plants' | translate }}
+      • {{ 'allocations.move_remaining' | translate }}
+      {{ maxQuantity() - quantity() | number }} {{ 'common.plants' | translate }}
+    }
+  </p>
+}
+
+<div class="gh-transfer-warning" role="note">
+  <span class="gh-transfer-warning__icon" aria-hidden="true">⚠️</span>
+  <span>{{ 'allocations.move_warning' | translate }}</span>
+</div>

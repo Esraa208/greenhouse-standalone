@@ -1,4 +1,4 @@
-﻿// libs/shared/ui/src/lib/table-filters/table-filters.component.ts
+// libs/shared/ui/src/lib/table-filters/table-filters.component.ts
 import {
   ChangeDetectionStrategy,
   Component,
@@ -29,6 +29,8 @@ export class TableFiltersComponent {
   readonly sort = model<string>('');
 
   readonly sortOptions = input<SortOption[]>([]);
+  /** When set, replaces default active/inactive status options. */
+  readonly statusOptions = input<SortOption[] | undefined>(undefined);
   readonly searchPlaceholder = input<string>('Search...');
   readonly showStatus = input<boolean>(true);
   readonly showSort = input<boolean>(true);

@@ -69,6 +69,13 @@
         }
       </tbody>
     </gh-table>
+
+    <gh-pagination
+      [currentPage]="facade.currentPage()"
+      [totalPages]="facade.totalPages()"
+      [totalCount]="facade.totalCount()"
+      [pageSize]="facade.pageSize()"
+      (pageChange)="facade.goToPage($event)" />
   </div>
 
   <gh-modal

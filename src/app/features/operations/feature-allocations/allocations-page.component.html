@@ -1,87 +1,73 @@
-<gh-crud-page-shell class="allocations-page" [dir]="i18n.dir()">
+<div class="allocations-page" [attr.dir]="i18n.dir()">
 
-  <div data-gh-crud-slot="header">
-    <gh-page-header
-      [title]="'allocations.page_title' | translate"
-      [subtitle]="'allocations.page_subtitle' | translate" />
-  </div>
+  <gh-page-header
+    [title]="'allocations.page_title' | translate"
+    [subtitle]="'allocations.page_subtitle' | translate" />
 
-  <div data-gh-crud-slot="filters">
+  <!-- Filter row 1: search + sort + status (same as pipes) -->
   <gh-table-filters
     [searchPlaceholder]="'allocations.search' | translate"
     [search]="facade.filters().searchQuery"
+    [status]="facade.filters().status"
+    [statusOptions]="allocationStatusOptions()"
     [sort]="facade.filters().sortBy"
     [sortOptions]="sortOptions()"
-    [showStatus]="false"
+    [showStatus]="true"
     (searchChange)="facade.patchFilters({ searchQuery: $event })"
-    (sortChange)="updateSortFilter($event)">
-  </gh-table-filters>
+    (statusChange)="updateStatusFilter($event)"
+    (sortChange)="updateSortFilter($event)" />
 
-  <!-- Secondary filters: status + batch -->
-  <div class="allocations-page__secondary-filters">
-    <div class="allocations-page__filter-group">
-      <select class="allocations-page__filter-select"
-        (change)="updateStatusFilter(selectValue($event))">
-        <option value="all">{{ 'filter.status_all' | translate }}</option>
-        <option value="active">{{ 'allocations.status_active' | translate }}</option>
-        <option value="moved">{{ 'allocations.status_moved' | translate }}</option>
-        <option value="harvested">{{ 'allocations.status_harvested' | translate }}</option>
-      </select>
-      <select class="allocations-page__filter-select"
-        (change)="facade.patchFilters({ batchNumber: selectValue($event) })">
-        <option value="">{{ 'allocations.filter_all_batches' | translate }}</option>
-        @for (b of facade.uniqueBatches(); track b) {
-          <option [value]="b">{{ b }}</option>
-        }
-      </select>
-    </div>
-  </div>
+  <!-- Filter row 2: batch + location -> greenhouse -> zone -> system -> layer (pipes layout) -->
 
-  <!-- Hierarchy filters -->
-  <div class="allocations-page__hierarchy-filters">
-    <select class="allocations-page__filter-select"
-      (change)="facade.patchFilters({ locationId: selectValue($event), greenhouseId: '', zoneId: '', systemId: '', layerId: '' })">
-      <option value="">{{ 'filter.all_locations' | translate }}</option>
-      @for (loc of facade.uniqueLocations(); track loc) {
-        <option [value]="loc">{{ loc }}</option>
-      }
+  <!-- Filter row 2: batch + location → greenhouse → zone → system → layer → pipe -->
+  <div class="gh-filter-row-secondary">
+    <select class="gh-filter-select" [value]="facade.filters().batchNumber"
+      (change)="facade.patchFilters({ batchNumber: selectValue($event) })" id="gh-allocations-filter-batch">
+      <option value="">{{ 'allocations.filter_all_batches' | translate }}</option>
+      @for (b of facade.uniqueBatches(); track b) { <option [value]="b">{{ b }}</option> }
     </select>
-    <select class="allocations-page__filter-select"
-      (change)="facade.patchFilters({ greenhouseId: selectValue($event), zoneId: '', systemId: '', layerId: '' })">
-      <option value="">{{ 'filter.all_greenhouses' | translate }}</option>
-      @for (gh of facade.filterGreenhouses(); track gh) {
-        <option [value]="gh">{{ gh }}</option>
-      }
+    <select class="gh-filter-select" [value]="facade.filters().locationId"
+      (change)="facade.patchFilters({ locationId: selectValue($event), greenhouseId: 'all', zoneId: 'all', systemId: 'all', layerId: 'all', pipeId: 'all' })"
+      id="gh-allocations-filter-location">
+      <option value="all">{{ 'pipes.filter_all_locations' | translate }}</option>
+      @for (loc of facade.filterLocations(); track loc.id) { <option [value]="loc.id">{{ loc.name }}</option> }
     </select>
-    <select class="allocations-page__filter-select"
-      (change)="facade.patchFilters({ zoneId: selectValue($event), systemId: '', layerId: '' })">
-      <option value="">{{ 'filter.all_zones' | translate }}</option>
-      @for (z of facade.filterZones(); track z) {
-        <option [value]="z">{{ z }}</option>
-      }
+    <select class="gh-filter-select" [value]="facade.filters().greenhouseId"
+      (change)="facade.patchFilters({ greenhouseId: selectValue($event), zoneId: 'all', systemId: 'all', layerId: 'all', pipeId: 'all' })"
+      id="gh-allocations-filter-greenhouse">
+      <option value="all">{{ 'pipes.filter_all_greenhouses' | translate }}</option>
+      @for (gh of facade.filterGreenhouses(); track gh.id) { <option [value]="gh.id">{{ gh.name }}</option> }
     </select>
-    <select class="allocations-page__filter-select"
-      (change)="facade.patchFilters({ systemId: selectValue($event), layerId: '' })">
-      <option value="">{{ 'filter.all_systems' | translate }}</option>
-      @for (s of facade.filterSystems(); track s) {
-        <option [value]="s">{{ s }}</option>
-      }
+    <select class="gh-filter-select" [value]="facade.filters().zoneId"
+      (change)="facade.patchFilters({ zoneId: selectValue($event), systemId: 'all', layerId: 'all', pipeId: 'all' })"
+      id="gh-allocations-filter-zone">
+      <option value="all">{{ 'pipes.filter_all_zones' | translate }}</option>
+      @for (z of facade.filterZones(); track z.id) { <option [value]="z.id">{{ z.name }}</option> }
     </select>
-    <select class="allocations-page__filter-select"
-      (change)="facade.patchFilters({ layerId: selectValue($event) })">
-      <option value="">{{ 'filter.all_layers' | translate }}</option>
-      @for (l of facade.filterLayers(); track l) {
-        <option [value]="l">{{ l }}</option>
-      }
+    <select class="gh-filter-select" [value]="facade.filters().systemId"
+      (change)="facade.patchFilters({ systemId: selectValue($event), layerId: 'all', pipeId: 'all' })"
+      id="gh-allocations-filter-system">
+      <option value="all">{{ 'pipes.filter_all_systems' | translate }}</option>
+      @for (sys of facade.filterSystems(); track sys.id) { <option [value]="sys.id">{{ sys.name }}</option> }
+    </select>
+    <select class="gh-filter-select" [value]="facade.filters().layerId"
+      (change)="facade.patchFilters({ layerId: selectValue($event), pipeId: 'all' })"
+      id="gh-allocations-filter-layer">
+      <option value="all">{{ 'pipes.filter_all_layers' | translate }}</option>
+      @for (layer of facade.filterLayers(); track layer.id) { <option [value]="layer.id">{{ layer.name }}</option> }
+    </select>
+    <select class="gh-filter-select" [value]="facade.filters().pipeId"
+      (change)="facade.patchFilters({ pipeId: selectValue($event) })"
+      id="gh-allocations-filter-pipe">
+      <option value="all">{{ 'pipes.filter_all_pipes' | translate }}</option>
+      @for (pipe of facade.filterPipes(); track pipe.id) { <option [value]="pipe.id">{{ pipe.name }}</option> }
     </select>
   </div>
-  </div>
-
-  <div data-gh-crud-slot="body">
-    <gh-entity-list-section
-      [loading]="facade.isLoading()"
-      [itemCount]="facade.filteredItems().length"
-      emptyTitleKey="allocations.empty">
+  <div class="gh-card">
+    @if (!facade.isLoading() && facade.filteredItems().length === 0) {
+      <gh-empty-state [title]="'allocations.empty' | translate" />
+    } @else {
+      <gh-table [loading]="facade.isLoading()" [striped]="false">
         <thead>
           <tr>
             <th>{{ 'allocations.col_batch' | translate }}</th>
@@ -90,7 +76,7 @@
             <th>{{ 'allocations.col_zone' | translate }}</th>
             <th>{{ 'allocations.col_layer' | translate }}</th>
             <th>{{ 'allocations.col_qty' | translate }}</th>
-            <th>{{ 'allocations.col_date' | translate }}</th>
+            <th>{{ 'allocations.col_allocated' | translate }}</th>
             <th>{{ 'allocations.col_movements' | translate }}</th>
             <th>{{ 'allocations.col_losses' | translate }}</th>
             <th>{{ 'allocations.col_status' | translate }}</th>
@@ -101,63 +87,94 @@
           @for (row of facade.filteredItems(); track row.id) {
             <tr>
               <td>
-                <div class="allocations-page__batch-cell">
-                  <span class="allocations-page__icon">📦</span>
-                  <span class="allocations-page__batch-number">{{ row.batchNumber }}</span>
+                <div class="gh-cell-entity">
+                  <span class="gh-entity-icon" aria-hidden="true">📦</span>
+                  <span class="gh-cell-entity__label">{{ row.batchNumber }}</span>
                 </div>
               </td>
-              <td><span class="allocations-page__crop">{{ row.cropType }}</span></td>
+              <td><span class="gh-cell-entity__text">{{ row.cropType }}</span></td>
               <td>
-                <div class="allocations-page__location">
-                  <div class="allocations-page__location-row">📍 {{ row.location }}</div>
-                  <div class="allocations-page__location-gh">🏠 {{ row.greenhouse }}</div>
+                <div class="gh-cell-stack">
+                  <span class="gh-cell-stack__primary">
+                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">📍</span>
+                    {{ row.location }}
+                  </span>
+                  <span class="gh-cell-stack__secondary">
+                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">🏠</span>
+                    {{ row.greenhouse }}
+                  </span>
                 </div>
               </td>
               <td>
-                <div class="allocations-page__zone">
-                  <div class="allocations-page__zone-row">📊 {{ row.zone }}</div>
-                  <div class="allocations-page__system-row">🏠 {{ row.system }}</div>
+                <div class="gh-cell-stack">
+                  <span class="gh-cell-stack__primary">
+                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">〰️</span>
+                    {{ row.zone }}
+                  </span>
+                  <span class="gh-cell-stack__secondary">
+                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">⚙️</span>
+                    {{ row.system }}
+                  </span>
                 </div>
               </td>
               <td>
-                <div class="allocations-page__layer-badge">⊞ {{ row.layer }}</div>
+                @if (row.layerPosition > 0) {
+                  <span class="gh-cell-layer">
+                    <!-- <span class="gh-cell-icon gh-cell-icon--primary gh-cell-icon--sm" aria-hidden="true">🗂️</span> -->
+                    {{ 'allocations.layer_number' | translate:{ count: '' + row.layerPosition } }}
+                  </span>
+                } @else if (row.layer) {
+                  <span class="gh-cell-layer">
+                    <!-- <span class="gh-cell-icon gh-cell-icon--primary gh-cell-icon--sm" aria-hidden="true">🗂️</span> -->
+                    {{ row.layer }}
+                  </span>
+                }
               </td>
               <td>
-                <div class="allocations-page__qty">{{ row.quantity | number }} {{ 'common.plants' | translate }}</div>
-                <div class="allocations-page__qty-initial">{{ 'allocations.qty_from' | translate }} {{ row.initialQuantity | number }}</div>
+                <div class="gh-qty-cell gh-qty-cell--stacked">
+                  <span class="gh-qty-cell__value">{{ row.quantity | number }}</span>
+                  <span class="gh-qty-cell__unit">{{ 'common.plants' | translate }}</span>
+                </div>
               </td>
               <td>
-                <div class="allocations-page__date">📅 {{ row.allocatedDate | date:'d MMMM yyyy':'':'ar' }}</div>
+                <div class="gh-cell-date">
+                  <span class="gh-cell-date__primary">{{ row.allocatedDate | date:'d MMMM':'':i18n.currentLang() }}</span>
+                  <span class="gh-cell-date__secondary">{{ row.allocatedDate | date:'y':'':i18n.currentLang() }}</span>
+                </div>
               </td>
               <td>
-                <button class="allocations-page__history-chip" (click)="facade.openHistoryModal(row)">
-                  ⏱ {{ row.movementHistory.length }} {{ 'allocations.movements_suffix' | translate }}
+                <button type="button" class="gh-cell-chip" (click)="facade.openHistoryModal(row)">
+                  <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">↺</span>
+                  {{ row.movementHistory.length }} {{ 'allocations.movements_suffix' | translate }}
                 </button>
               </td>
               <td>
-                @if (row.lossHistory.length > 0) {
-                  <button class="allocations-page__loss-chip" (click)="facade.openLossHistoryModal(row)">
-                    ⚠ {{ row.lossHistory.length }} {{ 'allocations.losses_suffix' | translate }}
+                @if (totalLossQty(row.lossHistory) > 0) {
+                  <button type="button" class="gh-loss-badge" (click)="facade.openLossHistoryModal(row)">
+                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">⚠</span>
+                    {{ totalLossQty(row.lossHistory) | number }} {{ 'allocations.losses_suffix' | translate }}
                   </button>
                 } @else {
-                  <span class="allocations-page__no-loss">{{ 'allocations.no_loss' | translate }}</span>
+                  <span class="gh-cell-empty">{{ 'allocations.no_loss' | translate }}</span>
                 }
               </td>
               <td>
                 @switch (row.status) {
                   @case ('active') { <gh-badge variant="active">{{ 'allocations.status_active' | translate }}</gh-badge> }
-                  @case ('moved') { <gh-badge variant="inactive">{{ 'allocations.status_moved' | translate }}</gh-badge> }
-                  @case ('harvested') { <gh-badge variant="inactive">{{ 'allocations.status_harvested' | translate }}</gh-badge> }
+                  @case ('moved') { <gh-badge variant="warning">{{ 'allocations.status_moved' | translate }}</gh-badge> }
+                  @case ('harvested') { <gh-badge variant="harvested">{{ 'allocations.status_harvested' | translate }}</gh-badge> }
                 }
               </td>
               <td>
                 @if (row.status === 'active') {
-                  <div class="cell-actions">
+                  <div class="gh-table-actions gh-table-actions--compact">
                     <gh-button variant="primary" size="sm" (click)="facade.openMoveModal(row)">
-                      → {{ 'allocations.btn_move' | translate }}
+                      {{ 'allocations.btn_move' | translate }}
+                      <span class="gh-btn-trailing-icon" aria-hidden="true">←</span>
                     </gh-button>
                     <gh-button variant="destructive" size="sm" (click)="facade.openLossModal(row)">
-                      ⚠ {{ 'allocations.btn_loss' | translate }}
+                      <span class="gh-btn-trailing-icon" aria-hidden="true">⚠</span>
+                      {{ 'allocations.btn_loss' | translate }}
                     </gh-button>
                   </div>
                 }
@@ -165,50 +182,27 @@
             </tr>
           }
         </tbody>
-    </gh-entity-list-section>
+      </gh-table>
+      <gh-pagination
+        [currentPage]="facade.currentPage()"
+        [totalPages]="facade.totalPages()"
+        [totalCount]="facade.totalCount()"
+        [pageSize]="facade.pageSize()"
+        (pageChange)="facade.goToPage($event)" />
+    }
   </div>
 
   <!-- MODAL 1: MOVEMENT HISTORY -->
-  <gh-modal [isOpen]="facade.isHistoryModalOpen()" [title]="'allocations.modal_history_title' | translate" size="md" (closed)="facade.closeHistoryModal()">
+  <gh-modal [isOpen]="facade.isHistoryModalOpen()" [title]="'allocations.modal_history_title' | translate" size="lg" (closed)="facade.closeHistoryModal()">
     @if (facade.viewingHistoryItem(); as item) {
-      <div class="allocations-page__info-card allocations-page__info-card--blue">
-        <div>
-          <p class="allocations-page__info-batch">{{ item.batchNumber }} - {{ item.cropType }}</p>
-          <p class="allocations-page__info-qty">{{ item.quantity | number }} {{ 'common.plants' | translate }}</p>
-        </div>
-      </div>
-      <div class="allocations-page__timeline">
-        @for (record of item.movementHistory; track record.date; let last = $last) {
-          <div class="allocations-page__timeline-item">
-            <div class="allocations-page__timeline-dot-wrap">
-              <div class="allocations-page__timeline-dot allocations-page__timeline-dot--{{ record.action === 'allocated' ? 'blue' : record.action === 'moved' ? 'amber' : 'green' }}"></div>
-              @if (!last) { <div class="allocations-page__timeline-line"></div> }
-            </div>
-            <div class="allocations-page__timeline-content">
-              <div class="allocations-page__timeline-header">
-                <gh-badge [variant]="movementVariant(record.action)">{{ movementLabel(record.action) }}</gh-badge>
-                <span class="allocations-page__timeline-date">{{ record.date | date:'d MMMM yyyy':'':'ar' }}</span>
-              </div>
-              @if (record.action === 'moved' && record.from) {
-                <div class="allocations-page__location-card allocations-page__location-card--red">
-                  <p class="allocations-page__location-card-label">{{ 'allocations.history_from' | translate }}:</p>
-                  <p>{{ record.from.location }}</p>
-                  <p class="allocations-page__location-card-muted">{{ record.from.greenhouse }}</p>
-                  <div class="allocations-page__location-card-path">{{ record.from.zone }} • {{ record.from.system }} • {{ record.from.layer }}</div>
-                </div>
-              }
-              <div class="allocations-page__location-card allocations-page__location-card--{{ record.action === 'harvested' ? 'green' : 'blue' }}">
-                <p class="allocations-page__location-card-label">{{ (record.action === 'moved' ? 'allocations.history_to' : record.action === 'harvested' ? 'allocations.history_harvest_loc' : 'allocations.history_allocated_in') | translate }}:</p>
-                <p>{{ record.to.location }}</p>
-                <p class="allocations-page__location-card-muted">{{ record.to.greenhouse }}</p>
-                <div class="allocations-page__location-card-path">{{ record.to.zone }} • {{ record.to.system }} • {{ record.to.layer }}</div>
-              </div>
-              <div class="allocations-page__timeline-qty">{{ 'allocations.history_qty' | translate }}: <strong>{{ record.quantity | number }} {{ 'common.plants' | translate }}</strong></div>
-            </div>
-          </div>
-        }
-      </div>
-      <div class="allocations-page__summary-row">{{ 'allocations.total_movements' | translate }}: {{ item.movementHistory.length }} {{ 'allocations.movements_suffix' | translate }}</div>
+      <gh-stock-history-panel
+        [batchNumber]="item.batchNumber"
+        [cropType]="item.cropType"
+        [quantity]="item.quantity"
+        [entries]="facade.historyEntries()"
+        [loading]="facade.historyLoading()"
+        footerCountKey="allocations.total_movements"
+        footerSuffixKey="allocations.movements_suffix" />
     }
     <div slot="footer" class="modal-footer-actions">
       <gh-button variant="outline" (click)="facade.closeHistoryModal()">{{ 'common.close' | translate }}</gh-button>
@@ -236,7 +230,7 @@
               }
               <span class="allocations-page__loss-qty">{{ 'allocations.loss_qty_prefix' | translate }} {{ loss.quantity | number }} {{ 'common.plants' | translate }}</span>
             </div>
-            <span class="allocations-page__loss-date">{{ loss.date | date:'d MMMM yyyy':'':'ar' }}</span>
+            <span class="allocations-page__loss-date">{{ loss.date | date:'d MMMM y':'':i18n.currentLang() }}</span>
           </div>
           <div class="allocations-page__reason-card">
             <p class="allocations-page__reason-label">{{ 'allocations.loss_reason' | translate }}:</p>
@@ -260,92 +254,41 @@
     </div>
   </gh-modal>
 
-  <!-- MODAL 3: MOVE ALLOCATION -->
-  <gh-modal [isOpen]="facade.isMoveModalOpen()" [title]="'allocations.modal_move_title' | translate" size="md" (closed)="facade.closeMoveModal()">
+  <!-- MODAL 3: TRANSFER ALLOCATION -->
+  <gh-modal
+    [isOpen]="facade.isMoveModalOpen()"
+    [title]="'allocations.modal_move_title' | translate"
+    size="lg"
+    (closed)="facade.closeMoveModal()">
     @if (facade.movingItem(); as item) {
-      <div class="allocations-page__info-card allocations-page__info-card--blue">
-        <div>
-          <p class="allocations-page__info-batch">{{ item.batchNumber }} - {{ item.cropType }}</p>
-          <p class="allocations-page__info-location">{{ item.location }} → {{ item.greenhouse }}</p>
-          <p class="allocations-page__info-path">{{ item.zone }} • {{ item.system }} • {{ item.layer }}</p>
-          <p class="allocations-page__info-qty">{{ item.quantity | number }} {{ 'common.plants' | translate }}</p>
-        </div>
-      </div>
-      <h3 class="allocations-page__section-title">{{ 'allocations.move_target_title' | translate }}</h3>
-      <div class="allocations-page__move-grid">
-        <div class="allocations-page__move-field">
-          <label class="allocations-page__move-label" for="move-location">📍 {{ 'filter.all_locations' | translate }}</label>
-          <select id="move-location" class="allocations-page__move-select" (change)="facade.setMoveLocationId(selectValue($event))">
-            <option value="">{{ 'allocations.move_select_location' | translate }}</option>
-            <option value="loc-riyadh">مزرعة الرياض الرئيسية</option>
-            <option value="loc-qassim">مشتل القصيم</option>
-            <option value="loc-jeddah">موقع جدة التجريبي</option>
-          </select>
-        </div>
-        <div class="allocations-page__move-field">
-          <label class="allocations-page__move-label" for="move-greenhouse">🏠 {{ 'filter.all_greenhouses' | translate }}</label>
-          <select id="move-greenhouse" class="allocations-page__move-select" [disabled]="!facade.moveTargetLocationId()" (change)="facade.setMoveGhId(selectValue($event))">
-            <option value="">{{ 'allocations.move_select_gh' | translate }}</option>
-            @for (gh of facade.moveFilteredGhs(); track gh.id) { <option [value]="gh.id">{{ gh.name }}</option> }
-          </select>
-        </div>
-        <div class="allocations-page__move-field">
-          <label class="allocations-page__move-label" for="move-zone">{{ 'filter.all_zones' | translate }}</label>
-          <select id="move-zone" class="allocations-page__move-select" [disabled]="!facade.moveTargetGhId()" (change)="facade.setMoveZoneId(selectValue($event))">
-            <option value="">{{ 'allocations.move_select_zone' | translate }}</option>
-            @for (z of facade.moveFilteredZones(); track z.id) { <option [value]="z.id">{{ z.name }}</option> }
-          </select>
-        </div>
-        <div class="allocations-page__move-field">
-          <label class="allocations-page__move-label" for="move-system">{{ 'filter.all_systems' | translate }}</label>
-          <select id="move-system" class="allocations-page__move-select" [disabled]="!facade.moveTargetZoneId()" (change)="facade.setMoveSystemId(selectValue($event))">
-            <option value="">{{ 'allocations.move_select_system' | translate }}</option>
-            @for (s of facade.moveFilteredSystems(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
-          </select>
-        </div>
-        <div class="allocations-page__move-field">
-          <label class="allocations-page__move-label" for="move-layer">{{ 'filter.all_layers' | translate }}</label>
-          <select id="move-layer" class="allocations-page__move-select" [disabled]="!facade.moveTargetSystemId()" (change)="facade.setMoveLayerId(selectValue($event))">
-            <option value="">{{ 'allocations.move_select_layer' | translate }}</option>
-            @for (l of facade.moveFilteredLayers(); track l.id) { <option [value]="l.id">{{ l.name }}</option> }
-          </select>
-        </div>
-        <div class="allocations-page__move-field">
-          <label class="allocations-page__move-label" for="move-pipe">{{ 'common.pipe' | translate }}</label>
-          <select id="move-pipe" class="allocations-page__move-select" [disabled]="!facade.moveTargetLayerId()" (change)="facade.setMovePipeId(selectValue($event))">
-            <option value="">{{ 'allocations.move_select_pipe' | translate }}</option>
-            @for (p of facade.moveFilteredPipes(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
-          </select>
-        </div>
-      </div>
-      <h3 class="allocations-page__section-title">{{ 'allocations.move_qty_title' | translate }}</h3>
-      <div class="allocations-page__qty-input-wrap">
-        <input id="move-quantity" type="number" class="allocations-page__qty-input" [value]="facade.moveQuantity()" [min]="1" [max]="facade.movingItemMaxQty()" (input)="facade.setMoveQuantity(inputNumber($event))" />
-        <span class="allocations-page__qty-suffix">{{ 'common.plants' | translate }}</span>
-      </div>
-      <div class="allocations-page__qty-available">{{ 'allocations.move_available' | translate }}: {{ facade.movingItemMaxQty() | number }} {{ 'common.plants' | translate }}</div>
-      <div class="allocations-page__pct-buttons">
-        <gh-button variant="outline" size="sm" (click)="facade.setMoveQuantityPct(0.25)">25%</gh-button>
-        <gh-button variant="outline" size="sm" (click)="facade.setMoveQuantityPct(0.5)">50%</gh-button>
-        <gh-button variant="outline" size="sm" (click)="facade.setMoveQuantityPct(0.75)">75%</gh-button>
-        <gh-button variant="primary" size="sm" (click)="facade.setMoveQuantityPct(1)">{{ 'allocations.move_all' | translate }}</gh-button>
-      </div>
-      @if (facade.moveQuantity() > 0) {
-        <div class="allocations-page__move-status">
-          @if (facade.moveQuantity() > facade.movingItemMaxQty()) {
-            {{ 'allocations.move_qty_exceeded' | translate }}
-          } @else if (facade.moveQuantity() === facade.movingItemMaxQty()) {
-            {{ 'allocations.move_all_msg' | translate }} ({{ facade.moveQuantity() | number }} {{ 'common.plants' | translate }})
-          } @else {
-            {{ 'allocations.move_partial_msg' | translate }} {{ facade.moveQuantity() | number }} {{ 'common.plants' | translate }} • {{ 'allocations.move_remaining' | translate }} {{ facade.movingItemMaxQty() - facade.moveQuantity() | number }} {{ 'common.plants' | translate }}
-          }
-        </div>
-      }
-      <div class="allocations-page__move-warning">⚠️ {{ 'allocations.move_warning' | translate }}</div>
+      <gh-transfer-allocation-panel
+        [item]="item"
+        [quantity]="facade.moveQuantity()"
+        [maxQuantity]="facade.movingItemMaxQty()"
+        [locationId]="facade.moveTargetLocationId()"
+        [greenhouseId]="facade.moveTargetGhId()"
+        [zoneId]="facade.moveTargetZoneId()"
+        [systemId]="facade.moveTargetSystemId()"
+        [layerId]="facade.moveTargetLayerId()"
+        [locations]="facade.refLocations()"
+        [greenhouses]="facade.moveFilteredGhs()"
+        [zones]="facade.moveFilteredZones()"
+        [systems]="facade.moveFilteredSystems()"
+        [layers]="facade.moveFilteredLayers()"
+        [pathSegments]="facade.movePathSegments()"
+        (locationIdChange)="facade.setMoveLocationId($event)"
+        (greenhouseIdChange)="facade.setMoveGhId($event)"
+        (zoneIdChange)="facade.setMoveZoneId($event)"
+        (systemIdChange)="facade.setMoveSystemId($event)"
+        (layerIdChange)="facade.setMoveLayerId($event)"
+        (quantityChange)="facade.setMoveQuantity($event)"
+        (quantityPctChange)="facade.setMoveQuantityPct($event)" />
     }
     <div slot="footer" class="modal-footer-actions">
       <gh-button variant="outline" (click)="facade.closeMoveModal()">{{ 'common.cancel' | translate }}</gh-button>
-      <gh-button variant="primary" [disabled]="!facade.moveTargetPipeId() || facade.moveQuantity() <= 0 || facade.moveQuantity() > facade.movingItemMaxQty()" (click)="facade.confirmMove()">{{ 'allocations.btn_confirm_move' | translate }}</gh-button>
+      <gh-button variant="primary" [disabled]="!facade.canConfirmMove()" (click)="facade.confirmMove()">
+        {{ 'allocations.btn_confirm_move' | translate }}
+      </gh-button>
     </div>
   </gh-modal>
 
@@ -400,6 +343,6 @@
     </div>
   </gh-modal>
 
-</gh-crud-page-shell>
+</div>
 
 

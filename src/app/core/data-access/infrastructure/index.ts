@@ -12,6 +12,7 @@ export type { SystemRow, SystemFilters, CreateSystemDto, UpdateSystemDto, RefSys
 export type { LayerRow, LayerFilters, CreateLayerDto, UpdateLayerDto, RefLayer } from './models/layer.model';
 export type { PipeRow, PipeFilters, CreatePipeDto, UpdatePipeDto } from './models/pipe.model';
 export { API_BASE_URL } from './tokens';
+export type { PaginatedResult } from './list-query';
 
 
 

@@ -1,4 +1,4 @@
-﻿<!-- libs/shared/ui/src/lib/table-filters/table-filters.component.html -->
+<!-- libs/shared/ui/src/lib/table-filters/table-filters.component.html -->
 <div class="gh-table-filters">
 
   <!-- Search -->
@@ -44,9 +44,15 @@
           [value]="status()"
           (change)="onStatus($any($event.target).value)"
         >
-          <option value="all">{{ 'filter.status_all' | translate }}</option>
-          <option value="active">{{ 'common.active' | translate }}</option>
-          <option value="inactive">{{ 'common.inactive' | translate }}</option>
+          @if (statusOptions(); as opts) {
+            @for (opt of opts; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          } @else {
+            <option value="all">{{ 'filter.status_all' | translate }}</option>
+            <option value="active">{{ 'common.active' | translate }}</option>
+            <option value="inactive">{{ 'common.inactive' | translate }}</option>
+          }
         </select>
       </div>
     }

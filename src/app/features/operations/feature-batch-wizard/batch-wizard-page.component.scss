@@ -1,0 +1,71 @@
+// Wizard-specific layout (shared: gh-distribution-*, gh-layer-*, gh-form-panel, gh-stepper)
+
+.wizard {
+  &__system-name {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    margin: 0;
+  }
+
+  &__system-zone {
+    font-size: var(--font-size-xs);
+    color: var(--color-muted-foreground);
+    margin: var(--space-1) 0 0 0;
+  }
+
+  &__review-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  &__review-subtitle {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+  }
+
+  &__review-system {
+    padding: var(--space-3);
+    background: var(--color-muted);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__review-system-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-block-end: var(--space-2);
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  &__review-layer {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-xs);
+
+    span:first-child {
+      color: var(--color-muted-foreground);
+    }
+
+    span:last-child {
+      font-weight: 600;
+    }
+  }
+}
+
+.gh-wizard-page {
+  width: 100%;
+  max-width: 100%;
+
+  .form-layout {
+    width: 100%;
+  }
+}
+
+.gh-wizard-page .gh-modal-hint {
+  margin-block-start: 0;
+}

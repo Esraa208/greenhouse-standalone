@@ -1,95 +1,82 @@
-﻿/* libs/operations/data-access/src/lib/models/batch.model.ts */
+﻿export type BatchStatus = 'active' | 'harvested' | 'lost';
 
-/** Possible statuses for a planting batch */
-export type BatchStatus = 'active' | 'harvested' | 'lost';
+/** Growth phases shown in the table (شتلات → حصاد). */
+export type BatchGrowthStageKey = 'seedlings' | 'early' | 'vegetative' | 'harvest';
 
-export type GrowthStage =
-  | 'seedlings'
-  | 'vegetative'
-  | 'early_maturity'
-  | 'late_maturity'
-  | 'overdue';
-
-/**
- * Domain interface for a planting Batch record.
- */
 export interface BatchRow {
   readonly id: string;
   readonly batchNumber: string;
+  readonly name: string;
   readonly cropType: string;
   readonly cropTypeId: string;
-  readonly location: string;
-  readonly greenhouse: string;
-  readonly locationId: string;
-  readonly greenhouseId: string;
   readonly quantity: number;
   readonly initialQuantity: number;
-  readonly plantingDate: string;          // ISO string
-  readonly growthDurationDays: number;
-  readonly status: BatchStatus;
-  readonly allocationsCount: number;
-  readonly totalLosses: number;
-  readonly notes?: string;
-
-  // Legacy fields kept for backwards compat
-  readonly plantedDate?: string;
-  readonly expectedHarvestDate?: string;
-  readonly zone?: string;
-  readonly growthStage?: string;
-  readonly daysElapsed?: number;
-  readonly totalDays?: number;
+  readonly plantingDate: string;
+  readonly expectedHarvestDate: string;
+  readonly growthDuration: number;
+  readonly daysPassed: number;
+  readonly growthStageKey: BatchGrowthStageKey;
+  /** 0–100 for progress bar (from `growthRate` or derived). */
+  readonly growthPercent: number;
+  readonly status: 'active' | 'harvested' | 'lost';
+  /** Combined label for the table column. */
+  readonly locationName?: string;
+  readonly locationSite?: string;
+  readonly greenhouseName?: string;
+  readonly zoneName?: string;
+  readonly lossesCount: number;
+  readonly lossesPercentage: number;
+  readonly pipeName?: string;
+  readonly pipeId?: string;
 }
 
-/** Sorting options for the Batch list */
 export type BatchSortKey =
-  | 'date-desc'
-  | 'date-asc'
-  | 'quantity-desc'
-  | 'quantity-asc'
-  | 'progress-desc'
-  | 'progress-asc';
+  | 'name-asc' | 'name-desc'
+  | 'date-desc' | 'date-asc'
+  | 'quantity-desc' | 'quantity-asc'
+  | 'progress-desc' | 'progress-asc';
 
-/**
- * Filter state for Batches page.
- */
 export interface BatchFilters {
   searchQuery: string;
-  status: BatchStatus | 'all';
-  cropType: string; // '' maps to all types
-  sortBy: BatchSortKey;
+  status: 'all' | 'active' | 'harvested' | 'lost';
+  cropTypeId: string;
+  sortBy: string;
 }
 
-/** Initial filter state */
 export const DEFAULT_BATCH_FILTERS: BatchFilters = {
   searchQuery: '',
   status: 'all',
-  cropType: '',
-  sortBy: 'date-desc',
+  cropTypeId: '',
+  sortBy: 'all',
 };
 
-/** Sorting configuration for the Batch UI */
 export const BATCH_SORT_OPTIONS = [
-  { value: 'date-desc',     translationKey: 'sort.date_newest'    },
-  { value: 'date-asc',      translationKey: 'sort.date_oldest'    },
-  { value: 'quantity-desc', translationKey: 'sort.quantity_desc'  },
-  { value: 'quantity-asc',  translationKey: 'sort.quantity_asc'   },
-  { value: 'progress-desc', translationKey: 'sort.progress_desc'  },
-  { value: 'progress-asc',  translationKey: 'sort.progress_asc'   },
+  { value: 'name-asc', translationKey: 'sort.name_asc' },
+  { value: 'name-desc', translationKey: 'sort.name_desc' },
+  { value: 'date-desc', translationKey: 'sort.date_newest' },
+  { value: 'date-asc', translationKey: 'sort.date_oldest' },
+  { value: 'quantity-desc', translationKey: 'sort.quantity_desc' },
+  { value: 'quantity-asc', translationKey: 'sort.quantity_asc' },
+  { value: 'progress-desc', translationKey: 'sort.progress_nearest' },
+  { value: 'progress-asc', translationKey: 'sort.progress_farthest' },
 ] as const;
 
-/** DTO for initiating a new planting batch */
-export interface CreateBatchDto {
-  cropTypeId: string;
+/** Per-layer planting allocation when creating a batch (wizard step 4). */
+export interface BatchLayerAllocation {
+  layerId: string;
   quantity: number;
-  plantedDate: string;
-  locationId: string;
-  greenhouseId: string;
-  zoneId: string;
-  pipeId: string;
 }
 
+export interface CreateBatchDto {
+  name: string;
+  cropTypeId: string;
+  /** Total plants — should match sum of `layers[].quantity`. */
+  quantity: number;
+  layers: readonly BatchLayerAllocation[];
+}
 
-
-
-
-
+export interface UpdateBatchDto {
+  cropTypeId: string;
+  quantity: number;
+  status: 'active' | 'harvested' | 'lost';
+}

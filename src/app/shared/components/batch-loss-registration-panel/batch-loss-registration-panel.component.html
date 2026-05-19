@@ -1,0 +1,202 @@
+@if (showBatchSelect()) {
+  <div class="gh-loss-reg-batch-select">
+    <label class="gh-loss-reg-batch-select__label" for="loss-reg-batch">
+      {{ 'losses.select_batch' | translate }}
+    </label>
+    <select
+      id="loss-reg-batch"
+      class="form-select"
+      [value]="selectedBatchId()"
+      (change)="batchIdChange.emit(selectValue($event))">
+      <option value="">{{ 'losses.select_batch_placeholder' | translate }}</option>
+      @for (batch of batches(); track batch.id) {
+        <option [value]="batch.id">{{ batch.batchNumber }} - {{ batch.cropType }}</option>
+      }
+    </select>
+  </div>
+}
+
+@if (batchSummary(); as batch) {
+  <div class="gh-loss-reg-batch-card">
+    <div class="gh-loss-reg-batch-card__main">
+      <span class="gh-loss-reg-batch-card__icon" aria-hidden="true">📦</span>
+      <div>
+        <p class="gh-loss-reg-batch-card__batch">{{ batch.batchNumber }}</p>
+        <p class="gh-loss-reg-batch-card__crop">{{ batch.cropType }}</p>
+      </div>
+    </div>
+    <div class="gh-loss-reg-batch-card__stat">
+      <p class="gh-loss-reg-batch-card__stat-label">{{ 'losses.layer_count_label' | translate }}</p>
+      <p class="gh-loss-reg-batch-card__stat-value">{{ batch.layerCount | number }}</p>
+    </div>
+  </div>
+
+  <label class="gh-loss-reg-whole-batch">
+    <input
+      type="checkbox"
+      class="gh-loss-reg-whole-batch__checkbox"
+      [checked]="wholeBatch()"
+      (change)="wholeBatchChange.emit($any($event.target).checked)" />
+    <div>
+      <p class="gh-loss-reg-whole-batch__title">{{ 'losses.whole_batch_title' | translate }}</p>
+      <p class="gh-loss-reg-whole-batch__hint">{{ 'losses.whole_batch_hint' | translate }}</p>
+    </div>
+  </label>
+}
+
+<section class="gh-loss-reg-picker" [attr.aria-busy]="loading()">
+  <div class="gh-loss-reg-picker__head">
+    <h3 class="gh-loss-reg-picker__title">{{ 'losses.picker_title' | translate }}</h3>
+    @if (layers().length > 0 && !wholeBatch()) {
+      <button type="button" class="gh-loss-reg-picker__select-all" (click)="selectAllClick.emit()">
+        {{ 'losses.select_all' | translate }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="gh-loss-reg-picker__loading">{{ 'losses.picker_loading' | translate }}</p>
+  } @else if (!selectedBatchId()) {
+    <p class="gh-loss-reg-picker__empty">{{ 'losses.picker_select_batch_first' | translate }}</p>
+  } @else if (layers().length === 0) {
+    <p class="gh-loss-reg-picker__empty">{{ 'losses.picker_empty' | translate }}</p>
+  } @else {
+    <div class="gh-loss-reg-picker__list">
+      @for (layer of layers(); track layer.id) {
+        <article class="gh-loss-reg-layer">
+          <div
+            class="gh-loss-reg-layer__header"
+            role="button"
+            tabindex="0"
+            (click)="layerExpandedToggle.emit(layer.id)"
+            (keydown.enter)="layerExpandedToggle.emit(layer.id)"
+            (keydown.space)="$event.preventDefault(); layerExpandedToggle.emit(layer.id)">
+            <button
+              type="button"
+              class="gh-loss-reg-layer__toggle"
+              [class.gh-loss-reg-layer__toggle--expanded]="isExpanded(layer.id)"
+              [attr.aria-expanded]="isExpanded(layer.id)"
+              (click)="$event.stopPropagation(); layerExpandedToggle.emit(layer.id)">
+              ▾
+            </button>
+
+            <div class="gh-loss-reg-layer__identity">
+              <span class="gh-loss-reg-layer__layer-icon" aria-hidden="true">▤</span>
+              <div>
+                <p class="gh-loss-reg-layer__name">
+                  @if (useLayerNumberKey(layer)) {
+                    {{ 'allocations.layer_number' | translate: { count: '' + layer.layerPosition } }}
+                  } @else {
+                    {{ layer.name }}
+                  }
+                </p>
+                <p class="gh-loss-reg-layer__path">{{ layer.path }}</p>
+              </div>
+            </div>
+
+            <div class="gh-loss-reg-layer__stats">
+              <div class="gh-loss-reg-layer__stat">
+                <span class="gh-loss-reg-layer__stat-label">{{ 'losses.stat_allocations' | translate }}</span>
+                <span class="gh-loss-reg-layer__stat-value">{{ layer.allocationCount | number }}</span>
+              </div>
+              <div class="gh-loss-reg-layer__stat">
+                <span class="gh-loss-reg-layer__stat-label">{{ 'losses.stat_quantity' | translate }}</span>
+                <span class="gh-loss-reg-layer__stat-value">{{ layer.totalQuantity | number }}</span>
+              </div>
+            </div>
+
+            <input
+              type="checkbox"
+              class="gh-loss-reg-layer__checkbox"
+              [checked]="isLayerChecked(layer)"
+              [disabled]="wholeBatch()"
+              (click)="stopCheckbox($event)"
+              (change)="layerCheckChange.emit({ layerId: layer.id, checked: $any($event.target).checked })" />
+          </div>
+
+          @if (isExpanded(layer.id)) {
+            <div class="gh-loss-reg-layer__pipes">
+              @for (allocation of layer.allocations; track allocation.id) {
+                <div class="gh-loss-reg-pipe">
+                  <label class="gh-loss-reg-pipe__name">
+                    <input
+                      type="checkbox"
+                      class="gh-loss-reg-pipe__checkbox"
+                      [checked]="isAllocationChecked(allocation.id)"
+                      [disabled]="wholeBatch()"
+                      (change)="allocationCheckChange.emit({
+                        allocationId: allocation.id,
+                        checked: $any($event.target).checked
+                      })" />
+                    {{ allocation.pipeName }}
+                  </label>
+                  <span class="gh-loss-reg-pipe__qty">
+                    {{ allocation.quantity | number }} {{ 'common.plants' | translate }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>
+
+<div class="gh-loss-reg-form" [formGroup]="form()">
+  <div class="gh-loss-reg-form__grid">
+    <gh-form-group
+      [label]="'losses.form_type_label' | translate"
+      [errorMessage]="'losses.form_type_error' | translate"
+      [control]="form().controls['lossType']">
+      <select ghInput formControlName="lossType">
+        <option value="">{{ 'losses.form_type_placeholder' | translate }}</option>
+        <option value="disease">{{ 'losses.type_disease' | translate }}</option>
+        <option value="pest">{{ 'losses.type_pest' | translate }}</option>
+        <option value="weather">{{ 'losses.type_weather' | translate }}</option>
+        <option value="other">{{ 'losses.type_other' | translate }}</option>
+      </select>
+    </gh-form-group>
+
+    <gh-form-group [label]="'losses.form_date_label' | translate" [control]="form().controls['date']">
+      <input ghInput type="date" formControlName="date" />
+    </gh-form-group>
+  </div>
+
+  <gh-form-group
+    class="gh-loss-reg-form__field--full"
+    [label]="'losses.form_quantity_label' | translate"
+    [errorMessage]="'losses.form_quantity_error' | translate"
+    [control]="form().controls['quantity']">
+    <input
+      ghInput
+      type="number"
+      formControlName="quantity"
+      [placeholder]="'losses.form_quantity_placeholder' | translate"
+      [min]="1"
+      [max]="selectedQuantityMax() > 0 ? selectedQuantityMax() : null" />
+  </gh-form-group>
+
+  <gh-form-group
+    class="gh-loss-reg-form__field--full"
+    [label]="'losses.form_reason_label' | translate"
+    [errorMessage]="'losses.form_reason_error' | translate"
+    [control]="form().controls['reason']">
+    <input
+      ghInput
+      type="text"
+      formControlName="reason"
+      [placeholder]="'losses.form_reason_placeholder' | translate" />
+  </gh-form-group>
+
+  <gh-form-group
+    class="gh-loss-reg-form__field--full"
+    [label]="'losses.form_notes_label' | translate"
+    [control]="form().controls['notes']">
+    <textarea
+      ghInput
+      formControlName="notes"
+      rows="3"
+      [placeholder]="'losses.form_notes_placeholder' | translate"></textarea>
+  </gh-form-group>
+</div>

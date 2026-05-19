@@ -1,2 +1,1 @@
-// Shared directives barrel (currently empty).
-
+export { PositiveIntInputDirective } from './positive-int-input.directive';

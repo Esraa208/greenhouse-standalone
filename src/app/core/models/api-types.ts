@@ -18,6 +18,8 @@ export interface ApiPaginatedResult<T> {
 /** GET /api/Batch/fetch response item */
 export interface ApiBatchItem {
   readonly id: number;
+  readonly batchNumber?: string;
+  readonly totalQuantity?: number;
   readonly quantity: number;
   readonly active: boolean;
   readonly cropTypeId: number;
@@ -25,6 +27,14 @@ export interface ApiBatchItem {
   readonly plantingDate: string;
   readonly growthDuration: number;
   readonly daysPassed: number;
+  readonly growthRate?: number;
+  readonly lossesCount?: number;
+  readonly lossesPercentage?: number;
+  readonly locationName?: string | null;
+  readonly unitName?: string | null;
+  readonly zoneName?: string | null;
+  readonly status?: string | null;
+  readonly growthStage?: string | null;
 }
 
 /** GET /api/BatchDistribution/fetch response item */
@@ -35,6 +45,45 @@ export interface ApiDistributionItem {
   readonly stockBatchNumber: string;
   readonly pipeId: number;
   readonly pipeName: string;
+  readonly cropType?: string;
+  readonly locationName?: string;
+  readonly unitName?: string;
+  readonly zoneName?: string;
+  readonly systemName?: string;
+  readonly layerName?: string;
+  readonly layerCount?: number;
+  readonly initialQuantity?: number;
+  readonly creationDate?: string;
+  readonly growthDuration?: number;
+  readonly daysPassed?: number;
+  readonly status?: string;
+}
+
+/** GET /api/Batch/history/{id} response item */
+export interface ApiBatchHistoryItem {
+  readonly id?: number;
+  readonly actionType: number;
+  readonly quantity: number;
+  readonly creationDate?: string;
+  readonly date?: string;
+  readonly locationName?: string;
+  readonly unitName?: string;
+  readonly zoneName?: string;
+  readonly systemName?: string;
+  readonly layerName?: string;
+  readonly layerCount?: number;
+  readonly fromLocationName?: string;
+  readonly fromUnitName?: string;
+  readonly fromZoneName?: string;
+  readonly fromSystemName?: string;
+  readonly fromLayerName?: string;
+  readonly fromLayerCount?: number;
+  readonly toLocationName?: string;
+  readonly toUnitName?: string;
+  readonly toZoneName?: string;
+  readonly toSystemName?: string;
+  readonly toLayerName?: string;
+  readonly toLayerCount?: number;
 }
 
 /** GET /api/CropType/fetch response item */
@@ -168,6 +217,12 @@ export interface ApiLayerItem {
   readonly locationName?: string;
 }
 
+/** Layer distribution item for POST /api/Batch/Create */
+export interface ApiCreateBatchLayerItem {
+  readonly quantity: number;
+  readonly layerId: number;
+}
+
 /** POST /api/Batch/Create request body */
 export interface ApiCreateBatchCommand {
   readonly currentUserId: string;
@@ -175,15 +230,14 @@ export interface ApiCreateBatchCommand {
     readonly name: string;
     readonly cropTypeId: number;
     readonly quantity: number;
-    readonly pipeId: number;
+    readonly layers: readonly ApiCreateBatchLayerItem[];
   };
 }
 
 /** PUT /api/Batch/Move request body */
 export interface ApiMoveBatchDto {
   readonly distributionId: number;
-  readonly toPipeId: number;
-  readonly fromPipeId: number;
+  readonly toLayerId: number;
   readonly quantity: number;
 }
 

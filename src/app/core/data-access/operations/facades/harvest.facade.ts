@@ -13,6 +13,10 @@ export class HarvestFacade {
   readonly #isLoading = signal(false);
   readonly #error = signal<string | null>(null);
   readonly #customers = signal<HarvestRefCustomer[]>([]);
+  readonly #totalCount = signal(0);
+  readonly #totalPages = signal(1);
+  readonly #pageSize = signal(50);
+  readonly #pageNumber = signal(1);
 
   readonly #addedLayers = signal<string[]>([]);
 
@@ -23,6 +27,10 @@ export class HarvestFacade {
   readonly isLoading = this.#isLoading.asReadonly();
   readonly error = this.#error.asReadonly();
   readonly customers = this.#customers.asReadonly();
+  readonly currentPage = this.#pageNumber.asReadonly();
+  readonly totalCount = this.#totalCount.asReadonly();
+  readonly totalPages = this.#totalPages.asReadonly();
+  readonly pageSize = this.#pageSize.asReadonly();
   readonly addedLayers = this.#addedLayers.asReadonly();
   readonly allocationQtys = this.#allocationQtys.asReadonly();
 
@@ -46,8 +54,11 @@ export class HarvestFacade {
       .getAll()
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
-        next: (items) => {
-          this.#items.set(items);
+        next: (result) => {
+          this.#items.set(result.items);
+          this.#totalCount.set(result.totalCount);
+          this.#totalPages.set(result.totalPages);
+          this.#pageSize.set(result.pageSize);
           this.#isLoading.set(false);
         },
         error: (err) => {
@@ -60,6 +71,11 @@ export class HarvestFacade {
       .getCustomers()
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((data) => this.#customers.set(data));
+  }
+
+  goToPage(page: number): void {
+    this.#pageNumber.set(page);
+    this.loadAll();
   }
 
   create(dto: CreateHarvestDto): void {

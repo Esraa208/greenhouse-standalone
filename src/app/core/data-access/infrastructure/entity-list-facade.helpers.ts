@@ -1,6 +1,6 @@
-﻿import { DestroyRef, WritableSignal } from '@angular/core';
+import { DestroyRef, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpErrorResponse } from '@angular/common/http';
+import { normalizeAppError } from '@app/core/errors/app-error';
 import { merge, Observable, Subject } from 'rxjs';
 import { debounceTime, finalize, switchMap } from 'rxjs/operators';
 import type { PaginatedResult } from './list-query';
@@ -91,7 +91,7 @@ export function bindListReloadStream<T>(opts: {
         });
       },
       error: (err: unknown) => {
-        opts.setError(err instanceof Error ? err.message : String(err));
+        opts.setError(extractApiErrorMessage(err));
       },
     });
 }
@@ -175,20 +175,9 @@ export function subscribeMutationWithVoid(opts: {
     });
 }
 
+/** Same message as the global HTTP error interceptor (API `message` when present). */
 export function extractApiErrorMessage(err: unknown): string {
-  if (err instanceof HttpErrorResponse) {
-    const apiMessage = (err.error as { message?: unknown } | null | undefined)?.message;
-    if (typeof apiMessage === 'string' && apiMessage.trim()) {
-      return apiMessage;
-    }
-    if (typeof err.message === 'string' && err.message.trim()) {
-      return err.message;
-    }
-  }
-  if (err instanceof Error && err.message.trim()) {
-    return err.message;
-  }
-  return String(err);
+  return normalizeAppError(err).message;
 }
 
 

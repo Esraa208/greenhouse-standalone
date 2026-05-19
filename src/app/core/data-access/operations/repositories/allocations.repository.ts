@@ -2,14 +2,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, throwError } from 'rxjs';
 import { AllocationRow, MoveAllocationDto, RecordAllocationLossDto, LossTypeRef } from '../models/allocation.model';
-import { API_BASE_URL } from '@app/core/data-access/infrastructure';
+import { API_BASE_URL, PaginatedResult } from '@app/core/data-access/infrastructure';
+import { buildActiveSelectParams } from '../../infrastructure/list-query';
 import { normalizeAppError } from '@app/core/errors/app-error';
 import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiDistributionItem, ApiPipeItem,
   ApiLocationItem, ApiUnitItem, ApiZoneItem, ApiSystemItem, ApiLayerItem,
-  ApiMoveBatchDto, ApiCreateLossCommand, ApiDistributionFetchParams,
+  ApiMoveBatchDto,
+  ApiCreateLossCommand, ApiDistributionFetchParams,
 } from '@app/core/data-access/api';
+import { mapDistributionToRow } from './allocations.mapper';
 
 /** Typed ref-data item returned by getRef* methods */
 interface RefItem {
@@ -26,7 +29,7 @@ export class AllocationsRepository {
   readonly #http = inject(HttpClient);
   readonly #apiUrl = inject(API_BASE_URL);
 
-  getAll(pageNumber = 1, search = '', filters?: Partial<ApiDistributionFetchParams>): Observable<AllocationRow[]> {
+  getAll(pageNumber = 1, search = '', filters?: Partial<ApiDistributionFetchParams>): Observable<PaginatedResult<AllocationRow>> {
     const params: Record<string, string | number | boolean> = { PageNumber: pageNumber };
     if (search) params['Search'] = search;
     if (filters?.LocationId) params['LocationId'] = filters.LocationId;
@@ -39,8 +42,14 @@ export class AllocationsRepository {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.BatchDistribution, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiDistributionItem>>(url, { params }).pipe(
       map(response => {
-        const items = response.result?.items ?? [];
-        return items.map(dist => this.#mapToDomain(dist));
+        const items = (response.result?.items ?? []).map((dist) => mapDistributionToRow(dist));
+        return {
+          items,
+          totalCount: response.result?.totalCount ?? 0,
+          pageNumber: response.result?.pageNumber ?? 1,
+          pageSize: response.result?.pageSize ?? 50,
+          totalPages: response.result?.totalPages ?? 1,
+        };
       }),
       catchError((err: unknown) => throwError(() => normalizeAppError(err)))
     );
@@ -48,25 +57,24 @@ export class AllocationsRepository {
 
   getById(id: string): Observable<AllocationRow> {
     return this.getAll().pipe(
-      map(items => {
-        const found = items.find(i => i.id === id);
+      map(result => {
+        const found = result.items.find(i => i.id === id);
         if (!found) throw new Error(`Allocation with id ${id} not found`);
         return found;
       })
     );
   }
 
-  move(dto: MoveAllocationDto): Observable<AllocationRow> {
+  move(dto: MoveAllocationDto): Observable<void> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Batch, ApiAction.Move)}`;
     const payload: ApiMoveBatchDto = {
       distributionId: Number(dto.allocationId),
-      toPipeId: Number(dto.targetPipeId),
-      fromPipeId: 0, // API may derive this from distributionId
+      toLayerId: Number(dto.targetLayerId),
       quantity: dto.quantity,
     };
     return this.#http.put<unknown>(url, payload).pipe(
-      map(() => ({ id: dto.allocationId } as AllocationRow)),
-      catchError((err: unknown) => throwError(() => normalizeAppError(err)))
+      map(() => undefined),
+      catchError((err: unknown) => throwError(() => normalizeAppError(err))),
     );
   }
 
@@ -95,11 +103,13 @@ export class AllocationsRepository {
     );
   }
 
-  // ─── Reference Data for Cascade Dropdowns ──────────────────
+  // ─── Reference Data for Cascade Dropdowns (active only, same as filter selects) ──
+
+  readonly #activeRefParams = buildActiveSelectParams(1);
 
   getRefLocations(): Observable<RefItem[]> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Locations, ApiAction.Fetch)}`;
-    return this.#http.get<ApiPaginatedResult<ApiLocationItem>>(url).pipe(
+    return this.#http.get<ApiPaginatedResult<ApiLocationItem>>(url, { params: this.#activeRefParams }).pipe(
       map(response => (response.result?.items ?? []).map(i => ({
         id: String(i.id),
         name: i.name,
@@ -110,7 +120,7 @@ export class AllocationsRepository {
 
   getRefGreenhouses(): Observable<(RefItem & { locationId: string })[]> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Units, ApiAction.Fetch)}`;
-    return this.#http.get<ApiPaginatedResult<ApiUnitItem>>(url).pipe(
+    return this.#http.get<ApiPaginatedResult<ApiUnitItem>>(url, { params: this.#activeRefParams }).pipe(
       map(response => (response.result?.items ?? []).map(i => ({
         id: String(i.id),
         name: i.name,
@@ -122,7 +132,7 @@ export class AllocationsRepository {
 
   getRefZones(): Observable<(RefItem & { greenhouseId: string })[]> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Zone, ApiAction.Fetch)}`;
-    return this.#http.get<ApiPaginatedResult<ApiZoneItem>>(url).pipe(
+    return this.#http.get<ApiPaginatedResult<ApiZoneItem>>(url, { params: this.#activeRefParams }).pipe(
       map(response => (response.result?.items ?? []).map(i => ({
         id: String(i.id),
         name: i.name,
@@ -134,7 +144,7 @@ export class AllocationsRepository {
 
   getRefSystems(): Observable<(RefItem & { zoneId: string })[]> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.System, ApiAction.Fetch)}`;
-    return this.#http.get<ApiPaginatedResult<ApiSystemItem>>(url).pipe(
+    return this.#http.get<ApiPaginatedResult<ApiSystemItem>>(url, { params: this.#activeRefParams }).pipe(
       map(response => (response.result?.items ?? []).map(i => ({
         id: String(i.id),
         name: i.name,
@@ -146,7 +156,7 @@ export class AllocationsRepository {
 
   getRefLayers(): Observable<(RefItem & { systemId: string })[]> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Layer, ApiAction.Fetch)}`;
-    return this.#http.get<ApiPaginatedResult<ApiLayerItem>>(url).pipe(
+    return this.#http.get<ApiPaginatedResult<ApiLayerItem>>(url, { params: this.#activeRefParams }).pipe(
       map(response => (response.result?.items ?? []).map(i => ({
         id: String(i.id),
         name: i.name,
@@ -158,7 +168,7 @@ export class AllocationsRepository {
 
   getRefPipes(): Observable<(RefItem & { layerId: string })[]> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Pipe, ApiAction.Fetch)}`;
-    return this.#http.get<ApiPaginatedResult<ApiPipeItem>>(url).pipe(
+    return this.#http.get<ApiPaginatedResult<ApiPipeItem>>(url, { params: this.#activeRefParams }).pipe(
       map(response => (response.result?.items ?? []).map(i => ({
         id: String(i.id),
         name: i.name,
@@ -169,28 +179,6 @@ export class AllocationsRepository {
   }
 
   // ─── Private helpers ───────────────────────────────────────
-
-  #mapToDomain(dist: ApiDistributionItem): AllocationRow {
-    return {
-      id: String(dist.id),
-      batchNumber: dist.stockBatchNumber || `BTH-${dist.stockBatchId}`,
-      batchId: String(dist.stockBatchId),
-      cropType: '',
-      location: '',
-      greenhouse: '',
-      zone: '',
-      system: '',
-      layer: '',
-      layerPosition: 1,
-      pipe: dist.pipeName || '',
-      quantity: dist.quantity,
-      initialQuantity: dist.quantity,
-      allocatedDate: new Date().toISOString(),
-      status: 'active',
-      movementHistory: [],
-      lossHistory: [],
-    };
-  }
 
   #mapLossType(type: LossTypeRef): number {
     switch (type) {

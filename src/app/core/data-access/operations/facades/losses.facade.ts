@@ -1,6 +1,9 @@
 ﻿import { Injectable, inject, DestroyRef, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize, Subject, switchMap } from 'rxjs';
 import { LossesRepository } from '../repositories/losses.repository';
+import { GhToastService, TranslationService } from '@app/core';
+import { normalizeAppError } from '@app/core/errors/app-error';
 import {
   LossRow,
   LossFilters,
@@ -19,12 +22,19 @@ import {
 export class LossesFacade {
   readonly #repo = inject(LossesRepository);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #toast = inject(GhToastService);
+  readonly #i18n = inject(TranslationService);
 
   readonly #items = signal<LossRow[]>([]);
   readonly #filters = signal<LossFilters>(DEFAULT_LOSS_FILTERS);
   readonly #isModalOpen = signal(false);
   readonly #isLoading = signal(false);
   readonly #error = signal<string | null>(null);
+  readonly #pageNumber = signal(1);
+  readonly #totalCount = signal(0);
+  readonly #totalPages = signal(1);
+  readonly #pageSize = signal(50);
+  readonly #reloadNow$ = new Subject<void>();
 
   readonly #modalMode = signal<'infrastructure' | 'batch'>('infrastructure');
   readonly #selLocationId = signal('');
@@ -49,6 +59,10 @@ export class LossesFacade {
   readonly isLoading = this.#isLoading.asReadonly();
   readonly error = this.#error.asReadonly();
   readonly modalMode = this.#modalMode.asReadonly();
+  readonly currentPage = this.#pageNumber.asReadonly();
+  readonly totalCount = this.#totalCount.asReadonly();
+  readonly totalPages = this.#totalPages.asReadonly();
+  readonly pageSize = this.#pageSize.asReadonly();
 
   readonly refLocations = this.#refLocations.asReadonly();
   readonly refBatches = this.#refBatches.asReadonly();
@@ -108,21 +122,31 @@ export class LossesFacade {
     return 0;
   });
 
-  loadAll(): void {
-    this.#isLoading.set(true);
-    this.#repo
-      .getAll()
-      .pipe(takeUntilDestroyed(this.#destroyRef))
+  constructor() {
+    this.#reloadNow$
+      .pipe(
+        switchMap(() => {
+          this.#isLoading.set(true);
+          this.#error.set(null);
+          return this.#repo
+            .getAll(this.#pageNumber())
+            .pipe(finalize(() => this.#isLoading.set(false)));
+        }),
+        takeUntilDestroyed(this.#destroyRef)
+      )
       .subscribe({
-        next: (items) => {
-          this.#items.set(items);
-          this.#isLoading.set(false);
+        next: (result) => {
+          this.#items.set(result.items);
+          this.#totalCount.set(result.totalCount);
+          this.#totalPages.set(result.totalPages);
+          this.#pageSize.set(result.pageSize);
         },
-        error: (err) => {
-          this.#error.set(err.message);
-          this.#isLoading.set(false);
-        },
+        error: (err: unknown) => this.#error.set(normalizeAppError(err).message),
       });
+  }
+
+  loadAll(): void {
+    this.#reloadNow$.next();
 
     this.#repo.getRefLocations().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refLocations.set(d));
     this.#repo.getRefGreenhouses().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refGreenhouses.set(d));
@@ -133,13 +157,38 @@ export class LossesFacade {
     this.#repo.getRefBatches().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refBatches.set(d));
   }
 
+  enterPage(): void {
+    this.#filters.set(DEFAULT_LOSS_FILTERS);
+    this.#pageNumber.set(1);
+    this.loadAll();
+  }
+
+  refresh(): void {
+    this.#reloadNow$.next();
+  }
+
+  goToPage(page: number): void {
+    this.#pageNumber.set(page);
+    this.#reloadNow$.next();
+  }
+
   create(dto: CreateLossDto): void {
+    this.#isModalOpen.set(false);
+    this.#isLoading.set(true);
     this.#repo
       .create(dto)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((newLoss) => {
-        this.#items.update((items) => [newLoss, ...items]);
-        this.closeModal();
+      .pipe(
+        takeUntilDestroyed(this.#destroyRef),
+        finalize(() => this.#isLoading.set(false))
+      )
+      .subscribe({
+        next: () => {
+          this.#toast.success(this.#i18n.t('losses.toast_create_success'));
+          this.#reloadNow$.next();
+        },
+        error: (err: unknown) => {
+          this.#error.set(normalizeAppError(err).message);
+        },
       });
   }
 

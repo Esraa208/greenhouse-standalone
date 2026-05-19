@@ -1,0 +1,259 @@
+// ── Reusable transfer-allocation panel (move / relocate flows) ─────
+
+.gh-transfer-source {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-block-end: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  background: var(--color-info-bg);
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-md);
+    background: rgba(37, 99, 235, 0.12);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    flex-shrink: 0;
+    font-size: 1rem;
+  }
+
+  &__title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-info);
+  }
+
+  &__batch {
+    margin: 0;
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    color: var(--color-foreground);
+  }
+
+  &__location,
+  &__path,
+  &__qty {
+    margin: var(--space-1) 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-muted-foreground);
+    line-height: 1.45;
+  }
+
+  &__location-label {
+    font-weight: 600;
+    color: var(--color-foreground);
+  }
+}
+
+.gh-transfer-section-title {
+  margin: 0 0 var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: 2px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.gh-transfer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+
+    &--full {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+  }
+}
+
+.gh-transfer-path-preview {
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-4);
+  background: var(--color-success-bg, #ecfdf5);
+  border: 1px solid var(--color-success-border, #a7f3d0);
+  border-radius: var(--radius-lg);
+
+  &__title {
+    margin: 0 0 var(--space-1);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-success-text, #065f46);
+  }
+
+  &__path {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-success-text, #047857);
+    line-height: 1.5;
+  }
+
+  &__sep {
+    color: var(--color-success-border, #6ee7b7);
+    font-weight: 400;
+  }
+}
+
+.gh-transfer-qty {
+  margin-block-end: var(--space-4);
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-block-end: var(--space-2);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+
+  &__available {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-muted-foreground);
+    white-space: nowrap;
+  }
+
+  &__field {
+    position: relative;
+    margin-block-end: var(--space-3);
+  }
+
+  &__input {
+    width: 100%;
+    padding: var(--space-4) var(--space-4);
+    padding-inline-start: calc(var(--space-4) + 3.5rem);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-2xl, 1.5rem);
+    font-weight: 600;
+    text-align: center;
+    background: var(--color-card);
+    color: var(--color-foreground);
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+  }
+
+  &__unit {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--space-4);
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-muted-foreground);
+    pointer-events: none;
+  }
+}
+
+.gh-transfer-pct-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.gh-transfer-pct-btn {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-foreground);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:not(&--active):hover:not(:disabled) {
+    background: var(--color-muted);
+    border-color: var(--color-primary);
+    color: var(--color-foreground);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--active {
+    background: var(--color-primary);
+    color: var(--color-primary-foreground, #fff);
+    border-color: var(--color-primary);
+
+    &:hover:not(:disabled) {
+      background: var(--color-primary-hover, var(--color-primary));
+      color: var(--color-primary-foreground, #fff);
+      border-color: var(--color-primary);
+      opacity: 0.92;
+    }
+  }
+}
+
+.gh-transfer-status {
+  margin-block: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--color-foreground);
+  line-height: 1.5;
+
+  &--error {
+    background: var(--color-destructive-light, hsl(0 86% 94%));
+    border-color: var(--color-destructive-border, hsl(0 80% 78%));
+    color: var(--color-destructive);
+  }
+}
+
+.gh-transfer-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+  padding: var(--space-4);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  color: #92400e;
+
+  &__icon {
+    flex-shrink: 0;
+    line-height: 1.2;
+  }
+}

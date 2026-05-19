@@ -4,3 +4,16 @@
 .gh-form-row { display: flex; gap: var(--space-4); margin-top: var(--space-3); }
 .gh-flex-1 { flex: 1; min-width: 0; }
 .gh-mt-4 { margin-top: var(--space-4); }
+
+.form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-helper {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  line-height: 1.5;
+}

@@ -26,4 +26,9 @@ export const operationsRoutes: Routes = [
     loadComponent: () =>
       import('@app/features/operations/feature-losses').then((m) => m.LossesPageComponent),
   },
+  {
+    path: 'planting',
+    loadComponent: () =>
+      import('@app/features/operations/feature-batch-wizard').then((m) => m.BatchWizardPageComponent),
+  },
 ];

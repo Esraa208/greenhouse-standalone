@@ -1,0 +1,504 @@
+<div class="gh-wizard-page" [attr.dir]="i18n.dir()">
+  <button type="button" class="gh-back-link" (click)="goBack()">
+    <span class="gh-back-link__icon" aria-hidden="true">←</span>
+    {{ 'batches.wizard_back' | translate }}
+  </button>
+
+  <gh-page-header
+    [title]="'batches.wizard_title' | translate"
+    [subtitle]="'batches.wizard_subtitle' | translate" />
+
+  <div class="gh-surface">
+    <nav class="gh-stepper" [attr.aria-label]="'batches.wizard_title' | translate">
+      @for (step of wizardSteps; track step.id) {
+        <div class="gh-stepper__item"
+          [class.gh-stepper__item--active]="currentStep() === step.id"
+          [class.gh-stepper__item--done]="currentStep() > step.id">
+          <div class="gh-stepper__icon" [attr.aria-current]="currentStep() === step.id ? 'step' : null">
+            @if (currentStep() > step.id) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            } @else {
+              @switch (step.icon) {
+                @case ('crop') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M3 12h3m12 0h3M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                }
+                @case ('location') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.5 7-10a7 7 0 10-14 0c0 5.5 7 10 7 10z" />
+                    <circle cx="12" cy="11" r="2.5" />
+                  </svg>
+                }
+                @case ('systems') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10.5 12 4l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-9.5z" />
+                  </svg>
+                }
+                @case ('layers') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4.5L12 12 4 7.5 12 3zm0 9l8 4.5-8 4.5-8-4.5L12 12z" />
+                  </svg>
+                }
+                @case ('review') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+              }
+            }
+          </div>
+          <span class="gh-stepper__label">{{ step.labelKey | translate }}</span>
+        </div>
+        @if (step.id < totalSteps) {
+          <div
+            class="gh-stepper__connector"
+            [class.gh-stepper__connector--done]="currentStep() > step.id"
+            aria-hidden="true"></div>
+        }
+      }
+    </nav>
+  </div>
+
+  <div class="gh-surface">
+    <p class="gh-step-heading">
+      {{ stepOfLabel() }}:
+      <strong>{{ currentStepLabel() }}</strong>
+    </p>
+
+    @switch (currentStep()) {
+
+      @case (1) {
+        <div class="form-layout">
+          <div class="form-group">
+            <label class="form-label" for="wizard-batch-name">
+              <span class="form-label__dot"></span>{{ 'batches.form_name' | translate }}
+            </label>
+            <input
+              id="wizard-batch-name"
+              type="text"
+              class="form-input"
+              [value]="batchName()"
+              [placeholder]="'batches.form_name_placeholder' | translate"
+              (input)="setBatchName($event)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="wizard-crop">
+              <span class="form-label__dot"></span>{{ 'batches.wizard_crop_label' | translate }}
+            </label>
+            <select
+              id="wizard-crop"
+              class="form-select"
+              [value]="selectedCropId()"
+              (change)="selectCrop($event)">
+              <option value="">{{ 'batches.wizard_crop_placeholder' | translate }}</option>
+              @for (crop of cropsFacade.filteredItems(); track crop.id) {
+                <option [value]="crop.id">
+                  {{ crop.name }} — {{ 'batches.wizard_crop_option_growth' | translate }}:
+                  {{ crop.growthDuration }} {{ 'batches.days_suffix' | translate }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="wizard-quantity">
+              <span class="form-label__dot"></span>{{ 'batches.wizard_quantity_label' | translate }}
+            </label>
+            <input
+              id="wizard-quantity"
+              class="form-input"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              ghPositiveInt
+              [value]="totalQuantity() || ''"
+              (input)="setQuantity($event)"
+              [placeholder]="'batches.wizard_quantity_placeholder' | translate" />
+            <p class="form-helper">{{ 'batches.wizard_quantity_helper' | translate }}</p>
+          </div>
+
+          @if (selectedCrop(); as crop) {
+            <div class="gh-info-panel">
+              <h4 class="gh-info-panel__title">{{ 'batches.wizard_crop_info' | translate }}</h4>
+              <div class="gh-info-panel__row">
+                <span class="gh-info-panel__label">{{ 'batches.wizard_growth_expected' | translate }}:</span>
+                <span class="gh-info-panel__value">
+                  {{ crop.growthDuration }} {{ 'batches.days_suffix' | translate }}
+                </span>
+              </div>
+              <div class="gh-info-panel__row">
+                <span class="gh-info-panel__label">{{ 'batches.wizard_active_batches' | translate }}:</span>
+                @if (crop.activeBatches > 0) {
+                  <gh-badge variant="active">
+                    {{ crop.activeBatches }} {{ 'crops.col_batch_count' | translate }}
+                  </gh-badge>
+                } @else {
+                  <gh-badge variant="inactive">
+                    {{ 'crops.col_no_batches' | translate }}
+                  </gh-badge>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="gh-modal-hint" role="note">
+            <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
+            <span>{{ 'batches.wizard_crop_tip' | translate }}</span>
+          </div>
+        </div>
+      }
+
+      @case (2) {
+        <div class="form-layout">
+          <div class="form-group">
+            <label class="form-label" for="wizard-location">
+              <span class="form-label__dot"></span>{{ 'batches.wizard_location_label' | translate }}
+            </label>
+            <select
+              id="wizard-location"
+              class="form-select"
+              [ngModel]="selectedLocationId()"
+              (ngModelChange)="onLocationChange($event)">
+              <option value="">{{ 'batches.wizard_location_placeholder' | translate }}</option>
+              @for (loc of availableLocations(); track loc.id) {
+                <option [value]="loc.id">{{ loc.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="wizard-greenhouse">
+              <span class="form-label__dot"></span>{{ 'batches.wizard_greenhouse_label' | translate }}
+            </label>
+            <select
+              id="wizard-greenhouse"
+              class="form-select"
+              [ngModel]="selectedGreenhouseId()"
+              (ngModelChange)="onGreenhouseChange($event)"
+              [disabled]="!selectedLocationId()">
+              <option value="">{{ 'batches.wizard_greenhouse_placeholder' | translate }}</option>
+              @for (gh of availableGreenhouses(); track gh.id) {
+                <option [value]="gh.id">{{ gh.name }}</option>
+              }
+            </select>
+          </div>
+          @if (selectedGreenhouseId()) {
+            <div class="gh-modal-hint" role="note">
+              <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
+              <span>{{ 'batches.wizard_location_success' | translate }}</span>
+            </div>
+          }
+        </div>
+      }
+
+      @case (3) {
+        <div class="form-layout">
+          <div class="gh-modal-hint" role="note">
+            <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
+            <span>{{ 'batches.wizard_system_tip' | translate }}</span>
+          </div>
+
+          <section class="gh-form-panel" [attr.aria-label]="'batches.wizard_add_system' | translate">
+            <h3 class="gh-form-panel__title">{{ 'batches.wizard_add_system' | translate }}</h3>
+            <div class="gh-form-panel__row">
+              <div class="gh-form-panel__field form-group">
+                <label class="form-label" for="wizard-zone">
+                  <span class="form-label__dot"></span>{{ 'batches.wizard_zone_label' | translate }}
+                </label>
+                <select
+                  id="wizard-zone"
+                  class="form-select"
+                  [ngModel]="tempZoneId()"
+                  (ngModelChange)="onTempZoneChange($event)">
+                <option value="">{{ 'batches.wizard_zone_placeholder' | translate }}</option>
+                @for (zone of selectableZones(); track zone.id) {
+                  <option [value]="zone.id">{{ zone.name }}</option>
+                }
+              </select>
+            </div>
+              <div class="gh-form-panel__field form-group">
+                <label class="form-label" for="wizard-system">
+                  <span class="form-label__dot"></span>{{ 'batches.wizard_system_label' | translate }}
+                </label>
+                <select
+                  id="wizard-system"
+                  class="form-select"
+                  [ngModel]="tempSystemId()"
+                  (ngModelChange)="onTempSystemChange($event)"
+                  [disabled]="!tempZoneId() || selectableSystems().length === 0">
+                <option value="">{{ 'batches.wizard_system_placeholder' | translate }}</option>
+                @for (sys of selectableSystems(); track sys.id) {
+                  <option [value]="sys.id">{{ sys.name }}</option>
+                }
+              </select>
+            </div>
+              <div class="gh-form-panel__action">
+                <gh-button
+                  size="md"
+                  [disabled]="!tempZoneId() || !tempSystemId() || selectableSystems().length === 0"
+                  (click)="addSystem()">
+                  <span class="gh-btn-plus" aria-hidden="true">+</span>
+                  {{ 'batches.wizard_btn_add' | translate }}
+                </gh-button>
+              </div>
+            </div>
+          </section>
+
+          @if (selectedSystems().length > 0) {
+            <section class="gh-selection-list" [attr.aria-label]="'batches.wizard_selected_systems' | translate">
+              <h4 class="gh-selection-list__heading">
+                {{ 'batches.wizard_selected_systems' | translate }} ({{ selectedSystems().length }})
+              </h4>
+              <ul class="gh-selection-list__items">
+                @for (sys of selectedSystems(); track sys.systemId) {
+                  <li class="gh-selection-list__item">
+                    <div class="gh-selection-list__item-body">
+                      <p class="gh-selection-list__item-title">{{ sys.systemName }}</p>
+                      <p class="gh-selection-list__item-subtitle">{{ sys.zoneName }}</p>
+                    </div>
+                    <gh-button variant="ghost" size="sm" (click)="removeSystem(sys.systemId)">
+                      {{ 'batches.btn_delete' | translate }}
+                    </gh-button>
+                  </li>
+                }
+              </ul>
+            </section>
+          } @else {
+            <p class="gh-form-placeholder">{{ 'batches.wizard_no_systems' | translate }}</p>
+          }
+        </div>
+      }
+
+      @case (4) {
+        <div class="form-layout">
+          <section class="gh-distribution-summary">
+            <div class="gh-distribution-summary__header">
+              <div>
+                <h3 class="gh-distribution-summary__title">
+                  {{ 'batches.wizard_distributing' | translate: { count: (totalQuantity() | number) ?? '' } }}
+                </h3>
+                <p class="gh-distribution-summary__subtitle">
+                  {{ 'batches.wizard_on_systems' | translate: { count: (selectedSystems().length | number) ?? '' } }}
+                </p>
+              </div>
+              <div class="gh-distribution-summary__actions">
+                <gh-button variant="outline" size="sm" [disabled]="totalAllocated() === 0" (click)="clearQuantities()">
+                  {{ 'batches.wizard_clear_all' | translate }}
+                </gh-button>
+                <gh-button variant="outline" size="sm" (click)="autoDistribute()">
+                  {{ 'batches.wizard_auto_distribute' | translate }}
+                </gh-button>
+              </div>
+            </div>
+
+            <div>
+              <div class="gh-distribution-summary__progress-meta">
+                <span>{{ 'batches.wizard_progress_label' | translate }}</span>
+                <span>{{ totalAllocated() | number }} / {{ totalQuantity() | number }}</span>
+              </div>
+              <gh-progress-bar
+                [value]="totalAllocated()"
+                [max]="totalQuantity() || 1"
+                [variant]="allocationProgressVariant()"
+                size="lg" />
+              <p class="gh-distribution-summary__percent">{{ allocationPercent() }}%</p>
+            </div>
+
+            @if (remaining() > 0) {
+              <p class="gh-distribution-summary__status gh-distribution-summary__status--warning">
+                <span aria-hidden="true">✗</span>
+                {{ 'batches.wizard_remaining_detail' | translate: { count: (remaining() | number) ?? '' } }}
+              </p>
+            } @else if (remaining() < 0) {
+              <p class="gh-distribution-summary__status gh-distribution-summary__status--danger">
+                <span aria-hidden="true">✗</span>
+                {{ 'batches.wizard_excess_detail' | translate: { count: ((0 - remaining()) | number) ?? '' } }}
+              </p>
+            } @else if (totalAllocated() > 0) {
+              <p class="gh-distribution-summary__status gh-distribution-summary__status--success">
+                <span aria-hidden="true">✓</span>
+                {{ 'batches.wizard_distributed_complete' | translate }}
+              </p>
+            }
+          </section>
+
+          @for (sys of selectedSystems(); track sys.systemId; let idx = $index) {
+            <section class="gh-system-distribution">
+              <header class="gh-system-distribution__header">
+                <div class="gh-system-distribution__identity">
+                  <span class="gh-system-distribution__index">{{ idx + 1 }}</span>
+                  <div>
+                    <h4 class="gh-system-distribution__name">{{ sys.systemName }}</h4>
+                    <p class="gh-system-distribution__zone">{{ sys.zoneName }}</p>
+                  </div>
+                </div>
+                <div class="gh-system-distribution__total-wrap">
+                  <p class="gh-system-distribution__total-label">{{ 'batches.wizard_system_total' | translate }}</p>
+                  <gh-badge [variant]="systemTotal(sys) > 0 ? 'success' : 'default'">
+                    {{ systemTotal(sys) | number }} {{ 'batches.wizard_plants_suffix' | translate }}
+                  </gh-badge>
+                </div>
+              </header>
+
+              <h5 class="gh-system-distribution__section-title">{{ 'batches.wizard_select_layers' | translate }}</h5>
+              <div class="gh-layer-picker" role="group">
+                @for (layer of availableLayers(); track layer.id) {
+                  <button
+                    type="button"
+                    class="gh-layer-picker__card"
+                    [class.gh-layer-picker__card--selected]="isLayerSelected(sys.systemId, layer.id)"
+                    (click)="toggleLayer(sys.systemId, layer)">
+                    <span class="gh-layer-picker__name">
+                      {{ layer.name }}
+                      @if (isLayerSelected(sys.systemId, layer.id)) {
+                        <span class="gh-layer-picker__check" aria-hidden="true">✓</span>
+                      }
+                    </span>
+                    <span class="gh-layer-picker__capacity">
+                      {{ 'batches.wizard_capacity' | translate }}: {{ layer.capacity | number }}
+                    </span>
+                  </button>
+                }
+              </div>
+
+              @if (sys.layers.length > 0) {
+                <h5 class="gh-system-distribution__section-title">{{ 'batches.wizard_distribute_qty' | translate }}</h5>
+                <div class="gh-layer-qty-list">
+                  @for (layer of sys.layers; track layer.layerId) {
+                    <div class="gh-layer-qty-row">
+                      <div class="gh-layer-qty-row__info">
+                        <p class="gh-layer-qty-row__label">{{ layer.layerName }}</p>
+                        <div class="gh-layer-qty-row__utilization">
+                          <gh-progress-bar
+                            [value]="layer.quantity"
+                            [max]="layer.capacity || 1"
+                            variant="success"
+                            size="sm" />
+                          <span class="gh-layer-qty-row__util-text">
+                            {{ layerUtilizationPercent(layer.quantity, layer.capacity) }}%
+                          </span>
+                        </div>
+                      </div>
+                      <div class="gh-layer-qty-row__input-wrap">
+                        <span class="gh-layer-qty-row__capacity">{{ layer.capacity | number }} /</span>
+                        <input
+                          class="form-input gh-layer-qty-row__input"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          ghPositiveInt
+                          [value]="layer.quantity || ''"
+                          (input)="setLayerQuantity(sys.systemId, layer.layerId, $event)"
+                          [attr.aria-label]="layer.layerName" />
+                      </div>
+                      @if (layer.quantity > layer.capacity) {
+                        <p class="gh-layer-qty-row__error">{{ 'batches.wizard_over_capacity' | translate }}</p>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="gh-system-distribution__footer">
+                  <span>{{ 'batches.wizard_system_total_this' | translate }}</span>
+                  <span>{{ systemTotal(sys) | number }} {{ 'batches.wizard_plants_suffix' | translate }}</span>
+                </div>
+              } @else {
+                <p class="gh-form-placeholder">{{ 'batches.wizard_select_layer_hint' | translate }}</p>
+              }
+            </section>
+          }
+
+          <div class="gh-modal-hint" role="note">
+            <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
+            <span>{{ 'batches.wizard_distribute_tip' | translate }}</span>
+          </div>
+        </div>
+      }
+
+      @case (5) {
+        <div class="form-layout">
+          <h3 class="wizard__review-title">{{ 'batches.wizard_summary' | translate }}</h3>
+          <div class="gh-info-panel">
+            <div class="gh-info-panel__row">
+              <span class="gh-info-panel__label">{{ 'batches.form_name' | translate }}</span>
+              <span class="gh-info-panel__value">{{ batchName() }}</span>
+            </div>
+            <div class="gh-info-panel__row">
+              <span class="gh-info-panel__label">{{ 'batches.wizard_summary_location' | translate }}</span>
+              <span class="gh-info-panel__value">{{ selectedLocationName() }} → {{ selectedGreenhouseName() }}</span>
+            </div>
+            <div class="gh-info-panel__row">
+              <span class="gh-info-panel__label">{{ 'batches.wizard_summary_crop' | translate }}</span>
+              <span class="gh-info-panel__value">{{ selectedCrop()?.name }}</span>
+            </div>
+            <div class="gh-info-panel__row">
+              <span class="gh-info-panel__label">{{ 'batches.wizard_summary_total' | translate }}</span>
+              <span class="gh-info-panel__value">
+                {{ totalQuantity() | number }} {{ 'batches.wizard_plants_suffix' | translate }}
+              </span>
+            </div>
+          </div>
+
+          @if (expectedHarvestDate(); as harvestDate) {
+            <div class="gh-info-banner" role="status">
+              <span class="gh-info-banner__icon" aria-hidden="true">📅</span>
+              <p class="gh-info-banner__text">
+                <span class="gh-info-banner__label">{{ 'batches.wizard_expected_harvest' | translate }}:</span>
+                <span class="gh-info-banner__value">{{ harvestDate | date:'y/M/d':'':i18n.currentLang() }}</span>
+              </p>
+            </div>
+          }
+
+          <h4 class="wizard__review-subtitle">{{ 'batches.wizard_summary_distribution' | translate }}</h4>
+          @for (sys of selectedSystems(); track sys.systemId) {
+            <div class="wizard__review-system">
+              <div class="wizard__review-system-header">
+                <div>
+                  <p class="wizard__system-name">{{ sys.systemName }}</p>
+                  <p class="wizard__system-zone">{{ sys.zoneName }}</p>
+                </div>
+                <gh-badge variant="success">{{ systemTotal(sys) | number }} {{ 'batches.wizard_plants_suffix' | translate }}</gh-badge>
+              </div>
+              @for (layer of sys.layers; track layer.layerId) {
+                <div class="wizard__review-layer">
+                  <span>{{ layer.layerName }}</span>
+                  <span>{{ layer.quantity | number }} {{ 'batches.wizard_plants_suffix' | translate }}</span>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="gh-modal-hint" role="note">
+            <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
+            <span>{{ 'batches.wizard_ready_msg' | translate }}</span>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <div class="modal-footer-actions modal-footer-actions--split">
+    <gh-button variant="outline" [disabled]="currentStep() === 1" (click)="prevStep()">
+      {{ 'batches.wizard_btn_prev' | translate }}
+    </gh-button>
+    @if (currentStep() < totalSteps) {
+      <gh-button
+        [disabled]="
+          (currentStep() === 1 && !canProceedStep1()) ||
+          (currentStep() === 2 && !canProceedStep2()) ||
+          (currentStep() === 3 && !canProceedStep3()) ||
+          (currentStep() === 4 && !canProceedStep4())
+        "
+        (click)="nextStep()">
+        {{ 'batches.wizard_btn_next' | translate }}
+      </gh-button>
+    } @else {
+      <gh-button (click)="submitBatch()">
+        {{ 'batches.wizard_btn_create' | translate }}
+      </gh-button>
+    }
+  </div>
+</div>

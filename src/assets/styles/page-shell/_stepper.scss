@@ -1,0 +1,176 @@
+// ── Bordered surface (cards, wizard panels) ───────────────────────
+.gh-surface {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+// ── Back navigation link ──────────────────────────────────────────
+.gh-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--color-primary);
+  }
+
+  &__icon {
+    display: inline-flex;
+    font-size: 1.125rem;
+    line-height: 1;
+    color: inherit;
+  }
+
+  [dir='rtl'] & &__icon {
+    transform: scaleX(-1);
+  }
+}
+
+// ── Horizontal stepper ────────────────────────────────────────────
+.gh-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+  }
+
+  &__icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--color-muted);
+    color: var(--color-muted-foreground);
+    border: 2px solid transparent;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+
+    svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+  }
+
+  &__label {
+    font-size: var(--font-size-xs, 0.75rem);
+    line-height: 1.35;
+    color: var(--color-muted-foreground);
+    font-weight: 500;
+    max-width: 7.5rem;
+  }
+
+  &__connector {
+    flex: 1;
+    min-width: 1rem;
+    height: 2px;
+    margin-block-start: 1.375rem;
+    background: var(--color-border);
+    align-self: flex-start;
+    transition: background 0.2s;
+
+    &--done {
+      background: var(--color-success);
+    }
+  }
+
+  &__item--active {
+    .gh-stepper__icon {
+      background: var(--color-primary);
+      color: #fff;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-ring);
+    }
+
+    .gh-stepper__label {
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+  }
+
+  &__item--done {
+    .gh-stepper__icon {
+      background: var(--color-success);
+      color: #fff;
+      border-color: var(--color-success);
+    }
+
+    .gh-stepper__label {
+      color: var(--color-foreground);
+      font-weight: 600;
+    }
+  }
+}
+
+// ── Step content heading ──────────────────────────────────────────
+.gh-step-heading {
+  margin: 0 0 var(--space-5);
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-muted-foreground);
+
+  strong {
+    color: var(--color-foreground);
+    font-weight: 700;
+  }
+}
+
+// ── Info summary panel (forms, wizards) ───────────────────────────
+.gh-info-panel {
+  padding: var(--space-4);
+  background: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--font-size-sm, 0.875rem);
+  }
+
+  &__label {
+    color: var(--color-muted-foreground);
+    font-weight: 500;
+  }
+
+  &__value {
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+}

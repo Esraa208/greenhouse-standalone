@@ -1,0 +1,110 @@
+// ── Bordered form subsection (wizards, multi-step flows) ───────────
+.gh-form-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+
+  &__row {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  &__field {
+    flex: 1;
+    min-width: 10rem;
+  }
+
+  &__action {
+    flex-shrink: 0;
+
+    @media (max-width: 640px) {
+      flex: 1 1 100%;
+      width: 100%;
+    }
+  }
+}
+
+.gh-btn-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+// ── Inline placeholder (empty lists inside forms) ───────────────────
+.gh-form-placeholder {
+  margin: 0;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.6;
+  color: var(--color-muted-foreground);
+}
+
+// ── Selectable / added items list ─────────────────────────────────
+.gh-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__heading {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  &__item-body {
+    min-width: 0;
+  }
+
+  &__item-title {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-foreground);
+  }
+
+  &__item-subtitle {
+    margin: var(--space-1) 0 0 0;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--color-muted-foreground);
+  }
+}

@@ -64,3 +64,8 @@
   background-color: var(--color-muted);
   color: var(--color-muted-foreground);
 }
+
+:host(.gh-badge-harvested) {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}

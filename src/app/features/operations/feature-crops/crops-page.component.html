@@ -1,10 +1,10 @@
-﻿<div class="crops-page" [attr.dir]="i18n.dir()">
+<div class="crops-page" [attr.dir]="i18n.dir()">
 
   <!-- Page Header -->
   <gh-page-header
     [title]="'crops.page_title' | translate"
     [subtitle]="'crops.page_subtitle' | translate"
-    [buttonLabel]="'crops.add_button' | translate"
+    [buttonLabel]="'crops.modal_add' | translate"
     (buttonClick)="facade.openCreateModal()"
   ></gh-page-header>
 
@@ -12,7 +12,7 @@
   <gh-table-filters
     [searchPlaceholder]="'crops.search' | translate"
     [search]="facade.filters().searchQuery"
-    [sort]="facade.filters().sortBy"
+    [sort]="facade.filters().sortBy === 'all' ? '' : facade.filters().sortBy"
     [sortOptions]="sortOptions()"
     [showStatus]="false"
     (searchChange)="facade.patchFilters({ searchQuery: $event })"
@@ -105,9 +105,9 @@
   <!-- Create / Edit Modal -->
   <gh-modal
     [isOpen]="facade.isModalOpen()"
+    (isOpenChange)="!$event && facade.closeModal()"
     [title]="(facade.editingItem() ? 'crops.modal_edit' : 'crops.modal_add') | translate"
     size="md"
-    (closed)="facade.closeModal()"
   >
     <div [formGroup]="form">
       <gh-form-group
@@ -136,18 +136,21 @@
         />
       </gh-form-group>
 
-      <div class="crops-page__modal-notice">
-        {{ 'crops.modal_notice' | translate }}
-      </div>
+      @if (!facade.editingItem()) {
+        <div class="gh-modal-hint" role="note">
+          <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
+          <span>{{ 'crops.modal_hint' | translate }}</span>
+        </div>
+      }
     </div>
 
     <!-- Modal Footer -->
-    <div slot="footer" class="modal-footer-actions">
+    <div slot="footer" class="flex gap-3">
       <gh-button variant="outline" (click)="facade.closeModal()">
         {{ 'common.cancel' | translate }}
       </gh-button>
       <gh-button variant="primary" [disabled]="form.invalid" (click)="submitForm()">
-        {{ (facade.editingItem() ? 'common.save' : 'common.add') | translate }}
+        {{ (facade.editingItem() ? 'common.save' : 'crops.add_button') | translate }}
       </gh-button>
     </div>
   </gh-modal>

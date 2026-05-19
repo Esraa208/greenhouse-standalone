@@ -1,183 +1,216 @@
-﻿/* libs/operations/data-access/src/lib/facades/batches.facade.ts */
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
+﻿import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { Subject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { BatchesRepository } from '../repositories/batches.repository';
-import { DeleteBatchUseCase } from '../use-cases/delete-batch.use-case';
+import { BatchRow, BatchFilters, DEFAULT_BATCH_FILTERS, CreateBatchDto, UpdateBatchDto } from '../models/batch.model';
+import { PagedListQuery } from '../../infrastructure/list-query';
 import {
-  BatchRow,
-  BatchFilters,
-  DEFAULT_BATCH_FILTERS,
-  BatchStatus,
-} from '../models/batch.model';
+  bindListReloadStream,
+  applyListFilterPatch,
+  subscribeMutationWithResult,
+  subscribeMutationWithVoid,
+} from '../../infrastructure/entity-list-facade.helpers';
+import { mergeAfterPut } from '../../infrastructure/put-patch-merge';
+import { GhToastService, TranslationService } from '@app/core';
+
+export interface CreateBatchOptions {
+  /** Skip default success toast (e.g. wizard shows its own flow). */
+  suppressToast?: boolean;
+  afterSuccess?: () => void;
+  afterError?: () => void;
+}
 
 @Injectable({ providedIn: 'root' })
 export class BatchesFacade {
-  // --- SECTION 1: Private deps ---
   readonly #repo = inject(BatchesRepository);
-  readonly #router = inject(Router);
   readonly #destroyRef = inject(DestroyRef);
-  readonly #deleteBatch = inject(DeleteBatchUseCase);
+  readonly #toast = inject(GhToastService);
+  readonly #i18n = inject(TranslationService);
 
-  // --- SECTION 2: Private writable signals ---
   readonly #items = signal<BatchRow[]>([]);
-  readonly #filters = signal(DEFAULT_BATCH_FILTERS);
-  readonly #viewingItem = signal<BatchRow | null>(null);
+  readonly #selectItems = signal<BatchRow[]>([]);
+  readonly #filters = signal<BatchFilters>(DEFAULT_BATCH_FILTERS);
+  readonly #pageNumber = signal(1);
+  readonly #editingItem = signal<BatchRow | null>(null);
   readonly #deletingItem = signal<BatchRow | null>(null);
-  readonly #isViewModalOpen = signal(false);
+  readonly #isModalOpen = signal(false);
   readonly #isDeleteModalOpen = signal(false);
+  readonly #viewingItem = signal<BatchRow | null>(null);
+  readonly #isDetailsModalOpen = signal(false);
   readonly #isLoading = signal(false);
   readonly #error = signal<string | null>(null);
+  readonly #totalCount = signal(0);
+  readonly #totalPages = signal(1);
+  readonly #pageSize = signal(50);
 
-  // --- SECTION 3: Public readonly accessors ---
+  readonly #reloadNow$ = new Subject<void>();
+  readonly #reloadSearch$ = new Subject<void>();
+
+  readonly items = this.#items.asReadonly();
+  readonly selectItems = this.#selectItems.asReadonly();
   readonly filters = this.#filters.asReadonly();
-  readonly viewingItem = this.#viewingItem.asReadonly();
+  readonly editingItem = this.#editingItem.asReadonly();
   readonly deletingItem = this.#deletingItem.asReadonly();
-  readonly isViewModalOpen = this.#isViewModalOpen.asReadonly();
+  readonly isModalOpen = this.#isModalOpen.asReadonly();
   readonly isDeleteModalOpen = this.#isDeleteModalOpen.asReadonly();
+  readonly viewingItem = this.#viewingItem.asReadonly();
+  readonly isDetailsModalOpen = this.#isDetailsModalOpen.asReadonly();
   readonly isLoading = this.#isLoading.asReadonly();
   readonly error = this.#error.asReadonly();
+  readonly currentPage = this.#pageNumber.asReadonly();
+  readonly totalCount = this.#totalCount.asReadonly();
+  readonly totalPages = this.#totalPages.asReadonly();
+  readonly pageSize = this.#pageSize.asReadonly();
 
-  // --- SECTION 4: Computed signals ---
-
-  /** Unique crop types extracted from current batches for filter dropdown */
-  readonly cropTypes = computed(() =>
-    [...new Set(this.#items().map(b => b.cropType))].sort((a, b) => a.localeCompare(b, 'ar'))
-  );
-
-  /**
-   * Filtered and sorted list based on Search, Status, and Crop Type filters.
-   */
   readonly filteredItems = computed<BatchRow[]>(() => {
-    const { searchQuery, status, cropType, sortBy } = this.#filters();
     let result = this.#items();
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(b =>
-        b.batchNumber.toLowerCase().includes(q) ||
-        b.cropType.toLowerCase().includes(q) ||
-        b.location.toLowerCase().includes(q) ||
-        b.greenhouse.toLowerCase().includes(q)
-      );
+    const f = this.#filters();
+    if (f.status !== 'all') {
+      result = result.filter((r) => r.status === f.status);
     }
-
-    if (status !== 'all') {
-      result = result.filter(b => b.status === status);
+    if (f.cropTypeId) {
+      result = result.filter((r) => r.cropTypeId === f.cropTypeId);
     }
-
-    if (cropType) {
-      result = result.filter(b => b.cropType === cropType);
-    }
-
-    const now = Date.now();
-    return [...result].sort((a, b) => {
-      const dateA = new Date(a.plantingDate || a.plantedDate || '').getTime();
-      const dateB = new Date(b.plantingDate || b.plantedDate || '').getTime();
-      switch (sortBy) {
-        case 'date-desc': return dateB - dateA;
-        case 'date-asc': return dateA - dateB;
-        case 'quantity-desc': return b.quantity - a.quantity;
-        case 'quantity-asc': return a.quantity - b.quantity;
-        case 'progress-desc': return this.daysElapsed(b) - this.daysElapsed(a);
-        case 'progress-asc': return this.daysElapsed(a) - this.daysElapsed(b);
-        default: return 0;
-      }
-    });
+    return result;
   });
 
-  /** Total active batches count */
-  readonly activeBatchesCount = computed(() =>
-    this.#items().filter(b => b.status === 'active').length
-  );
-
-  // --- SECTION 5: Pure helper methods ---
-
-  /** Compute days elapsed since planting */
-  daysElapsed(batch: BatchRow): number {
-    const date = batch.plantingDate || batch.plantedDate || '';
-    return Math.floor((Date.now() - new Date(date).getTime()) / 86_400_000);
+  constructor() {
+    bindListReloadStream({
+      destroyRef: this.#destroyRef,
+      reloadNow$: this.#reloadNow$,
+      reloadSearch$: this.#reloadSearch$,
+      load: () => this.#repo.getAll(this.#listQuery()),
+      setItems: (items) => this.#items.set(items),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      setPagination: (p) => {
+        this.#totalCount.set(p.totalCount);
+        this.#totalPages.set(p.totalPages);
+        this.#pageSize.set(p.pageSize);
+      },
+    });
   }
 
-  /** Compute progress percent (capped at 100) */
-  progressPercent(batch: BatchRow): number {
-    const days = batch.growthDurationDays || batch.totalDays || 1;
-    return Math.min(100, Math.round(this.daysElapsed(batch) / days * 100));
+  #listQuery(): PagedListQuery {
+    const f = this.#filters();
+    let apiStatus: 'all' | 'active' | 'inactive' = 'all';
+    if (f.status === 'active') apiStatus = 'active';
+    if (f.status === 'harvested' || f.status === 'lost') apiStatus = 'inactive';
+    const extra: Record<string, string | number | boolean> = {};
+    if (f.cropTypeId) extra['CropTypeId'] = Number(f.cropTypeId);
+    return {
+      pageNumber: this.#pageNumber(),
+      search: f.searchQuery,
+      status: apiStatus,
+      setOrder: f.sortBy === 'all' ? undefined : f.sortBy,
+      extra,
+    };
   }
 
-  /** Progress calculation helper for UI (legacy compat) */
-  progressPct(row: BatchRow): number {
-    return this.progressPercent(row);
-  }
-
-  /** Compute growth stage label translation key */
-  growthStageKey(batch: BatchRow): string {
-    if (batch.status === 'harvested') return 'batches.stage_harvested';
-    if (batch.status === 'lost') return 'batches.stage_lost';
-    const pct = this.progressPercent(batch);
-    if (pct <= 25) return 'batches.stage_seedlings';
-    if (pct <= 60) return 'batches.stage_vegetative';
-    if (pct <= 85) return 'batches.stage_early';
-    if (pct <= 100) return 'batches.stage_late';
-    return 'batches.stage_overdue';
-  }
-
-  /** Progress bar variant */
-  progressVariant(batch: BatchRow): 'success' | 'warning' {
-    const days = batch.growthDurationDays || batch.totalDays || 1;
-    return this.daysElapsed(batch) >= days ? 'warning' : 'success';
-  }
-
-  /** Days text color class */
-  daysOverdue(batch: BatchRow): boolean {
-    const days = batch.growthDurationDays || batch.totalDays || 1;
-    return this.daysElapsed(batch) >= days;
-  }
-
-  // --- SECTION 6: Action methods ---
-
-  /** Loads all records with lifecycle management */
   loadAll(): void {
-    this.#isLoading.set(true);
-    this.#repo.getAll()
-      .pipe(
-        takeUntilDestroyed(this.#destroyRef),
-        finalize(() => this.#isLoading.set(false)),
-      )
-      .subscribe({
-        next: items => this.#items.set(items),
-        error: err => this.#error.set(err.message),
-      });
+    this.#reloadNow$.next();
   }
 
-  /** Navigate to planting wizard */
-  navigateToPlanting(): void {
-    this.#router.navigate(['/operations/planting']);
+  enterPage(): void {
+    this.#filters.set(DEFAULT_BATCH_FILTERS);
+    this.#pageNumber.set(1);
+    this.#reloadNow$.next();
   }
 
-  /** Patches active filters */
+  loadActiveForSelect(): void {
+    this.#repo
+      .fetchActivePage(1)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({ next: (rows) => this.#selectItems.set(rows) });
+  }
+
+  goToPage(page: number): void {
+    this.#pageNumber.set(page);
+    this.#reloadNow$.next();
+  }
+
   patchFilters(patch: Partial<BatchFilters>): void {
-    this.#filters.update(f => ({ ...f, ...patch }));
+    applyListFilterPatch(patch, this.#filters, this.#pageNumber, this.#reloadNow$, this.#reloadSearch$);
   }
 
-  /** Resets all filters */
   resetFilters(): void {
     this.#filters.set(DEFAULT_BATCH_FILTERS);
+    this.#pageNumber.set(1);
+    this.#reloadNow$.next();
   }
 
-  /** Details modal control */
-  openViewModal(item: BatchRow): void {
-    this.#viewingItem.set(item);
-    this.#isViewModalOpen.set(true);
+  create(dto: CreateBatchDto, options?: CreateBatchOptions): void {
+    this.closeModal();
+    subscribeMutationWithResult({
+      destroyRef: this.#destroyRef,
+      mutation$: this.#repo.create(dto).pipe(switchMap(() => this.#repo.getAll(this.#listQuery()))),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      onSuccess: (page) => {
+        this.#items.set(page.items);
+        this.#totalCount.set(page.totalCount);
+        this.#totalPages.set(page.totalPages);
+        this.#pageSize.set(page.pageSize);
+        if (!options?.suppressToast) {
+          this.#toast.success(this.#i18n.t('batches.toast_create_success'));
+        }
+        options?.afterSuccess?.();
+      },
+      onError: () => {
+        options?.afterError?.();
+      },
+    });
   }
 
-  closeViewModal(): void {
-    this.#isViewModalOpen.set(false);
-    this.#viewingItem.set(null);
+  update(id: string, dto: UpdateBatchDto): void {
+    const previous = this.#items().find((i) => i.id === id) ?? this.#editingItem() ?? undefined;
+    this.closeModal();
+    subscribeMutationWithResult({
+      destroyRef: this.#destroyRef,
+      mutation$: this.#repo.update(id, dto),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      onSuccess: (patch) => {
+        const row = mergeAfterPut(previous, patch);
+        this.#items.update((items) => items.map((i) => (i.id === row.id ? row : i)));
+        this.#toast.success(this.#i18n.t('batches.toast_edit_success'));
+      },
+    });
   }
 
-  /** Delete modal control */
+  confirmDelete(): void {
+    const item = this.#deletingItem();
+    if (!item) return;
+    this.closeDeleteModal();
+    subscribeMutationWithVoid({
+      destroyRef: this.#destroyRef,
+      mutation$: this.#repo.delete(item.id),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      onSuccess: () => {
+        this.#items.update((items) => items.filter((i) => i.id !== item.id));
+        this.#totalCount.update(c => Math.max(0, c - 1));
+        this.#toast.success(this.#i18n.t('batches.toast_delete_success'));
+      },
+    });
+  }
+
+  openCreateModal(): void {
+    this.#editingItem.set(null);
+    this.#isModalOpen.set(true);
+  }
+
+  openEditModal(item: BatchRow): void {
+    this.#editingItem.set(item);
+    this.#isModalOpen.set(true);
+  }
+
+  closeModal(): void {
+    this.#isModalOpen.set(false);
+    this.#editingItem.set(null);
+  }
+
   openDeleteModal(item: BatchRow): void {
     this.#deletingItem.set(item);
     this.#isDeleteModalOpen.set(true);
@@ -188,27 +221,13 @@ export class BatchesFacade {
     this.#deletingItem.set(null);
   }
 
-  /** Executes batch deletion with optimistic rollback */
-  confirmDelete(): void {
-    const item = this.#deletingItem();
-    if (!item) return;
+  openDetailsModal(item: BatchRow): void {
+    this.#viewingItem.set(item);
+    this.#isDetailsModalOpen.set(true);
+  }
 
-    const previousItems = this.#items();
-    this.#deleteBatch.execute({
-      destroyRef: this.#destroyRef,
-      item,
-      previousItems,
-      applyOptimisticDelete: (id) =>
-        this.#items.update((items) => items.filter((i) => i.id !== id)),
-      rollback: (items) => this.#items.set(items),
-      setError: (message) => this.#error.set(message),
-      closeModal: () => this.#isDeleteModalOpen.set(false),
-    });
+  closeDetailsModal(): void {
+    this.#isDetailsModalOpen.set(false);
+    this.#viewingItem.set(null);
   }
 }
-
-
-
-
-
-

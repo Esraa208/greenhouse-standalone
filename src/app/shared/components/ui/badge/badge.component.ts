@@ -1,10 +1,10 @@
-﻿import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /** Documented badge variants — the input accepts any string to keep template bindings flexible. */
 export type BadgeVariant =
   | 'success' | 'warning' | 'danger' | 'info' | 'default'
-  | 'active'  | 'inactive'
+  | 'active'  | 'inactive' | 'harvested'
   | 'full'    | 'partial' | 'empty';
 
 @Component({

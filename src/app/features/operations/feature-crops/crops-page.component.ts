@@ -1,9 +1,10 @@
-﻿/* libs/operations/feature-crops/src/lib/crops-page.component.ts */
+/* libs/operations/feature-crops/src/lib/crops-page.component.ts */
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
+  OnInit,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import {
@@ -29,7 +30,7 @@ import { syncCrudModalForm, trackByEntityId } from '@app/shared/utils/sync-crud-
   styleUrl: './crops-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CropsPageComponent {
+export class CropsPageComponent implements OnInit {
   // --- INJECTION ---
   protected readonly facade = inject(CropsFacade);
   protected readonly i18n = inject(TranslationService);
@@ -53,8 +54,6 @@ export class CropsPageComponent {
   );
 
   constructor() {
-    this.facade.loadAll();
-
     syncCrudModalForm({
       isModalOpen: () => this.facade.isModalOpen(),
       editingItem: () => this.facade.editingItem(),
@@ -68,11 +67,16 @@ export class CropsPageComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.facade.loadAll();
+  }
+
   // --- ACTIONS ---
 
-  /** Updates sort filter with type-safe cast */
+  /** Updates sort filter; empty / «الكل» sends no `SetOrder` to CropType fetch. */
   protected updateSortFilter(sort: string): void {
-    this.facade.patchFilters({ sortBy: sort as CropSortKey });
+    const sortBy = sort && sort !== 'all' ? (sort as CropSortKey) : 'all';
+    this.facade.patchFilters({ sortBy });
   }
 
   /** Tracks items by unique ID for efficient DOM rendering */

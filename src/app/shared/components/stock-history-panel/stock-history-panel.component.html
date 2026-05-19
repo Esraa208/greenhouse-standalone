@@ -1,0 +1,104 @@
+<div class="gh-stock-history-summary">
+  <span class="gh-stock-history-summary__icon" aria-hidden="true">📦</span>
+  <div>
+    <p class="gh-stock-history-summary__batch">{{ batchNumber() }}@if (cropType()) { - {{ cropType() }} }</p>
+    <p class="gh-stock-history-summary__qty">{{ quantity() | number }} {{ 'common.plants' | translate }}</p>
+  </div>
+</div>
+
+@if (showTimelineTitle()) {
+  <h3 class="gh-stock-history-section-title">{{ 'stockHistory.timeline_title' | translate }}</h3>
+}
+
+@if (loading()) {
+  <p class="gh-stock-history-loading">{{ 'stockHistory.loading' | translate }}</p>
+} @else if (entries().length === 0) {
+  <p class="gh-stock-history-empty">{{ 'stockHistory.empty' | translate }}</p>
+} @else {
+  <div class="gh-stock-history-timeline">
+    @for (entry of entries(); track trackEntry($index, entry); let last = $last) {
+      <article class="gh-stock-history-event">
+        <div class="gh-stock-history-event__rail">
+          <span
+            class="gh-stock-history-dot gh-stock-history-dot--{{ dotVariant(entry.actionType) }}"
+            aria-hidden="true">{{ dotIcon(entry.actionType) }}</span>
+          @if (!last) {
+            <span class="gh-stock-history-event__line" aria-hidden="true"></span>
+          }
+        </div>
+        <div class="gh-stock-history-event__body">
+          <header class="gh-stock-history-event__header">
+            <span class="gh-stock-history-event__date">
+              {{ entry.date | date:'d MMMM y':'':i18n.currentLang() }}
+            </span>
+            <gh-badge [variant]="badgeVariant(entry.actionType)">
+              {{ actionLabelKey(entry.actionType) | translate }}
+            </gh-badge>
+          </header>
+
+          @if (isTransferLike(entry.actionType) && entry.from) {
+            <div class="gh-stock-history-loc-card gh-stock-history-loc-card--from">
+              <p class="gh-stock-history-loc-card__label">{{ 'stockHistory.from' | translate }}:</p>
+              <ng-container *ngTemplateOutlet="locBody; context: { $implicit: entry.from }" />
+            </div>
+            <div class="gh-stock-history-loc-card gh-stock-history-loc-card--to">
+              <p class="gh-stock-history-loc-card__label">{{ 'stockHistory.to' | translate }}:</p>
+              <ng-container *ngTemplateOutlet="locBody; context: { $implicit: entry.to }" />
+            </div>
+          } @else {
+            <div class="gh-stock-history-loc-card gh-stock-history-loc-card--{{ singleCardTone(entry.actionType) }}">
+              <p class="gh-stock-history-loc-card__label">{{ singleCardLabelKey(entry.actionType) | translate }}:</p>
+              <ng-container *ngTemplateOutlet="locBody; context: { $implicit: entry.to }" />
+            </div>
+          }
+
+          <p class="gh-stock-history-qty">
+            <span aria-hidden="true">📦</span>
+            {{ 'stockHistory.quantity' | translate }}:
+            <strong>{{ entry.quantity | number }} {{ 'common.plants' | translate }}</strong>
+          </p>
+        </div>
+      </article>
+    }
+  </div>
+
+  <p class="gh-stock-history-footer">
+    {{ footerCountKey() | translate }}: {{ eventCount() | number }}
+    {{ footerSuffixKey() | translate }}
+  </p>
+}
+
+<ng-template #locBody let-loc>
+  @if (loc.location) {
+    <p class="gh-stock-history-loc-card__line">
+      <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">📍</span>
+      {{ loc.location }}
+    </p>
+  }
+  @if (loc.greenhouse) {
+    <p class="gh-stock-history-loc-card__line gh-stock-history-loc-card__line--sub">
+      <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">🏠</span>
+      {{ loc.greenhouse }}
+    </p>
+  }
+  <div class="gh-stock-history-loc-card__grid">
+    @if (loc.zone) {
+      <div class="gh-stock-history-loc-card__cell">
+        <span>{{ 'stockHistory.zone' | translate }}</span>
+        <strong>{{ loc.zone }}</strong>
+      </div>
+    }
+    @if (loc.system) {
+      <div class="gh-stock-history-loc-card__cell">
+        <span>{{ 'stockHistory.system' | translate }}</span>
+        <strong>{{ loc.system }}</strong>
+      </div>
+    }
+    @if (formatLayer(loc)) {
+      <div class="gh-stock-history-loc-card__cell">
+        <span>{{ 'stockHistory.layer' | translate }}</span>
+        <strong>{{ formatLayer(loc) }}</strong>
+      </div>
+    }
+  </div>
+</ng-template>

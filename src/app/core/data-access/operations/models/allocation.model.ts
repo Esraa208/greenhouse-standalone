@@ -1,4 +1,4 @@
-﻿/* libs/operations/data-access/src/lib/models/allocation.model.ts */
+/* libs/operations/data-access/src/lib/models/allocation.model.ts */
 
 export type AllocationStatus = 'active' | 'moved' | 'harvested';
 export type MovementAction = 'allocated' | 'moved' | 'harvested';
@@ -41,6 +41,7 @@ export interface AllocationRow {
   readonly system: string;
   readonly layer: string;
   readonly layerPosition: number;
+  readonly pipeId: string;
   readonly pipe: string;
   readonly quantity: number;
   readonly initialQuantity: number;
@@ -62,12 +63,13 @@ export type AllocationSortKey =
 export interface AllocationFilters {
   searchQuery: string;
   status: AllocationStatus | 'all';
-  batchNumber: string;          // '' = all
-  locationId: string;
-  greenhouseId: string;
-  zoneId: string;
-  systemId: string;
-  layerId: string;
+  batchNumber: string; // '' = all batches (client filter)
+  locationId: string | 'all';
+  greenhouseId: string | 'all';
+  zoneId: string | 'all';
+  systemId: string | 'all';
+  layerId: string | 'all';
+  pipeId: string | 'all';
   sortBy: AllocationSortKey;
 }
 
@@ -75,11 +77,12 @@ export const DEFAULT_ALLOCATION_FILTERS: AllocationFilters = {
   searchQuery: '',
   status: 'all',
   batchNumber: '',
-  locationId: '',
-  greenhouseId: '',
-  zoneId: '',
-  systemId: '',
-  layerId: '',
+  locationId: 'all',
+  greenhouseId: 'all',
+  zoneId: 'all',
+  systemId: 'all',
+  layerId: 'all',
+  pipeId: 'all',
   sortBy: 'date-desc',
 };
 
@@ -94,14 +97,8 @@ export const ALLOCATION_SORT_OPTIONS = [
 
 export interface MoveAllocationDto {
   allocationId: string;
-  targetLocation: string;
-  targetGreenhouse: string;
-  targetZone: string;
-  targetSystem: string;
-  targetLayer: string;
-  targetPipeId: string; // Added to match API requirements
+  targetLayerId: string;
   quantity: number;
-  notes?: string;
 }
 
 export interface RecordAllocationLossDto {
