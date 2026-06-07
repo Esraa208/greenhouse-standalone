@@ -8,7 +8,11 @@
 @forward './page-shell/responsive';
 @forward './page-shell/stepper';
 @forward './page-shell/form-panels';
+@forward './page-shell/modal-form';
+@forward './page-shell/scope-preview';
 @forward './page-shell/distribution';
 @forward './page-shell/stock-history';
 @forward './page-shell/transfer-allocation';
 @forward './page-shell/loss-registration';
+@forward './page-shell/loss-history';
+@forward './page-shell/invoice-harvest-form';

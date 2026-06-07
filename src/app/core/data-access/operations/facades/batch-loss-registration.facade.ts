@@ -209,7 +209,6 @@ export class BatchLossRegistrationFacade {
       .subscribe({
         next: () => {
           this.closeModal();
-          this.#lossesList.refresh();
           this.#toast.success(this.#i18n.t('losses.toast_create_success'));
         },
         error: (err: unknown) => this.#error.set(normalizeAppError(err).message),
@@ -236,21 +235,21 @@ export class BatchLossRegistrationFacade {
   #buildLossItems(
     selected: readonly { id: string; quantity: number }[],
     formQuantity: number,
-  ): { distributionId: string; quantity: number }[] {
+  ): { housingId: string; quantity: number }[] {
     if (this.#wholeBatch()) {
-      return selected.map((a) => ({ distributionId: a.id, quantity: a.quantity }));
+      return selected.map((a) => ({ housingId: a.id, quantity: a.quantity }));
     }
     if (selected.length === 1) {
       return [
         {
-          distributionId: selected[0].id,
+          housingId: selected[0].id,
           quantity: Math.min(formQuantity, selected[0].quantity),
         },
       ];
     }
     const each = Math.max(1, Math.floor(formQuantity / selected.length));
     return selected.map((a) => ({
-      distributionId: a.id,
+      housingId: a.id,
       quantity: Math.min(each, a.quantity),
     }));
   }

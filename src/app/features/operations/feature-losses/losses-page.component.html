@@ -3,25 +3,97 @@
     [title]="'losses.page_title' | translate"
     [subtitle]="'losses.page_subtitle' | translate"
     [buttonLabel]="'losses.add_button' | translate"
-    (buttonClick)="openRegisterModal()" />
+    (buttonClick)="facade.openCreateModal()" />
 
   <gh-table-filters
     [searchPlaceholder]="'losses.search' | translate"
-    (searchChange)="facade.patchFilters({ searchQuery: $event })">
-    <select class="losses-page__filter-select" (change)="facade.patchFilters({ sourceType: $any($event.target).value })">
-      @for (opt of sourceTypeOptions(); track opt.value) {
-        <option [value]="opt.value">{{ opt.label }}</option>
+    [search]="facade.filters().searchQuery"
+    [showStatus]="false"
+    [showSort]="false"
+    (searchChange)="facade.patchFilters({ searchQuery: $event })" />
+
+  <div class="gh-filter-row-secondary">
+    <select class="gh-filter-select"
+      [value]="facade.filters().batchId"
+      (change)="onFilterBatchChange(selectValue($event))">
+      <option value="all">{{ 'losses.filter_all_batches' | translate }}</option>
+      @for (batch of filterBatches(); track batch.id) {
+        <option [value]="batch.id">{{ batch.batchNumber }} — {{ batch.cropType }}</option>
       }
     </select>
-    <select class="losses-page__filter-select" (change)="facade.patchFilters({ lossType: $any($event.target).value })">
+
+    <select class="gh-filter-select"
+      [value]="facade.filters().locationId"
+      (change)="onFilterLocationChange(selectValue($event))">
+      <option value="all">{{ 'filter.all_locations' | translate }}</option>
+      @for (loc of filterLocations(); track loc.id) {
+        <option [value]="loc.id">{{ loc.name }}</option>
+      }
+    </select>
+
+    <select class="gh-filter-select"
+      [value]="facade.filters().greenhouseId"
+      (change)="onFilterGreenhouseChange(selectValue($event))">
+      <option value="all">{{ 'filter.all_greenhouses' | translate }}</option>
+      @for (gh of filterGreenhouses(); track gh.id) {
+        <option [value]="gh.id">{{ gh.name }}</option>
+      }
+    </select>
+
+    <select class="gh-filter-select"
+      [value]="facade.filters().zoneId"
+      (change)="onFilterZoneChange(selectValue($event))">
+      <option value="all">{{ 'filter.all_zones' | translate }}</option>
+      @for (z of filterZones(); track z.id) {
+        <option [value]="z.id">{{ z.name }}</option>
+      }
+    </select>
+
+    <select class="gh-filter-select"
+      [value]="facade.filters().systemId"
+      (change)="onFilterSystemChange(selectValue($event))">
+      <option value="all">{{ 'filter.all_systems' | translate }}</option>
+      @for (sys of filterSystems(); track sys.id) {
+        <option [value]="sys.id">{{ sys.name }}</option>
+      }
+    </select>
+
+    <select class="gh-filter-select"
+      [value]="facade.filters().layerId"
+      (change)="onFilterLayerChange(selectValue($event))">
+      <option value="all">{{ 'filter.all_layers' | translate }}</option>
+      @for (layer of filterLayers(); track layer.id) {
+        <option [value]="layer.id">{{ layer.name }}</option>
+      }
+    </select>
+
+    <select class="gh-filter-select"
+      [value]="facade.filters().lossType"
+      (change)="facade.patchFilters({ lossType: $any(selectValue($event)) })">
       @for (opt of lossTypeOptions(); track opt.value) {
         <option [value]="opt.value">{{ opt.label }}</option>
       }
     </select>
-  </gh-table-filters>
+  </div>
+
+  <div class="losses-page__date-filters">
+    <span class="losses-page__date-label">{{ 'losses.filter_date_group' | translate }}</span>
+    <label class="losses-page__date-field">
+      <span class="losses-page__date-sublabel">{{ 'invoices.filter_from' | translate }}</span>
+      <input type="date" class="gh-filter-select"
+        [value]="facade.filters().dateFrom"
+        (change)="facade.patchFilters({ dateFrom: selectValue($event) })" />
+    </label>
+    <label class="losses-page__date-field">
+      <span class="losses-page__date-sublabel">{{ 'invoices.filter_to' | translate }}</span>
+      <input type="date" class="gh-filter-select"
+        [value]="facade.filters().dateTo"
+        (change)="facade.patchFilters({ dateTo: selectValue($event) })" />
+    </label>
+  </div>
 
   <div class="gh-card">
-    <gh-table [loading]="facade.isLoading()">
+    <gh-table [loading]="facade.isLoading()" [striped]="false">
       <thead>
         <tr>
           <th>{{ 'losses.col_date' | translate }}</th>
@@ -35,50 +107,80 @@
       </thead>
       <tbody>
         @for (item of facade.filteredItems(); track trackById($index, item)) {
-          <tr>
+          <tr class="gh-table__row">
             <td>
-              <div class="losses-page__date-cell">
-                <span class="text-muted">📅</span>
-                <span dir="ltr">{{ item.date | date:'dd/MM/yyyy' }}</span>
+              <div class="gh-cell-stack">
+                <span class="gh-cell-stack__primary">
+                  <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">📅</span>
+                  {{ item.date | date:'d MMMM y':'':i18n.currentLang() }}
+                </span>
               </div>
             </td>
             <td>
               @switch (item.sourceType) {
-                @case ('allocation') { <gh-badge variant="success">{{ 'losses.src_alloc' | translate }}</gh-badge> }
-                @case ('layer') { <gh-badge variant="info">{{ 'losses.src_layer' | translate }}</gh-badge> }
-                @case ('batch') { <gh-badge variant="warning">{{ 'losses.src_batch' | translate }}</gh-badge> }
+                @case ('allocation') {
+                  <span class="gh-source-type-badge gh-source-type-badge--allocation">
+                    <span aria-hidden="true">📦</span>
+                    {{ sourceTypeLabel(item) }}
+                  </span>
+                }
+                @case ('layer') {
+                  <span class="gh-source-type-badge gh-source-type-badge--layer">
+                    <span aria-hidden="true">📚</span>
+                    {{ sourceTypeLabel(item) }}
+                  </span>
+                }
+                @case ('batch') {
+                  <span class="gh-source-type-badge gh-source-type-badge--batch">
+                    <span aria-hidden="true">🌱</span>
+                    {{ sourceTypeLabel(item) }}
+                  </span>
+                }
               }
             </td>
             <td>
-              <div class="losses-page__stack">
-                <span class="font-bold">{{ item.sourceName }}</span>
+              <div class="gh-cell-stack">
+                <span class="gh-cell-stack__primary">{{ item.sourceName }}</span>
                 @if (item.sourcePath) {
-                  <span class="losses-page__text-small">{{ item.sourcePath }}</span>
+                  <span class="gh-cell-stack__secondary">{{ item.sourcePath }}</span>
                 }
               </div>
             </td>
             <td>
-              <div class="losses-page__stack">
-                <span class="font-bold">{{ item.location }}</span>
-                <span class="losses-page__text-small">{{ item.greenhouse }}</span>
+              <div class="gh-cell-stack">
+                <span class="gh-cell-stack__primary">{{ item.location }}</span>
+                @if (item.greenhouse) {
+                  <span class="gh-cell-stack__secondary">{{ item.greenhouse }}</span>
+                }
               </div>
             </td>
             <td>
-              @switch (item.lossType) {
-                @case ('disease') { <gh-badge variant="danger">{{ 'losses.type_disease' | translate }}</gh-badge> }
-                @case ('pest') { <gh-badge variant="warning">{{ 'losses.type_pest' | translate }}</gh-badge> }
-                @case ('weather') { <gh-badge variant="default">{{ 'losses.type_weather' | translate }}</gh-badge> }
-                @case ('other') { <gh-badge variant="default">{{ 'losses.type_other' | translate }}</gh-badge> }
+              @switch (lossBadgeKind(item)) {
+                @case ('disease') {
+                  <span class="gh-loss-type-badge gh-loss-type-badge--disease">{{ lossTypeLabel(item) }}</span>
+                }
+                @case ('weather') {
+                  <span class="gh-loss-type-badge gh-loss-type-badge--weather">{{ lossTypeLabel(item) }}</span>
+                }
+                @case ('electricity') {
+                  <span class="gh-loss-type-badge gh-loss-type-badge--electricity">{{ lossTypeLabel(item) }}</span>
+                }
+                @case ('pest') {
+                  <span class="gh-loss-type-badge gh-loss-type-badge--pest">{{ lossTypeLabel(item) }}</span>
+                }
+                @default {
+                  <span class="gh-loss-type-badge gh-loss-type-badge--other">{{ lossTypeLabel(item) }}</span>
+                }
               }
             </td>
             <td>
-              <span class="losses-page__quantity">{{ item.quantity | number }} {{ 'common.plants' | translate }}</span>
+              <span class="gh-cell-qty-loss">{{ item.quantity | number }} {{ 'common.plants' | translate }}</span>
             </td>
             <td>
-              <div class="losses-page__stack">
-                <span class="font-bold">{{ item.reason }}</span>
+              <div class="gh-cell-stack">
+                <span class="gh-cell-stack__primary">{{ item.reason }}</span>
                 @if (item.notes) {
-                  <span class="losses-page__text-small">{{ item.notes }}</span>
+                  <span class="gh-cell-stack__secondary">{{ item.notes }}</span>
                 }
               </div>
             </td>
@@ -93,46 +195,252 @@
       </tbody>
     </gh-table>
 
-    <gh-pagination
-      [currentPage]="facade.currentPage()"
-      [totalPages]="facade.totalPages()"
-      [totalCount]="facade.totalCount()"
-      [pageSize]="facade.pageSize()"
-      (pageChange)="facade.goToPage($event)" />
+    <div class="gh-card__footer">
+      <gh-pagination
+        [currentPage]="facade.currentPage()"
+        [totalPages]="facade.totalPages()"
+        [totalCount]="facade.totalCount()"
+        [itemCount]="facade.filteredItems().length"
+        [pageSize]="facade.pageSize()"
+        (pageChange)="facade.goToPage($event)"
+        (pageSizeChange)="facade.setPageSize($event)" />
+    </div>
   </div>
 
-  <gh-modal
-    [isOpen]="regFacade.isOpen()"
-    (isOpenChange)="!$event && regFacade.closeModal()"
-    [title]="'losses.modal_register_title' | translate"
-    size="lg">
-    <gh-batch-loss-registration-panel
-      [batchSummary]="regFacade.batchSummary()"
-      [layers]="regFacade.layers()"
-      [loading]="regFacade.loading()"
-      [wholeBatch]="regFacade.wholeBatch()"
-      [expandedLayerIds]="regFacade.expandedLayerIds()"
-      [selectedAllocationIds]="regFacade.selectedAllocationIds()"
-      [selectedQuantityMax]="regFacade.selectedQuantityMax()"
-      [showBatchSelect]="true"
-      [batches]="regFacade.refBatches()"
-      [selectedBatchId]="regFacade.selectedBatchId()"
-      [form]="lossForm"
-      (batchIdChange)="regFacade.setBatchId($event)"
-      (wholeBatchChange)="regFacade.toggleWholeBatch($event)"
-      (layerExpandedToggle)="regFacade.toggleLayerExpanded($event)"
-      (layerCheckChange)="regFacade.toggleLayer($event.layerId, $event.checked)"
-      (allocationCheckChange)="regFacade.toggleAllocation($event.allocationId, $event.checked)"
-      (selectAllClick)="regFacade.selectAll()" />
+<gh-modal
+  [isOpen]="facade.isModalOpen()"
+  [title]="'losses.modal_title' | translate"
+  size="lg"
+  (isOpenChange)="!$event && facade.closeModal()">
 
-    <div slot="footer" class="modal-footer-actions">
-      <gh-button variant="outline" (click)="regFacade.closeModal()">{{ 'common.cancel' | translate }}</gh-button>
-      <gh-button
+  <div class="gh-modal-form">
+    <div class="gh-modal-form__toolbar">
+      <p class="gh-modal-form__toolbar-label">{{ 'losses.register_method' | translate }}</p>
+      <gh-segmented-control
         variant="primary"
-        [disabled]="!canSubmitLoss() || regFacade.loading()"
-        (click)="submitBatchLoss()">
-        {{ 'losses.btn_register_loss' | translate }}
-      </gh-button>
+        [options]="modalModeOptions()"
+        [value]="facade.modalMode()"
+        (valueChange)="onModalModeChange($event)" />
     </div>
-  </gh-modal>
+
+    @if (facade.modalMode() === 'infrastructure') {
+      <section class="gh-modal-form__section">
+        <h3 class="gh-modal-form__section-head gh-modal-form__section-head--accent">
+          <span class="gh-modal-form__section-icon" aria-hidden="true">📦</span>
+          {{ 'losses.select_registration_level' | translate }}
+        </h3>
+        <div class="gh-form-grid">
+          <gh-form-group [label]="'losses.col_location' | translate" [required]="true">
+            <gh-select
+              [ngModel]="facade.selLocationId()"
+              (ngModelChange)="facade.setLocationId($event)"
+              [items]="facade.refLocations()"
+              [placeholder]="'losses.select_location' | translate" />
+          </gh-form-group>
+          <gh-form-group [label]="'common.greenhouse' | translate">
+            <gh-select
+              [ngModel]="facade.selGreenhouseId()"
+              (ngModelChange)="facade.setGreenhouseId($event)"
+              [items]="facade.filteredModalGreenhouses()"
+              [placeholder]="'losses.select_optional' | translate"
+              [disabled]="!facade.selLocationId()" />
+          </gh-form-group>
+          <gh-form-group [label]="'common.zone' | translate">
+            <gh-select
+              [ngModel]="facade.selZoneId()"
+              (ngModelChange)="facade.setZoneId($event)"
+              [items]="facade.filteredModalZones()"
+              [placeholder]="'losses.select_optional' | translate"
+              [disabled]="!facade.selLocationId()" />
+          </gh-form-group>
+          <gh-form-group [label]="'common.system' | translate">
+            <gh-select
+              [ngModel]="facade.selSystemId()"
+              (ngModelChange)="facade.setSystemId($event)"
+              [items]="facade.filteredModalSystems()"
+              [placeholder]="'losses.select_optional' | translate"
+              [disabled]="!facade.selZoneId()" />
+          </gh-form-group>
+          <gh-form-group [label]="'common.layer' | translate">
+            <gh-select
+              [ngModel]="facade.selLayerId()"
+              (ngModelChange)="facade.setLayerId($event)"
+              [items]="facade.filteredModalLayers()"
+              [placeholder]="'losses.select_optional' | translate"
+              [disabled]="!facade.selSystemId()" />
+          </gh-form-group>
+          <gh-form-group [label]="'common.housing' | translate">
+            <gh-select
+              [ngModel]="facade.selAllocationId()"
+              (ngModelChange)="facade.setAllocationId($event)"
+              [options]="facade.modalHousingOptions()"
+              [placeholder]="'losses.select_optional' | translate"
+              [disabled]="!facade.showPreview() || facade.modalHousingOptions().length === 0" />
+          </gh-form-group>
+        </div>
+      </section>
+    } @else {
+      <section class="gh-modal-form__section">
+        <h3 class="gh-modal-form__section-head gh-modal-form__section-head--accent">
+          <span class="gh-modal-form__section-icon" aria-hidden="true">📦</span>
+          {{ 'losses.select_batch' | translate }}
+        </h3>
+        <gh-form-group [label]="'losses.select_batch' | translate" [required]="true">
+          <gh-select
+            [ngModel]="facade.selBatchId()"
+            (ngModelChange)="facade.setBatchId($event)"
+            [options]="batchModalOptions()"
+            [placeholder]="'losses.select_batch_placeholder' | translate" />
+        </gh-form-group>
+      </section>
+    }
+
+    @if (facade.previewLoading()) {
+      <div class="gh-modal-form__loading" role="status">
+        <div class="gh-loading-spinner"></div>
+        <span>{{ 'losses.picker_loading' | translate }}</span>
+      </div>
+    } @else if (facade.showPreview() && facade.preview(); as preview) {
+      @if (preview.scopeType === 'batch' && preview.batch) {
+        <section class="gh-scope-preview gh-scope-preview--batch">
+          <header class="gh-scope-preview__head">
+            <div class="gh-scope-preview__head-start">
+              <span class="gh-scope-preview__icon" aria-hidden="true">📦</span>
+              <h4 class="gh-scope-preview__title">{{ 'losses.batch_info_title' | translate }}</h4>
+            </div>
+          </header>
+          <div class="gh-scope-preview__body">
+            <p class="gh-scope-preview__line">
+              <strong>{{ 'losses.batch_number_label' | translate }}:</strong> {{ preview.batch.batchNumber }}
+            </p>
+            <p class="gh-scope-preview__line">
+              <strong>{{ 'batches.details_crop_type' | translate }}:</strong> {{ preview.batch.cropType }}
+            </p>
+            <p class="gh-scope-preview__line">
+              <strong>{{ 'losses.housing_count_label' | translate }}:</strong> {{ preview.summary.housingCount | number }}
+            </p>
+          </div>
+          <p class="gh-scope-preview__total-line">
+            <strong>{{ 'losses.total_plants' | translate }}:</strong>
+            {{ preview.summary.totalPlants | number }} {{ 'common.plants' | translate }}
+          </p>
+          @if (preview.housings.length > 0) {
+            <div class="gh-scope-preview__list">
+              <p class="gh-scope-preview__list-title">{{ 'losses.affected_housings_list' | translate }}</p>
+              <ul class="gh-scope-preview__list-scroll">
+                @for (housing of preview.housings; track housing.id) {
+                  <li class="gh-scope-preview__list-item">
+                    <span class="gh-scope-preview__list-path">{{ housing.pathLabel }}</span>
+                    <span class="gh-scope-preview__list-qty">{{ housing.quantity | number }} {{ 'common.plants' | translate }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+      } @else {
+        <section class="gh-scope-preview gh-scope-preview--infra">
+          <header class="gh-scope-preview__head">
+            <div class="gh-scope-preview__head-start">
+              <span class="gh-scope-preview__icon" aria-hidden="true">ℹ️</span>
+              <h4 class="gh-scope-preview__title">{{ 'losses.selection_summary' | translate }}</h4>
+            </div>
+          </header>
+          <div class="gh-scope-preview__body">
+            @if (preview.infrastructure?.location; as loc) {
+              <p class="gh-scope-preview__line"><strong>{{ 'common.location' | translate }}:</strong> {{ loc.name }}</p>
+            }
+            @if (preview.infrastructure?.unit; as unit) {
+              <p class="gh-scope-preview__line"><strong>{{ 'common.greenhouse' | translate }}:</strong> {{ unit.name }}</p>
+            }
+            @if (preview.infrastructure?.zone; as zone) {
+              <p class="gh-scope-preview__line"><strong>{{ 'common.zone' | translate }}:</strong> {{ zone.name }}</p>
+            }
+            @if (preview.infrastructure?.system; as system) {
+              <p class="gh-scope-preview__line"><strong>{{ 'common.system' | translate }}:</strong> {{ system.name }}</p>
+            }
+            @if (preview.infrastructure?.layer; as layer) {
+              <p class="gh-scope-preview__line"><strong>{{ 'common.layer' | translate }}:</strong> {{ layer.name }}</p>
+            }
+            @if (preview.infrastructure?.housing; as housing) {
+              <p class="gh-scope-preview__line"><strong>{{ 'common.housing' | translate }}:</strong> {{ housing.name }}</p>
+            }
+            <p class="gh-scope-preview__line">
+              <strong>{{ 'losses.housing_count_label' | translate }}:</strong> {{ preview.summary.housingCount | number }}
+            </p>
+          </div>
+          <p class="gh-scope-preview__total-line">
+            <strong>{{ 'losses.total_plants' | translate }}:</strong>
+            {{ preview.summary.totalPlants | number }} {{ 'common.plants' | translate }}
+          </p>
+          @if (preview.housings.length > 0) {
+            <div class="gh-scope-preview__list">
+              <p class="gh-scope-preview__list-title">{{ 'losses.affected_housings_list' | translate }}</p>
+              <ul class="gh-scope-preview__list-scroll">
+                @for (housing of preview.housings; track housing.id) {
+                  <li class="gh-scope-preview__list-item">
+                    <span class="gh-scope-preview__list-path">{{ housing.pathLabel }}</span>
+                    <span class="gh-scope-preview__list-qty">{{ housing.quantity | number }} {{ 'common.plants' | translate }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+      }
+    }
+
+    @if (facade.showPreview()) {
+      <section class="gh-modal-form__section" [formGroup]="form">
+        <h3 class="gh-modal-form__section-head gh-modal-form__section-head--accent">
+          {{ 'losses.loss_details_section' | translate }}
+        </h3>
+        <div class="gh-form-grid">
+          <gh-form-group [label]="'losses.form_type_label' | translate" [required]="true" [control]="form.controls.lossType">
+            <gh-select formControlName="lossType" [options]="createLossTypeOptions()" [placeholder]="'losses.form_type_placeholder' | translate" />
+          </gh-form-group>
+          <gh-form-group [label]="'losses.form_date_label' | translate" [required]="true" [control]="form.controls.date">
+            <input ghInput type="date" formControlName="date" />
+          </gh-form-group>
+
+          @if (facade.modalMode() === 'infrastructure' && facade.selAllocationId()) {
+            <gh-form-group
+              class="gh-form-full"
+              [label]="'losses.form_quantity_housing_label' | translate"
+              [required]="true"
+              [errorMessage]="'losses.form_quantity_error' | translate"
+              [helperText]="quantityMaxHint()"
+              [control]="form.controls.quantity">
+              <gh-input
+                [positiveOnly]="true"
+                formControlName="quantity"
+                [placeholder]="'losses.form_quantity_placeholder' | translate"
+                [suffix]="'common.plants' | translate" />
+            </gh-form-group>
+          }
+
+          <gh-form-group
+            class="gh-form-full"
+            [label]="'losses.form_reason_label' | translate"
+            [required]="true"
+            [errorMessage]="'losses.form_reason_error' | translate"
+            [control]="form.controls.reason">
+            <gh-input formControlName="reason" [placeholder]="'losses.form_reason_placeholder' | translate" />
+          </gh-form-group>
+          <gh-form-group class="gh-form-full" [label]="'losses.form_notes_label' | translate" [control]="form.controls.notes">
+            <textarea ghInput formControlName="notes" [placeholder]="'losses.form_notes_placeholder' | translate" rows="3"></textarea>
+          </gh-form-group>
+        </div>
+      </section>
+    }
+  </div>
+
+  <div slot="footer" class="modal-footer-actions">
+    <gh-button variant="outline" (click)="facade.closeModal()">{{ 'common.cancel' | translate }}</gh-button>
+    <gh-button variant="primary" (click)="submit()" [loading]="facade.isLoading()" [disabled]="!canSubmit()">
+      {{ 'losses.btn_register_loss' | translate }}
+    </gh-button>
+  </div>
+</gh-modal>
+
 </div>

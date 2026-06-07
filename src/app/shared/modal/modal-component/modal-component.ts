@@ -2,20 +2,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   ElementRef,
   TemplateRef,
   computed,
   effect,
-  inject,
   input,
   model,
   viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { fromEvent } from 'rxjs';
-import { filter } from 'rxjs/operators';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -28,8 +23,6 @@ export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalComponent {
-  readonly #destroyRef = inject(DestroyRef);
-
   readonly isOpen = model<boolean>(false);
   readonly title = input<string>('');
   readonly subtitle = input<string>('');
@@ -55,13 +48,16 @@ export class ModalComponent {
         el.close();
       }
     });
+  }
 
-    fromEvent<KeyboardEvent>(document, 'keydown')
-      .pipe(
-        filter((e) => e.key === 'Escape'),
-        takeUntilDestroyed(this.#destroyRef)
-      )
-      .subscribe(() => this.close());
+  /**
+   * Called by the native dialog `cancel` event (Escape key).
+   * Prevents the default browser close so Angular stays in control,
+   * then syncs the model to `false`.
+   */
+  onCancel(event: Event): void {
+    event.preventDefault();
+    this.close();
   }
 
   close(): void {
@@ -84,8 +80,4 @@ export class ModalComponent {
     if (clickedOutside) this.close();
   }
 }
-
-
-
-
 

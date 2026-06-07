@@ -8,7 +8,7 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe } from '@app/shared/pipes';
-import { GhFormGroupComponent } from '../ui';
+import { GhFormGroupComponent, InputComponent } from '../ui';
 import type {
   LossRegistrationBatch,
   LossRegistrationLayer,
@@ -23,6 +23,7 @@ import type { LossRefBatch } from '@app/core/data-access/operations/models/loss.
     ReactiveFormsModule,
     TranslatePipe,
     GhFormGroupComponent,
+    InputComponent,
   ],
   templateUrl: './batch-loss-registration-panel.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,7 +32,7 @@ export class BatchLossRegistrationPanelComponent {
   readonly batchSummary = input<LossRegistrationBatch | null>(null);
   readonly layers = input<readonly LossRegistrationLayer[]>([]);
   readonly loading = input(false);
-  readonly wholeBatch = input(false);
+  // readonly wholeBatch = input(false);
   readonly expandedLayerIds = input<readonly string[]>([]);
   readonly selectedAllocationIds = input<readonly string[]>([]);
   readonly selectedQuantityMax = input(0);
@@ -41,7 +42,7 @@ export class BatchLossRegistrationPanelComponent {
   readonly form = input.required<FormGroup>();
 
   readonly batchIdChange = output<string>();
-  readonly wholeBatchChange = output<boolean>();
+  // readonly wholeBatchChange = output<boolean>();
   readonly layerExpandedToggle = output<string>();
   readonly layerCheckChange = output<{ layerId: string; checked: boolean }>();
   readonly allocationCheckChange = output<{ allocationId: string; checked: boolean }>();

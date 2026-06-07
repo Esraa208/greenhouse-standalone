@@ -1,21 +1,30 @@
-﻿<div class="gh-input-wrapper">
+<div class="gh-input-wrapper">
   @if (label()) {
     <label [for]="id()" class="gh-label">
       {{ label() }}
     </label>
   }
   
-  <input
-    [id]="id()"
-    [type]="type()"
-    [placeholder]="placeholder()"
-    [disabled]="disabled()"
-    [class.has-error]="!!error()"
-    [value]="value()"
-    (input)="handleInput($event)"
-    (blur)="handleBlur()"
-    class="gh-control"
-  />
+  <div class="gh-control-container">
+    <input
+      [id]="id()"
+      [type]="effectiveType()"
+      [attr.inputmode]="effectiveInputmode()"
+      [placeholder]="placeholder()"
+      [disabled]="disabled()"
+      [class.has-error]="!!error()"
+      [value]="value()"
+      (input)="handleInput($event)"
+      (keydown)="handleKeydown($event)"
+      (paste)="handlePaste($event)"
+      (blur)="handleBlur()"
+      class="gh-control"
+      [class.has-suffix]="!!suffix()"
+    />
+    @if (suffix()) {
+      <span class="gh-control-suffix">{{ suffix() }}</span>
+    }
+  </div>
 
   @if (error()) {
     <p class="gh-error-text">{{ error() }}</p>

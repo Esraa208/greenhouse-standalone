@@ -17,4 +17,21 @@ export interface StockHistoryEntry {
   readonly from?: StockHistoryLocation;
   /** Primary or destination location */
   readonly to: StockHistoryLocation;
+  readonly lossType?: number | string;
+  readonly reason?: string;
+  readonly notes?: string;
+  readonly recordedBy?: string;
+}
+
+export interface HousingHistorySummary {
+  readonly housingId: string;
+  readonly distributionId: string;
+  readonly stockBatchId: string;
+  readonly currentQuantity: number;
+  readonly location: StockHistoryLocation;
+}
+
+export interface HousingHistoryResult {
+  readonly summary: HousingHistorySummary;
+  readonly entries: readonly StockHistoryEntry[];
 }

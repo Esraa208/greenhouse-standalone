@@ -1,4 +1,4 @@
-﻿<!-- libs/shared/ui/src/lib/page-header/page-header.component.html -->
+<!-- libs/shared/ui/src/lib/page-header/page-header.component.html -->
 <div class="gh-page-header">
   <div class="gh-page-header__content">
     @if (breadcrumbs().length > 0) {
@@ -13,9 +13,9 @@
         }
       </div>
     }
-  
+
     <h1 class="gh-page-header__title">{{ title() }}</h1>
-    
+
     @if (subtitle() || description()) {
       <p class="gh-page-header__subtitle">{{ subtitle() || description() }}</p>
     }
@@ -23,16 +23,14 @@
 
   <div class="gh-page-header__actions">
     @if (buttonLabel()) {
-      <button class="gh-page-header__btn" (click)="buttonClick.emit()">
-        <span class="gh-page-header__btn-icon">+</span>
+      <button type="button" [class]="buttonClass()" (click)="buttonClick.emit()">
+        <span class="gh-page-header__btn-icon" aria-hidden="true">{{ buttonIconText() }}</span>
         {{ buttonLabel() }}
       </button>
     }
-    
+
     @if (actions()) {
-      <ng-container *ngTemplateOutlet="actions()!"></ng-container>
+      <ng-container *ngTemplateOutlet="actions()!" />
     }
   </div>
 </div>
-
-

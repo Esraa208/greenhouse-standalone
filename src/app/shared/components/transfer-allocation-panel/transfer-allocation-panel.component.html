@@ -134,6 +134,7 @@
       [value]="quantity()"
       [min]="1"
       [max]="maxQuantity()"
+      ghPositiveInt
       (input)="quantityChange.emit(inputNumber($event))" />
     <span class="gh-transfer-qty__unit">{{ 'common.plants' | translate }}</span>
   </div>

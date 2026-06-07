@@ -1,4 +1,4 @@
-﻿<div class="harvest-page" [attr.dir]="i18n.dir()">
+<div class="harvest-page" [attr.dir]="i18n.dir()">
   <gh-page-header
     [title]="'harvest.page_title' | translate"
     [subtitle]="'harvest.page_subtitle' | translate"
@@ -6,7 +6,12 @@
     (buttonClick)="facade.openCreateModal()"></gh-page-header>
 
   <gh-table-filters
-    [searchPlaceholder]="'harvest.search' | translate"></gh-table-filters>
+    [searchPlaceholder]="'harvest.search' | translate"
+    [search]="facade.filters().searchQuery"
+    [status]="facade.filters().status"
+    (searchChange)="facade.patchFilters({ searchQuery: $event })"
+    (statusChange)="facade.patchFilters({ status: $any($event) })">
+  </gh-table-filters>
 
   <div class="gh-card">
     <gh-table [loading]="facade.isLoading()">
@@ -70,12 +75,16 @@
       </tbody>
     </gh-table>
 
-    <gh-pagination
-      [currentPage]="facade.currentPage()"
-      [totalPages]="facade.totalPages()"
-      [totalCount]="facade.totalCount()"
-      [pageSize]="facade.pageSize()"
-      (pageChange)="facade.goToPage($event)" />
+    <div class="gh-card__footer">
+      <gh-pagination
+        [currentPage]="facade.currentPage()"
+        [totalPages]="facade.totalPages()"
+        [totalCount]="facade.totalCount()"
+        [itemCount]="facade.items().length"
+        [pageSize]="facade.pageSize()"
+        (pageChange)="facade.goToPage($event)"
+        (pageSizeChange)="facade.setPageSize($event)" />
+    </div>
   </div>
 
   <gh-modal

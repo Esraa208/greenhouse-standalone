@@ -1,0 +1,219 @@
+.gh-loss-history-info-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-destructive-light);
+  border: 1px solid var(--color-destructive-border, #fca5a5);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
+
+.gh-loss-history-info-batch {
+  margin-bottom: var(--space-1);
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.gh-loss-history-info-qty {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted-foreground);
+}
+
+.gh-loss-history-icon {
+  color: var(--color-destructive);
+  background: transparent;
+  border-color: transparent;
+}
+
+.gh-loss-history-section-title {
+  border: none;
+  margin-bottom: 0;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--color-foreground);
+}
+
+.gh-loss-history-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-loss-history-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.gh-loss-history-timeline-item {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.gh-loss-history-timeline-dot-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block-start: var(--space-4);
+}
+
+.gh-loss-history-timeline-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  flex-shrink: 0;
+  z-index: 1;
+
+  &--disease {
+    color: #8b5cf6;
+    border-color: #8b5cf6;
+  }
+
+  &--weather {
+    color: #1d4ed8;
+    border-color: #1d4ed8;
+  }
+
+  &--electricity {
+    color: #ca8a04;
+    border-color: #ca8a04;
+  }
+  
+  &--pest {
+    color: #f97316;
+    border-color: #f97316;
+  }
+}
+
+.gh-loss-history-timeline-line {
+  flex: 1;
+  inline-size: 1px;
+  background: var(--color-border);
+  min-block-size: var(--space-4);
+}
+
+.gh-loss-history-timeline-content {
+  flex: 1;
+  padding-block-end: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.gh-loss-history-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  flex: 1;
+  min-width: 0;
+}
+
+.gh-loss-history-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gh-loss-history-entry-date {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted-foreground);
+}
+
+.gh-loss-history-entry-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gh-loss-history-entry-qty {
+  color: var(--color-destructive);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  margin-inline-start: var(--space-2);
+}
+
+.gh-loss-history-badge--disease {
+  --gh-badge-bg: #f3e8ff;
+  --gh-badge-text: #7e22ce;
+}
+
+.gh-loss-history-badge--weather {
+  --gh-badge-bg: #eff6ff;
+  --gh-badge-text: #1d4ed8;
+}
+
+.gh-loss-history-badge--electricity {
+  --gh-badge-bg: #fef9c3;
+  --gh-badge-text: #a16207;
+}
+
+.gh-loss-history-badge--pest {
+  --gh-badge-bg: #ffedd5;
+  --gh-badge-text: #c2410c;
+}
+
+.gh-loss-history-reason-card {
+  background: var(--color-destructive-light);
+  border: 1px solid var(--color-destructive-border, #fca5a5);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-destructive);
+}
+
+.gh-loss-history-reason-label {
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  margin-block-end: var(--space-2);
+  color: inherit;
+}
+
+.gh-loss-history-notes-card {
+  background: var(--color-muted);
+  border: 1px solid var(--color-border);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-foreground);
+
+  .gh-loss-history-reason-label {
+    color: var(--color-foreground);
+  }
+}
+
+.gh-loss-history-recorded-by {
+  text-align: start;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted-foreground);
+  margin-top: var(--space-2);
+}
+
+.gh-loss-history-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-destructive-light);
+  border: 1px solid var(--color-destructive-border, #fca5a5);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-foreground);
+  margin-block-start: var(--space-4);
+  text-align: right;
+}
+
+.gh-loss-history-summary-qty {
+  color: var(--color-destructive);
+  font-weight: bold;
+}

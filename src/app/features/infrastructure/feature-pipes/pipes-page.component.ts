@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { TranslationService } from '@app/core';
@@ -13,6 +13,7 @@ import {
 } from '@app/core/data-access/infrastructure';
 import { INFRASTRUCTURE_CRUD_PAGE_IMPORTS_WITH_PROGRESS } from '../infrastructure-crud.imports';
 import { syncCrudModalForm, trackByEntityId } from '@app/shared/utils/sync-crud-modal-form';
+import { modalCascadeOptions, withEditFallback } from '../infrastructure-cascade.helper';
 
 @Component({
   selector: 'gh-pipes-page',
@@ -68,7 +69,7 @@ export class PipesPageComponent implements OnInit {
 
   readonly modalLocations = computed(() => {
     const editing = this.facade.editingItem();
-    return this.#withEditFallback(
+    return withEditFallback(
       this.locationsFacade.selectItems(),
       this.locationsFacade.selectItems(),
       editing?.locationId
@@ -78,87 +79,77 @@ export class PipesPageComponent implements OnInit {
   readonly availableGreenhouses = computed(() => {
     const editing = this.facade.editingItem();
     const locId = this.formValue().locationId || editing?.locationId || '';
-    if (!locId) return [];
-    const base = this.greenhousesFacade.selectItems().filter((gh) => gh.locationId === locId);
-    return this.#withEditFallback(base, this.greenhousesFacade.selectItems(), editing?.greenhouseId);
+    return modalCascadeOptions(
+      locId,
+      this.greenhousesFacade.selectForLocation(),
+      this.greenhousesFacade.selectItems(),
+      this.formValue().greenhouseId,
+      editing ? { parentId: editing.locationId, childId: editing.greenhouseId } : null
+    );
   });
 
   readonly availableZones = computed(() => {
     const editing = this.facade.editingItem();
     const ghId = this.formValue().greenhouseId || editing?.greenhouseId || '';
-    if (!ghId) return [];
-    const base = this.zonesFacade.selectItems().filter((z) => z.greenhouseId === ghId);
-    return this.#withEditFallback(base, this.zonesFacade.selectItems(), editing?.zoneId);
+    return modalCascadeOptions(
+      ghId,
+      this.zonesFacade.selectForUnit(),
+      this.zonesFacade.selectItems(),
+      this.formValue().zoneId,
+      editing ? { parentId: editing.greenhouseId, childId: editing.zoneId } : null
+    );
   });
 
   readonly availableSystems = computed(() => {
     const editing = this.facade.editingItem();
     const zoneId = this.formValue().zoneId || editing?.zoneId || '';
-    if (!zoneId) return [];
-    const base = this.systemsFacade.selectItems().filter((s) => s.zoneId === zoneId);
-    return this.#withEditFallback(base, this.systemsFacade.selectItems(), editing?.systemId);
+    return modalCascadeOptions(
+      zoneId,
+      this.systemsFacade.selectForZone(),
+      this.systemsFacade.selectItems(),
+      this.formValue().systemId,
+      editing ? { parentId: editing.zoneId, childId: editing.systemId } : null
+    );
   });
 
   readonly availableLayers = computed(() => {
     const editing = this.facade.editingItem();
     const sysId = this.formValue().systemId || editing?.systemId || '';
-    if (!sysId) return [];
-    const base = this.layersFacade.selectItems().filter((l) => l.systemId === sysId);
-    return this.#withEditFallback(base, this.layersFacade.selectItems(), editing?.layerId);
+    return modalCascadeOptions(
+      sysId,
+      this.layersFacade.selectForSystem(),
+      this.layersFacade.selectItems(),
+      this.formValue().layerId,
+      editing ? { parentId: editing.systemId, childId: editing.layerId } : null
+    );
   });
 
   readonly filteredItems = this.facade.filteredItems;
 
   readonly filterGreenhouses = computed(() => {
     const locId = this.facade.filters().locationId;
-    const src = this.greenhousesFacade.selectItems();
-    if (locId === 'all') return src;
-    return src.filter((gh) => gh.locationId === locId);
+    if (locId === 'all') return this.greenhousesFacade.selectItems();
+    return this.greenhousesFacade.selectForLocation();
   });
 
   readonly filterZones = computed(() => {
     const ghId = this.facade.filters().greenhouseId;
-    const src = this.zonesFacade.selectItems();
-    if (ghId === 'all') {
-      const locId = this.facade.filters().locationId;
-      if (locId === 'all') return src;
-      return src.filter((z) => z.locationId === locId);
-    }
-    return src.filter((z) => z.greenhouseId === ghId);
+    const locId = this.facade.filters().locationId;
+    if (ghId !== 'all') return this.zonesFacade.selectForUnit();
+    if (locId !== 'all') return this.zonesFacade.selectForLocation();
+    return this.zonesFacade.selectItems();
   });
 
   readonly filterSystems = computed(() => {
     const zoneId = this.facade.filters().zoneId;
-    const src = this.systemsFacade.selectItems();
-    if (zoneId === 'all') {
-      const ghId = this.facade.filters().greenhouseId;
-      if (ghId === 'all') {
-        const locId = this.facade.filters().locationId;
-        if (locId === 'all') return src;
-        return src.filter((s) => s.locationId === locId);
-      }
-      return src.filter((s) => s.greenhouseId === ghId);
-    }
-    return src.filter((s) => s.zoneId === zoneId);
+    if (zoneId !== 'all') return this.systemsFacade.selectForZone();
+    return this.systemsFacade.selectItems();
   });
 
   readonly filterLayers = computed(() => {
     const sysId = this.facade.filters().systemId;
-    const src = this.layersFacade.selectItems();
-    if (sysId === 'all') {
-      const zoneId = this.facade.filters().zoneId;
-      if (zoneId === 'all') {
-        const ghId = this.facade.filters().greenhouseId;
-        if (ghId === 'all') {
-          const locId = this.facade.filters().locationId;
-          if (locId === 'all') return src;
-          return src.filter((l) => l.locationId === locId);
-        }
-        return src.filter((l) => l.greenhouseId === ghId);
-      }
-      return src.filter((l) => l.zoneId === zoneId);
-    }
-    return src.filter((l) => l.systemId === sysId);
+    if (sysId !== 'all') return this.layersFacade.selectForSystem();
+    return this.layersFacade.selectItems();
   });
 
   constructor() {
@@ -166,7 +157,7 @@ export class PipesPageComponent implements OnInit {
       isModalOpen: () => this.facade.isModalOpen(),
       editingItem: () => this.facade.editingItem(),
       form: this.form,
-      patchFromItem: (item) =>
+      patchFromItem: (item) => {
         this.form.patchValue({
           name: item.name,
           locationId: item.locationId,
@@ -176,7 +167,12 @@ export class PipesPageComponent implements OnInit {
           layerId: item.layerId,
           capacity: item.capacity,
           status: item.status as 'active' | 'inactive',
-        }),
+        });
+        this.greenhousesFacade.loadActiveForLocation(item.locationId);
+        this.zonesFacade.loadActiveForUnit(item.greenhouseId);
+        this.systemsFacade.loadActiveForZone(item.zoneId);
+        this.layersFacade.loadActiveForSystem(item.systemId);
+      },
       defaultValue: () => ({ ...this.#defaultFormValue }),
       schedule: (run) =>
         queueMicrotask(() => {
@@ -193,18 +189,6 @@ export class PipesPageComponent implements OnInit {
     this.zonesFacade.loadActiveForSelect();
     this.systemsFacade.loadActiveForSelect();
     this.layersFacade.loadActiveForSelect();
-  }
-
-  #withEditFallback<T extends { id: string }>(
-    base: T[],
-    all: T[],
-    editingId: string | undefined | null
-  ): T[] {
-    const id = editingId?.trim();
-    if (!id) return base;
-    if (base.some((x) => x.id === id)) return base;
-    const linked = all.find((x) => x.id === id);
-    return linked ? [...base, linked] : base;
   }
 
   onStatusFilterChange(val: string) {
@@ -236,18 +220,70 @@ export class PipesPageComponent implements OnInit {
 
   onLocationChange(id: string) {
     this.form.patchValue({ locationId: id, greenhouseId: '', zoneId: '', systemId: '', layerId: '' });
+    this.greenhousesFacade.loadActiveForLocation(id);
+    this.zonesFacade.loadActiveForUnit('');
+    this.systemsFacade.loadActiveForZone('');
+    this.layersFacade.loadActiveForSystem('');
   }
 
   onGreenhouseChange(id: string) {
     this.form.patchValue({ greenhouseId: id, zoneId: '', systemId: '', layerId: '' });
+    this.zonesFacade.loadActiveForUnit(id);
+    this.systemsFacade.loadActiveForZone('');
+    this.layersFacade.loadActiveForSystem('');
+  }
+
+  onFilterLocationChange(val: string) {
+    this.facade.patchFilters({
+      locationId: val as never,
+      greenhouseId: 'all',
+      zoneId: 'all',
+      systemId: 'all',
+      layerId: 'all',
+    });
+    this.greenhousesFacade.loadActiveForLocation(val === 'all' ? '' : val);
+    this.zonesFacade.loadActiveForUnit('');
+    this.zonesFacade.loadActiveForLocation(val === 'all' ? '' : val);
+    this.systemsFacade.loadActiveForZone('');
+    this.layersFacade.loadActiveForSystem('');
+  }
+
+  onFilterGreenhouseChange(val: string) {
+    this.facade.patchFilters({ greenhouseId: val as never, zoneId: 'all', systemId: 'all', layerId: 'all' });
+    if (val === 'all') {
+      this.zonesFacade.loadActiveForUnit('');
+      const locId = this.facade.filters().locationId;
+      if (locId !== 'all') {
+        this.zonesFacade.loadActiveForLocation(locId);
+      }
+    } else {
+      this.zonesFacade.loadActiveForLocation('');
+      this.zonesFacade.loadActiveForUnit(val);
+    }
+    this.systemsFacade.loadActiveForZone('');
+    this.layersFacade.loadActiveForSystem('');
+  }
+
+  onFilterZoneChange(val: string) {
+    this.facade.patchFilters({ zoneId: val as never, systemId: 'all', layerId: 'all' });
+    this.systemsFacade.loadActiveForZone(val === 'all' ? '' : val);
+    this.layersFacade.loadActiveForSystem('');
+  }
+
+  onFilterSystemChange(val: string) {
+    this.facade.patchFilters({ systemId: val as never, layerId: 'all' });
+    this.layersFacade.loadActiveForSystem(val === 'all' ? '' : val);
   }
 
   onZoneChange(id: string) {
     this.form.patchValue({ zoneId: id, systemId: '', layerId: '' });
+    this.systemsFacade.loadActiveForZone(id);
+    this.layersFacade.loadActiveForSystem('');
   }
 
   onSystemChange(id: string) {
     this.form.patchValue({ systemId: id, layerId: '' });
+    this.layersFacade.loadActiveForSystem(id);
   }
 
   setStatus(val: string) {
@@ -261,7 +297,9 @@ export class PipesPageComponent implements OnInit {
     }
     const val = this.form.getRawValue();
     const editing = this.facade.editingItem();
-    const layer = this.layersFacade.selectItems().find(l => l.id === val.layerId);
+    const layer =
+      this.layersFacade.selectForSystem().find((l) => l.id === val.layerId) ??
+      this.layersFacade.selectItems().find((l) => l.id === val.layerId);
     const payload = { ...val, layerName: layer?.name ?? '' };
     if (editing) {
       this.facade.update(editing.id, payload);

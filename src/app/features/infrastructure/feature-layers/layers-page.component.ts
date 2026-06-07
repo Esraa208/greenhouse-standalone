@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { TranslationService } from '@app/core';
@@ -12,6 +12,7 @@ import {
 } from '@app/core/data-access/infrastructure';
 import { INFRASTRUCTURE_CRUD_PAGE_IMPORTS_WITH_PROGRESS } from '../infrastructure-crud.imports';
 import { syncCrudModalForm, trackByEntityId } from '@app/shared/utils/sync-crud-modal-form';
+import { modalCascadeOptions, withEditFallback } from '../infrastructure-cascade.helper';
 
 @Component({
   selector: 'gh-layers-page',
@@ -34,8 +35,8 @@ export class LayersPageComponent implements OnInit {
   readonly sortOptions = computed(() => [
     { value: 'name-asc', label: this.i18n.t('sort.name_asc') },
     { value: 'name-desc', label: this.i18n.t('sort.name_desc') },
-    { value: 'system-asc', label: this.i18n.t('sort.system_asc') },
-    { value: 'capacity-desc', label: this.i18n.t('sort.capacity_desc') }
+    { value: 'date-newest', label: this.i18n.t('sort.date_newest') },
+    { value: 'date-oldest', label: this.i18n.t('sort.date_oldest') },
   ]);
 
   readonly statusOptions = computed(() => [
@@ -51,14 +52,18 @@ export class LayersPageComponent implements OnInit {
     greenhouseId: [''],
     zoneId: [''],
     systemId: ['', [Validators.required]],
-    position: [1, [Validators.required]],
-    totalCapacity: [0, [Validators.required, Validators.min(0), Validators.pattern(/^\d+$/)]],
-    status: ['active' as 'active' | 'inactive']
+    totalCapacity: ['', [Validators.required, Validators.pattern(/^[1-9]\d*$/)]],
+    status: ['active' as 'active' | 'inactive'],
   });
 
   readonly #defaultFormValue = {
-    name: '', locationId: '', greenhouseId: '', zoneId: '', systemId: '',
-    position: 1, totalCapacity: 0, status: 'active' as 'active' | 'inactive'
+    name: '',
+    locationId: '',
+    greenhouseId: '',
+    zoneId: '',
+    systemId: '',
+    totalCapacity: '',
+    status: 'active' as 'active' | 'inactive',
   };
 
   readonly formValue = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
@@ -68,7 +73,7 @@ export class LayersPageComponent implements OnInit {
 
   readonly modalLocations = computed(() => {
     const editing = this.facade.editingItem();
-    return this.#withEditFallback(
+    return withEditFallback(
       this.locationsFacade.selectItems(),
       this.locationsFacade.selectItems(),
       editing?.locationId
@@ -78,58 +83,57 @@ export class LayersPageComponent implements OnInit {
   readonly availableGreenhouses = computed(() => {
     const editing = this.facade.editingItem();
     const locId = this.formValue().locationId || editing?.locationId || '';
-    if (!locId) return [];
-    const base = this.greenhousesFacade.selectItems().filter((gh) => gh.locationId === locId);
-    return this.#withEditFallback(base, this.greenhousesFacade.selectItems(), editing?.greenhouseId);
+    return modalCascadeOptions(
+      locId,
+      this.greenhousesFacade.selectForLocation(),
+      this.greenhousesFacade.selectItems(),
+      this.formValue().greenhouseId,
+      editing ? { parentId: editing.locationId, childId: editing.greenhouseId } : null
+    );
   });
   readonly availableZones = computed(() => {
     const editing = this.facade.editingItem();
     const ghId = this.formValue().greenhouseId || editing?.greenhouseId || '';
-    if (!ghId) return [];
-    const base = this.zonesFacade.selectItems().filter((z) => z.greenhouseId === ghId);
-    return this.#withEditFallback(base, this.zonesFacade.selectItems(), editing?.zoneId);
+    return modalCascadeOptions(
+      ghId,
+      this.zonesFacade.selectForUnit(),
+      this.zonesFacade.selectItems(),
+      this.formValue().zoneId,
+      editing ? { parentId: editing.greenhouseId, childId: editing.zoneId } : null
+    );
   });
   readonly availableSystems = computed(() => {
     const editing = this.facade.editingItem();
     const zoneId = this.formValue().zoneId || editing?.zoneId || '';
-    if (!zoneId) return [];
-    const base = this.systemsFacade.selectItems().filter((s) => s.zoneId === zoneId);
-    return this.#withEditFallback(base, this.systemsFacade.selectItems(), editing?.systemId);
+    return modalCascadeOptions(
+      zoneId,
+      this.systemsFacade.selectForZone(),
+      this.systemsFacade.selectItems(),
+      this.formValue().systemId,
+      editing ? { parentId: editing.zoneId, childId: editing.systemId } : null
+    );
   });
 
   readonly filteredItems = this.facade.filteredItems;
 
   readonly filterGreenhouses = computed(() => {
     const locId = this.facade.filters().locationId;
-    const src = this.greenhousesFacade.selectItems();
-    if (locId === 'all') return src;
-    return src.filter((gh) => gh.locationId === locId);
+    if (locId === 'all') return this.greenhousesFacade.selectItems();
+    return this.greenhousesFacade.selectForLocation();
   });
 
   readonly filterZones = computed(() => {
     const ghId = this.facade.filters().greenhouseId;
-    const src = this.zonesFacade.selectItems();
-    if (ghId === 'all') {
-      const locId = this.facade.filters().locationId;
-      if (locId === 'all') return src;
-      return src.filter((z) => z.locationId === locId);
-    }
-    return src.filter((z) => z.greenhouseId === ghId);
+    const locId = this.facade.filters().locationId;
+    if (ghId !== 'all') return this.zonesFacade.selectForUnit();
+    if (locId !== 'all') return this.zonesFacade.selectForLocation();
+    return this.zonesFacade.selectItems();
   });
 
   readonly filterSystems = computed(() => {
     const zoneId = this.facade.filters().zoneId;
-    const src = this.systemsFacade.selectItems();
-    if (zoneId === 'all') {
-      const ghId = this.facade.filters().greenhouseId;
-      if (ghId === 'all') {
-        const locId = this.facade.filters().locationId;
-        if (locId === 'all') return src;
-        return src.filter((s) => s.locationId === locId);
-      }
-      return src.filter((s) => s.greenhouseId === ghId);
-    }
-    return src.filter((s) => s.zoneId === zoneId);
+    if (zoneId !== 'all') return this.systemsFacade.selectForZone();
+    return this.systemsFacade.selectItems();
   });
 
   constructor() {
@@ -137,17 +141,20 @@ export class LayersPageComponent implements OnInit {
       isModalOpen: () => this.facade.isModalOpen(),
       editingItem: () => this.facade.editingItem(),
       form: this.form,
-      patchFromItem: (item: LayerRow) =>
+      patchFromItem: (item: LayerRow) => {
         this.form.patchValue({
           name: item.name,
           locationId: item.locationId,
           greenhouseId: item.greenhouseId,
           zoneId: item.zoneId,
           systemId: item.systemId,
-          position: item.position,
-          totalCapacity: item.totalCapacity,
+          totalCapacity: item.totalCapacity ? String(item.totalCapacity) : '',
           status: item.status as 'active' | 'inactive',
-        }),
+        });
+        this.greenhousesFacade.loadActiveForLocation(item.locationId);
+        this.zonesFacade.loadActiveForUnit(item.greenhouseId);
+        this.systemsFacade.loadActiveForZone(item.zoneId);
+      },
       defaultValue: () => ({ ...this.#defaultFormValue }),
       schedule: (run) =>
         queueMicrotask(() => {
@@ -165,20 +172,11 @@ export class LayersPageComponent implements OnInit {
     this.systemsFacade.loadActiveForSelect();
   }
 
-  #withEditFallback<T extends { id: string }>(
-    base: T[],
-    all: T[],
-    editingId: string | undefined | null
-  ): T[] {
-    const id = editingId?.trim();
-    if (!id) return base;
-    if (base.some((x) => x.id === id)) return base;
-    const linked = all.find((x) => x.id === id);
-    return linked ? [...base, linked] : base;
-  }
-
   onLocationChange(id: string) {
     this.form.patchValue({ locationId: id, greenhouseId: '', zoneId: '', systemId: '' });
+    this.greenhousesFacade.loadActiveForLocation(id);
+    this.zonesFacade.loadActiveForUnit('');
+    this.systemsFacade.loadActiveForZone('');
   }
 
   openEditModal(item: LayerRow): void {
@@ -199,10 +197,46 @@ export class LayersPageComponent implements OnInit {
 
   onGreenhouseChange(id: string) {
     this.form.patchValue({ greenhouseId: id, zoneId: '', systemId: '' });
+    this.zonesFacade.loadActiveForUnit(id);
+    this.systemsFacade.loadActiveForZone('');
+  }
+
+  onFilterLocationChange(val: string) {
+    this.facade.patchFilters({
+      locationId: val as never,
+      greenhouseId: 'all',
+      zoneId: 'all',
+      systemId: 'all',
+    });
+    this.greenhousesFacade.loadActiveForLocation(val === 'all' ? '' : val);
+    this.zonesFacade.loadActiveForUnit('');
+    this.zonesFacade.loadActiveForLocation(val === 'all' ? '' : val);
+    this.systemsFacade.loadActiveForZone('');
+  }
+
+  onFilterGreenhouseChange(val: string) {
+    this.facade.patchFilters({ greenhouseId: val as never, zoneId: 'all', systemId: 'all' });
+    if (val === 'all') {
+      this.zonesFacade.loadActiveForUnit('');
+      const locId = this.facade.filters().locationId;
+      if (locId !== 'all') {
+        this.zonesFacade.loadActiveForLocation(locId);
+      }
+    } else {
+      this.zonesFacade.loadActiveForLocation('');
+      this.zonesFacade.loadActiveForUnit(val);
+    }
+    this.systemsFacade.loadActiveForZone('');
+  }
+
+  onFilterZoneChange(val: string) {
+    this.facade.patchFilters({ zoneId: val as never, systemId: 'all' });
+    this.systemsFacade.loadActiveForZone(val === 'all' ? '' : val);
   }
 
   onZoneChange(id: string) {
     this.form.patchValue({ zoneId: id, systemId: '' });
+    this.systemsFacade.loadActiveForZone(id);
   }
 
   onStatusFilterChange(val: string) {
@@ -210,11 +244,23 @@ export class LayersPageComponent implements OnInit {
   }
 
   onSortFilterChange(val: string) {
-    this.facade.patchFilters({ sortBy: val as never });
+    const sortBy = val && val !== 'all' ? val : 'all';
+    this.facade.patchFilters({ sortBy: sortBy as never });
   }
 
   setStatus(val: string) {
-    this.form.patchValue({ status: val as "active" | "inactive" });
+    this.form.patchValue({ status: val as 'active' | 'inactive' });
+  }
+
+  capacityErrorMessage(): string {
+    const ctrl = this.form.get('totalCapacity');
+    if (ctrl?.hasError('belowUsed')) {
+      return this.i18n.t('layers.form_capacity_min_used_error');
+    }
+    if (ctrl?.hasError('required') || ctrl?.hasError('pattern')) {
+      return this.i18n.t('layers.form_capacity_error');
+    }
+    return '';
   }
 
   submitForm() {
@@ -224,8 +270,25 @@ export class LayersPageComponent implements OnInit {
     }
     const val = this.form.getRawValue();
     const editing = this.facade.editingItem();
-    const sys = this.systemsFacade.selectItems().find(s => s.id === val.systemId);
-    const payload = { ...val, systemName: sys?.name ?? '' };
+    const totalCapacity = Number(val.totalCapacity);
+    if (editing && totalCapacity < editing.occupiedCapacity) {
+      this.form.get('totalCapacity')?.setErrors({ belowUsed: true });
+      this.form.get('totalCapacity')?.markAsTouched();
+      return;
+    }
+    const sys =
+      this.systemsFacade.selectForZone().find((s) => s.id === val.systemId) ??
+      this.systemsFacade.selectItems().find((s) => s.id === val.systemId);
+    const payload = {
+      name: val.name,
+      systemId: val.systemId,
+      totalCapacity,
+      status: val.status,
+      locationId: val.locationId,
+      greenhouseId: val.greenhouseId,
+      zoneId: val.zoneId,
+      systemName: sys?.name ?? '',
+    };
     if (editing) {
       this.facade.update(editing.id, payload);
     } else {

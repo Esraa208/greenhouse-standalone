@@ -1,149 +1,243 @@
-﻿<div class="invoices-page" [attr.dir]="i18n.dir()">
+<div class="invoices-page" [attr.dir]="i18n.dir()">
 
   <gh-page-header
     [title]="'invoices.page_title' | translate"
-    [subtitle]="'invoices.page_subtitle' | translate" />
+    [subtitle]="'invoices.page_subtitle' | translate"
+    [buttonLabel]="'invoices.add_button' | translate"
+    (buttonClick)="createFacade.openCreateModal()" />
 
-  <!-- FILTER ROW -->
+  <gh-table-filters
+    [searchPlaceholder]="'invoices.search' | translate"
+    [search]="facade.filters().searchQuery"
+    [status]="facade.filters().status"
+    [statusOptions]="statusFilterOptions()"
+    [sort]="facade.filters().sortBy === 'all' ? '' : facade.filters().sortBy"
+    [sortOptions]="sortOptions()"
+    (searchChange)="facade.patchFilters({ searchQuery: $event })"
+    (statusChange)="facade.patchFilters({ status: $any($event) })"
+    (sortChange)="updateSortFilter($event)" />
+
   <div class="invoices-page__filters">
-    <gh-table-filters
-      [searchPlaceholder]="'invoices.search' | translate"
-      [search]="facade.filters().searchQuery"
-      [sort]="facade.filters().sortBy"
-      [sortOptions]="sortOptions()"
-      [showStatus]="false"
-      (searchChange)="facade.patchFilters({ searchQuery: $event })"
-      (sortChange)="facade.patchFilters($any({ sortBy: $event }))" />
+  <div class="gh-filter-row-secondary">
+    <select class="gh-filter-select"
+      [value]="facade.filters().customerId"
+      (change)="facade.patchFilters({ customerId: selectValue($event) })">
+      <option value="">{{ 'invoices.filter_all_customers' | translate }}</option>
+      @for (cust of facade.filterCustomers(); track cust.id) {
+        <option [value]="cust.id">{{ cust.name }}</option>
+      }
+    </select>
 
-    <div class="invoices-page__extra-filters">
-      <!-- Status dropdown -->
-      <select class="gh-filter-select"
-        [value]="facade.filters().status"
-        (change)="facade.patchFilters({ status: $any($event.target).value })">
-        <option value="all">{{ 'invoices.filter_all_status' | translate }}</option>
-        <option value="paid">{{ 'invoices.status_paid' | translate }}</option>
-        <option value="pending">{{ 'invoices.status_pending' | translate }}</option>
-        <option value="overdue">{{ 'invoices.status_overdue' | translate }}</option>
-      </select>
+    <input type="text" class="gh-filter-select"
+      [value]="facade.filters().invoiceNumber"
+      [placeholder]="'invoices.filter_invoice_number' | translate"
+      [attr.aria-label]="'invoices.filter_invoice_number' | translate"
+      (change)="facade.patchFilters({ invoiceNumber: selectValue($event) })" />
 
-      <!-- Customer dropdown -->
-      <select class="gh-filter-select"
-        [value]="facade.filters().customerId"
-        (change)="facade.patchFilters({ customerId: $any($event.target).value })">
-        <option value="">{{ 'invoices.filter_all_customers' | translate }}</option>
-        @for (cust of facade.uniqueCustomers(); track cust.id) {
-          <option [value]="cust.id">{{ cust.name }}</option>
-        }
-      </select>
+    <select class="gh-filter-select"
+      [value]="facade.filters().cropTypeId"
+      (change)="facade.patchFilters({ cropTypeId: selectValue($event) })">
+      <option value="">{{ 'invoices.filter_all_crops' | translate }}</option>
+      @for (crop of facade.filterCropTypes(); track crop.id) {
+        <option [value]="crop.id">{{ crop.name }}</option>
+      }
+    </select>
 
-      <!-- Date from -->
-      <input type="date" class="gh-filter-select"
-        [value]="facade.filters().dateFrom"
-        [placeholder]="'invoices.filter_date_from' | translate"
-        (change)="facade.patchFilters({ dateFrom: $any($event.target).value })" />
+    <select class="gh-filter-select"
+      [value]="facade.filters().stockBatchId"
+      (change)="facade.patchFilters({ stockBatchId: selectValue($event) })">
+      <option value="">{{ 'invoices.filter_all_batches' | translate }}</option>
+      @for (batch of facade.filterStockBatches(); track batch.id) {
+        <option [value]="batch.id">{{ batch.label }}</option>
+      }
+    </select>
 
-      <!-- Date to -->
-      <input type="date" class="gh-filter-select"
-        [value]="facade.filters().dateTo"
-        [placeholder]="'invoices.filter_date_to' | translate"
-        (change)="facade.patchFilters({ dateTo: $any($event.target).value })" />
+    <select class="gh-filter-select"
+      [value]="facade.filters().hasDueDate"
+      (change)="facade.patchFilters({ hasDueDate: $any(selectValue($event)) })">
+      @for (opt of hasDueDateOptions(); track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="invoices-page__date-filters">
+    <div class="invoices-page__date-group">
+      <span class="invoices-page__date-group-label">{{ 'invoices.filter_date_group_invoice' | translate }}</span>
+      <div class="invoices-page__date-range">
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_from' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.filters().invoiceDateFrom"
+            (change)="facade.patchFilters({ invoiceDateFrom: selectValue($event) })" />
+        </label>
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_to' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.filters().invoiceDateTo"
+            (change)="facade.patchFilters({ invoiceDateTo: selectValue($event) })" />
+        </label>
+      </div>
+    </div>
+
+    <div class="invoices-page__date-group">
+      <span class="invoices-page__date-group-label">{{ 'invoices.filter_date_group_due' | translate }}</span>
+      <div class="invoices-page__date-range">
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_from' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.filters().dueDateFrom"
+            (change)="facade.patchFilters({ dueDateFrom: selectValue($event) })" />
+        </label>
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_to' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.filters().dueDateTo"
+            (change)="facade.patchFilters({ dueDateTo: selectValue($event) })" />
+        </label>
+      </div>
+    </div>
+
+    <div class="invoices-page__date-group">
+      <span class="invoices-page__date-group-label">{{ 'invoices.filter_date_group_payment' | translate }}</span>
+      <div class="invoices-page__date-range">
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_from' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.filters().paymentDateFrom"
+            (change)="facade.patchFilters({ paymentDateFrom: selectValue($event) })" />
+        </label>
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_to' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.filters().paymentDateTo"
+            (change)="facade.patchFilters({ paymentDateTo: selectValue($event) })" />
+        </label>
+      </div>
     </div>
   </div>
 
-  <!-- Results summary -->
-  <div class="invoices-page__summary">
-    <span>
-      {{ 'invoices.showing' | translate }}
-      {{ facade.filteredItems().length }}
-      {{ 'invoices.of' | translate }}
-      {{ facade.items().length }}
-      {{ 'invoices.invoices_unit' | translate }}
-    </span>
-    @if (facade.hasActiveFilters()) {
-      <button class="invoices-page__reset-btn" (click)="facade.resetFilters()">
-        {{ 'common.reset' | translate }}
-      </button>
-    }
+  <div class="gh-filter-row-secondary">
+    <label class="invoices-page__filter-field">
+      <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_min_amount' | translate }}</span>
+      <input type="text" class="gh-filter-select" inputmode="decimal" ghPositiveDecimal
+        [value]="facade.filters().minAmount"
+        [placeholder]="'invoices.filter_min_amount_placeholder' | translate"
+        (change)="facade.patchFilters({ minAmount: selectValue($event) })" />
+    </label>
+
+    <label class="invoices-page__filter-field">
+      <span class="invoices-page__filter-sublabel">{{ 'invoices.filter_max_amount' | translate }}</span>
+      <input type="text" class="gh-filter-select" inputmode="decimal" ghPositiveDecimal
+        [value]="facade.filters().maxAmount"
+        [placeholder]="'invoices.filter_max_amount_placeholder' | translate"
+        (change)="facade.patchFilters({ maxAmount: selectValue($event) })" />
+    </label>
+  </div>
   </div>
 
-  <!-- TABLE -->
-  <div class="gh-card">
-    @if (facade.filteredItems().length === 0 && !facade.isLoading()) {
-      <gh-empty-state [title]="'invoices.empty' | translate" />
-    } @else {
-      <gh-table [loading]="facade.isLoading()">
-        <thead>
-          <tr>
-            <th>{{ 'invoices.col_number' | translate }}</th>
-            <th>{{ 'invoices.col_customer' | translate }}</th>
-            <th>{{ 'invoices.col_inv_date' | translate }}</th>
-            <th>{{ 'invoices.col_coll_date' | translate }}</th>
-            <th>{{ 'invoices.col_total' | translate }}</th>
-            <th>{{ 'invoices.col_status' | translate }}</th>
-            <th>{{ 'invoices.col_actions' | translate }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (inv of facade.filteredItems(); track inv.id) {
-            <tr>
-              <!-- Col 1: Invoice number -->
-              <td>
-                <div class="cell-with-icon">
-                  <span class="cell-icon">📄</span>
-                  <span class="cell-name">{{ inv.invoiceNumber }}</span>
-                </div>
-              </td>
-              <!-- Col 2: Customer (two lines) -->
-              <td>
-                <div class="invoices-page__customer-cell">
-                  <span class="cell-name">{{ inv.customerName }}</span>
-                  <span class="cell-muted" dir="ltr">{{ inv.customerPhone }}</span>
-                </div>
-              </td>
-              <!-- Col 3: Invoice date -->
-              <td>{{ inv.invoiceDate | ghDate }}</td>
-              <!-- Col 4: Collection date -->
-              <td>
+  <gh-entity-list-section
+    [loading]="facade.isLoading()"
+    [itemCount]="facade.filteredItems().length"
+    emptyTitleKey="invoices.empty"
+    [currentPage]="facade.currentPage()"
+    [totalPages]="facade.totalPages()"
+    [totalCount]="facade.totalCount()"
+    [pageSize]="facade.pageSize()"
+    (pageChange)="facade.goToPage($event)"
+    (pageSizeChange)="facade.setPageSize($event)">
+    <thead>
+      <tr>
+        <th>{{ 'invoices.col_number' | translate }}</th>
+        <th>{{ 'invoices.col_customer' | translate }}</th>
+        <th>{{ 'invoices.col_sources' | translate }}</th>
+        <th>{{ 'invoices.col_inv_date' | translate }}</th>
+        <th>{{ 'invoices.col_due_date' | translate }}</th>
+        <th>{{ 'invoices.col_payment_date' | translate }}</th>
+        <th>{{ 'invoices.col_pieces' | translate }}</th>
+        <th>{{ 'invoices.col_net_weight' | translate }}</th>
+        <th>{{ 'invoices.col_total' | translate }}</th>
+        <th>{{ 'invoices.col_status' | translate }}</th>
+        <th>{{ 'invoices.col_actions' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (inv of facade.filteredItems(); track inv.id) {
+        <tr>
+          <td>
+            <div class="cell-with-icon">
+              <span class="cell-icon">📄</span>
+              <span class="cell-name">{{ inv.invoiceNumber }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="invoices-page__customer-cell">
+              <span class="cell-name">{{ inv.customerName }}</span>
+              <span class="cell-muted" dir="ltr">{{ inv.customerPhone }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="cell-muted">{{ sourcesSummary(inv) }}</span>
+          </td>
+          <td>{{ inv.invoiceDate | ghDate }}</td>
+          <td>
+            <div class="invoices-page__due-date-cell">
+              @if (inv.dueDate) {
                 <span [class.invoices-page__date--overdue]="inv.status === 'overdue'">
-                  {{ inv.collectionDate | ghDate }}
-                  @if (inv.status === 'overdue') { ⚠️ }
+                  {{ inv.dueDate | ghDate }}
                 </span>
-              </td>
-              <!-- Col 5: Total -->
-              <td>
-                <span class="invoices-page__amount">
-                  {{ inv.total | number:'1.2-2' }} {{ 'common.sar' | translate }}
-                </span>
-              </td>
-              <!-- Col 6: Status -->
-              <td>
-                <gh-badge [variant]="statusVariant(inv.status)">
-                  {{ statusKey(inv.status) | translate }}
-                </gh-badge>
-              </td>
-              <!-- Col 7: Actions -->
-              <td>
-                <div class="cell-actions">
-                  <gh-button variant="ghost" size="sm"
-                    (click)="facade.openPreview(inv)">
-                    🖨️ {{ 'invoices.btn_print' | translate }}
-                  </gh-button>
-                  @if (inv.status !== 'paid') {
-                    <gh-button variant="ghost" size="sm"
-                      (click)="facade.markAsPaid(inv)">
-                      ✅ {{ 'invoices.btn_mark_paid' | translate }}
-                    </gh-button>
-                  }
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </gh-table>
-    }
-  </div>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+              <button type="button" class="invoices-page__due-date-edit"
+                (click)="facade.openDueDateModal(inv)"
+                [attr.aria-label]="'invoices.btn_edit_due_date' | translate"
+                [attr.title]="'invoices.btn_edit_due_date' | translate">
+                <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                </svg>
+              </button>
+            </div>
+          </td>
+          <td>
+            @if (inv.paymentDate) {
+              {{ inv.paymentDate | ghDate }}
+            } @else {
+              <span class="cell-muted">—</span>
+            }
+          </td>
+          <td>{{ inv.pieceCount | number }}</td>
+          <td>{{ inv.netWeightKg | number:'1.1-1' }} {{ 'common.kg' | translate }}</td>
+          <td>
+            <span class="invoices-page__amount">
+              {{ inv.total | number:'1.2-2' }} {{ 'common.egp' | translate }}
+            </span>
+          </td>
+          <td>
+            <gh-badge [variant]="statusVariant(inv.status)">
+              {{ statusLabel(inv.status) }}
+            </gh-badge>
+          </td>
+          <td>
+            <div class="gh-cell-action-btns">
+              <gh-button variant="outline" size="sm" [fullWidth]="true"
+                (click)="facade.openPreview(inv)">
+                🖨️ {{ 'invoices.btn_print' | translate }}
+              </gh-button>
+              @if (!inv.isPaid) {
+                <gh-button variant="primary" size="sm" [fullWidth]="true"
+                  [disabled]="facade.markingPaidId() === inv.id"
+                  (click)="facade.openPayModal(inv)">
+                  {{ 'invoices.btn_mark_paid' | translate }}
+                </gh-button>
+              }
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </gh-entity-list-section>
 
-  <!-- PRINT PREVIEW MODAL -->
   <gh-modal
     [isOpen]="facade.isPreviewOpen()"
     (isOpenChange)="!$event && facade.closePreview()"
@@ -151,122 +245,275 @@
     size="xl">
 
     @if (facade.previewingInvoice(); as inv) {
-      <div class="invoices-page__print-content" #printRef>
+      <div class="invoices-page__preview-scroll">
+      <div class="invoices-page__print-content">
         <div class="invoices-page__a4-card" dir="rtl">
 
-          <!-- HEADER -->
-          <div class="invoices-page__invoice-header">
-            <div class="invoices-page__company-logo">أ</div>
-            <div class="invoices-page__company-info">
-              <h1 class="invoices-page__company-name">{{ 'invoices.company_name' | translate }}</h1>
-              <p class="invoices-page__company-dept">{{ 'invoices.company_dept' | translate }}</p>
-              <p class="cell-muted">{{ 'invoices.company_address' | translate }}</p>
-              <p class="cell-muted" dir="ltr">{{ 'invoices.company_phone' | translate }}</p>
-            </div>
-          </div>
-
-          <!-- META -->
-          <div class="invoices-page__meta-grid">
-            <div>
-              <span class="cell-muted">{{ 'invoices.inv_number_label' | translate }}:</span>
-              <span class="cell-name">{{ inv.invoiceNumber }}</span>
-            </div>
-            <div>
-              <span class="cell-muted">{{ 'invoices.inv_date_label' | translate }}:</span>
-              <span>{{ inv.invoiceDate | ghDate }}</span>
-            </div>
-          </div>
-
-          <!-- CUSTOMER SECTION -->
-          <div class="invoices-page__customer-box">
-            <h3 class="invoices-page__section-title">{{ 'invoices.customer_section' | translate }}</h3>
-            <div class="invoices-page__customer-info">
-              <div>
-                <span class="cell-muted">{{ 'invoices.customer_name' | translate }}:</span>
-                <span>{{ inv.customerName }}</span>
+          <header class="invoices-page__print-header">
+            <div class="invoices-page__print-header-main">
+              <div class="invoices-page__logo-slot">
+                <!-- Replace placeholder with: <img src="assets/images/invoice-logo.png" alt="" class="invoices-page__logo-img" /> -->
+                <div class="invoices-page__logo-placeholder">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
+                  </svg>
+                  <span>{{ 'invoices.logo_placeholder' | translate }}</span>
+                </div>
               </div>
-              <div>
-                <span class="cell-muted">{{ 'invoices.customer_phone' | translate }}:</span>
-                <span dir="ltr">{{ inv.customerPhone }}</span>
+              <div class="invoices-page__company-info">
+                <h1 class="invoices-page__company-name">{{ 'invoices.company_name' | translate }}</h1>
+                <p class="invoices-page__company-dept">{{ 'invoices.company_dept' | translate }}</p>
+                <div class="invoices-page__company-contact">
+                  <p class="invoices-page__company-contact-line">
+                    <span class="invoices-page__contact-icon" aria-hidden="true">📍</span>
+                    {{ 'invoices.company_address' | translate }}
+                  </p>
+                  <p class="invoices-page__company-contact-line" dir="ltr">
+                    <span class="invoices-page__contact-icon" aria-hidden="true">📞</span>
+                    {{ 'invoices.company_phone' | translate }}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </header>
 
-          <!-- ITEMS TABLE -->
-          <table class="invoices-page__items-table">
-            <thead>
-              <tr>
-                <th>{{ 'invoices.col_seq' | translate }}</th>
-                <th>{{ 'invoices.col_item_name' | translate }}</th>
-                <th>{{ 'invoices.col_qty' | translate }}</th>
-                <th>{{ 'invoices.col_wt_before' | translate }}</th>
-                <th>{{ 'invoices.col_wt_after' | translate }}</th>
-                <th>{{ 'invoices.col_price_kg' | translate }}</th>
-                <th>{{ 'invoices.col_item_total' | translate }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of inv.items; track item.id; let idx = $index) {
-                <tr>
-                  <td>{{ idx + 1 }}</td>
-                  <td>{{ item.cropName }}</td>
-                  <td>{{ item.quantity | number }}</td>
-                  <td>{{ item.weightBeforeRoots | number:'1.1-1' }}</td>
-                  <td>{{ item.weightAfterRoots | number:'1.1-1' }}</td>
-                  <td>{{ item.pricePerKg | number:'1.1-2' }}</td>
-                  <td>{{ item.total | number:'1.2-2' }}</td>
-                </tr>
-              }
-              <tr class="invoices-page__items-table-total">
-                <td colspan="6" style="text-align: end;">
-                  {{ 'invoices.grand_total' | translate }}
-                </td>
-                <td>
-                  <span class="invoices-page__total-value">
-                    {{ inv.total | number:'1.2-2' }} {{ 'common.sar' | translate }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="invoices-page__print-body">
+            <div class="invoices-page__print-body-main">
+              <div class="invoices-page__meta-grid">
+                <div class="invoices-page__meta-item">
+                  <span class="invoices-page__meta-label">{{ 'invoices.inv_number_label' | translate }}</span>
+                  <strong class="invoices-page__meta-value">{{ inv.invoiceNumber }}</strong>
+                </div>
+                <div class="invoices-page__meta-item">
+                  <span class="invoices-page__meta-label">{{ 'invoices.inv_date_label' | translate }}</span>
+                  <span class="invoices-page__meta-value">{{ inv.invoiceDate | ghDate }}</span>
+                </div>
+                <div class="invoices-page__meta-item">
+                  <span class="invoices-page__meta-label">{{ 'invoices.customer_name' | translate }}</span>
+                  <span class="invoices-page__meta-value">{{ inv.customerName }}</span>
+                </div>
+                <div class="invoices-page__meta-item">
+                  <span class="invoices-page__meta-label">{{ 'invoices.customer_phone' | translate }}</span>
+                  <span class="invoices-page__meta-value" dir="ltr">{{ inv.customerPhone }}</span>
+                </div>
+              </div>
 
-          <!-- COLLECTION INFO -->
-          <div class="invoices-page__collection-grid">
-            <div>
-              <h3 class="invoices-page__section-title">{{ 'invoices.coll_date_section' | translate }}</h3>
-              <p>{{ inv.collectionDate | ghDate }}</p>
+              <table class="invoices-page__items-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'invoices.col_seq' | translate }}</th>
+                    <th>{{ 'invoices.print_col_crop' | translate }}</th>
+                    <th>
+                      <span class="invoices-page__th-main">{{ 'invoices.print_col_qty' | translate }}</span>
+                      <span class="invoices-page__th-unit">{{ 'invoices.print_unit_pieces' | translate }}</span>
+                    </th>
+                    <th>
+                      <span class="invoices-page__th-main">{{ 'invoices.print_col_wt_before' | translate }}</span>
+                      <span class="invoices-page__th-unit">{{ 'invoices.print_unit_kg' | translate }}</span>
+                    </th>
+                    <th>
+                      <span class="invoices-page__th-main">{{ 'invoices.print_col_wt_after' | translate }}</span>
+                      <span class="invoices-page__th-unit">{{ 'invoices.print_unit_kg' | translate }}</span>
+                    </th>
+                    <th>{{ 'invoices.print_col_price' | translate }}</th>
+                    <th>{{ 'invoices.print_col_total' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of inv.items; track $index; let idx = $index) {
+                    <tr>
+                      <td>{{ idx + 1 }}</td>
+                      <td class="invoices-page__crop-cell">{{ item.cropName }}</td>
+                      <td>{{ item.quantity | number }}</td>
+                      <td>{{ item.weightBeforeRoots | number:'1.1-1' }}</td>
+                      <td>{{ item.weightAfterRoots | number:'1.1-1' }}</td>
+                      <td>{{ item.pricePerKg | number:'1.2-2' }}</td>
+                      <td>{{ item.total | number:'1.2-2' }}</td>
+                    </tr>
+                  }
+                  <tr class="invoices-page__items-table-total">
+                    <td colspan="2">{{ 'invoices.totals_row' | translate }}</td>
+                    <td>{{ inv.pieceCount | number }}</td>
+                    <td>{{ inv.grossWeightKg | number:'1.1-1' }}</td>
+                    <td>{{ inv.netWeightKg | number:'1.1-1' }}</td>
+                    <td>—</td>
+                    <td>
+                      <span class="invoices-page__total-value">
+                        {{ inv.total | number:'1.2-2' }} {{ 'common.egp' | translate }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="invoices-page__screen-only invoices-page__due-date-panel">
+                <h3 class="invoices-page__section-title">{{ 'invoices.col_due_date' | translate }}</h3>
+                <div class="invoices-page__due-date-cell">
+                  @if (inv.dueDate) {
+                    <p>{{ inv.dueDate | ghDate }}</p>
+                  } @else {
+                    <p class="cell-muted">—</p>
+                  }
+                  <button type="button" class="invoices-page__due-date-edit"
+                    (click)="facade.openDueDateModal(inv)"
+                    [attr.aria-label]="'invoices.btn_edit_due_date' | translate">
+                    <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                    </svg>
+                  </button>
+                </div>
+                @if (inv.paymentDate) {
+                  <p class="cell-muted">{{ 'invoices.col_payment_date' | translate }}: {{ inv.paymentDate | ghDate }}</p>
+                }
+              </div>
             </div>
-            <div>
-              <h3 class="invoices-page__section-title">{{ 'invoices.coll_info_section' | translate }}</h3>
-              <p><span class="cell-muted">{{ 'invoices.bank_account' | translate }}:</span> {{ 'invoices.bank_account_value' | translate }}</p>
-              <p><span class="cell-muted">{{ 'invoices.iban' | translate }}:</span> {{ 'invoices.iban_value' | translate }}</p>
-              <p><span class="cell-muted">{{ 'invoices.account_owner' | translate }}:</span> {{ 'invoices.account_owner_value' | translate }}</p>
-            </div>
+
+            <footer class="invoices-page__print-footer">
+              <div class="invoices-page__collection-block">
+                <h3 class="invoices-page__section-title">{{ 'invoices.coll_info_section' | translate }}</h3>
+                <div class="invoices-page__collection-details">
+                  <p>
+                    <span class="cell-muted">{{ 'invoices.coll_status' | translate }}:</span>
+                    {{ (inv.isPaid ? 'invoices.coll_status_paid' : 'invoices.coll_status_unpaid') | translate }}
+                  </p>
+                  <p><span class="cell-muted">{{ 'invoices.account_owner' | translate }}:</span> {{ 'invoices.account_owner_value' | translate }}</p>
+                  <p><span class="cell-muted">{{ 'invoices.bank_account' | translate }}:</span> {{ 'invoices.bank_account_value' | translate }}</p>
+                  <p><span class="cell-muted">{{ 'invoices.iban' | translate }}:</span> <span dir="ltr">{{ 'invoices.iban_value' | translate }}</span></p>
+                </div>
+              </div>
+              <p class="invoices-page__footer-note">{{ 'invoices.footer_thanks' | translate }}</p>
+              <p class="invoices-page__print-timestamp" dir="ltr">{{ printTimestamp() }}</p>
+            </footer>
           </div>
-
-          <!-- FOOTER -->
-          <p class="invoices-page__footer-note">{{ 'invoices.footer_thanks' | translate }}</p>
-
         </div>
+      </div>
       </div>
     }
 
-    <div slot="footer" class="flex gap-3">
-      @if (facade.previewingInvoice()?.status !== 'paid') {
-        <gh-button variant="primary"
-          (click)="facade.markAsPaid(facade.previewingInvoice()!)">
-          ✅ {{ 'invoices.btn_mark_paid' | translate }}
-        </gh-button>
-      }
+    <div slot="footer" class="modal-footer-actions">
+      <gh-button variant="outline" (click)="facade.closePreview()">
+        {{ 'common.close' | translate }}
+      </gh-button>
       <gh-button variant="primary" (click)="printInvoice()">
         🖨️ {{ 'invoices.btn_print' | translate }}
       </gh-button>
-      <gh-button variant="outline" (click)="facade.closePreview()">
-        {{ 'common.close' | translate }}
+      @if (facade.previewingInvoice(); as inv) {
+        @if (!inv.isPaid) {
+          <gh-button variant="primary"
+            [disabled]="facade.markingPaidId() === inv.id"
+            (click)="facade.openPayModal(inv)">
+            {{ 'invoices.btn_mark_paid' | translate }}
+          </gh-button>
+        }
+      }
+    </div>
+  </gh-modal>
+
+  <gh-modal
+    [isOpen]="facade.payModalInvoice() !== null"
+    (isOpenChange)="!$event && facade.closePayModal()"
+    [title]="'invoices.pay_modal_title' | translate"
+    size="sm">
+    @if (facade.payModalInvoice(); as inv) {
+      <div class="invoices-page__action-modal">
+        <div class="invoices-page__invoice-summary">
+          <span class="invoices-page__invoice-summary-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            </svg>
+          </span>
+          <div class="invoices-page__invoice-summary-body">
+            <span class="invoices-page__invoice-summary-label">{{ 'invoices.modal_selected_invoice' | translate }}</span>
+            <strong class="invoices-page__invoice-summary-id">{{ inv.invoiceNumber }}</strong>
+            <span class="invoices-page__invoice-summary-meta">{{ inv.customerName }}</span>
+          </div>
+        </div>
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.pay_modal_date' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.payDateInput()"
+            (change)="facade.setPayDateInput(selectValue($event))" />
+        </label>
+      </div>
+    }
+    <div slot="footer" class="modal-footer-actions">
+      <gh-button variant="outline" (click)="facade.closePayModal()">
+        {{ 'common.cancel' | translate }}
+      </gh-button>
+      <gh-button variant="primary"
+        [disabled]="!facade.payDateInput() || facade.isPaySubmitting()"
+        (click)="facade.confirmPay()">
+        {{ 'invoices.pay_modal_confirm' | translate }}
+      </gh-button>
+    </div>
+  </gh-modal>
+
+  <gh-modal
+    [isOpen]="facade.dueDateModalInvoice() !== null"
+    (isOpenChange)="!$event && facade.closeDueDateModal()"
+    [title]="'invoices.due_date_modal_title' | translate"
+    size="sm">
+    @if (facade.dueDateModalInvoice(); as inv) {
+      <div class="invoices-page__action-modal">
+        <div class="invoices-page__invoice-summary">
+          <span class="invoices-page__invoice-summary-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            </svg>
+          </span>
+          <div class="invoices-page__invoice-summary-body">
+            <span class="invoices-page__invoice-summary-label">{{ 'invoices.modal_selected_invoice' | translate }}</span>
+            <strong class="invoices-page__invoice-summary-id">{{ inv.invoiceNumber }}</strong>
+            <span class="invoices-page__invoice-summary-meta">{{ inv.customerName }}</span>
+          </div>
+        </div>
+        <label class="invoices-page__filter-field">
+          <span class="invoices-page__filter-sublabel">{{ 'invoices.due_date_modal_date' | translate }}</span>
+          <input type="date" class="gh-filter-select"
+            [value]="facade.dueDateInput()"
+            [disabled]="facade.clearDueDate()"
+            (change)="facade.setDueDateInput(selectValue($event))" />
+        </label>
+        @if (inv.dueDate) {
+          <label class="invoices-page__checkbox-row">
+            <input type="checkbox"
+              [checked]="facade.clearDueDate()"
+              (change)="facade.setClearDueDate($any($event.target).checked)" />
+            <span>{{ 'invoices.due_date_modal_clear' | translate }}</span>
+          </label>
+        }
+      </div>
+    }
+    <div slot="footer" class="modal-footer-actions">
+      <gh-button variant="outline" (click)="facade.closeDueDateModal()">
+        {{ 'common.cancel' | translate }}
+      </gh-button>
+      <gh-button variant="primary"
+        [disabled]="facade.isDueDateSubmitting() || (!facade.clearDueDate() && !facade.dueDateInput())"
+        (click)="facade.confirmDueDate()">
+        {{ 'invoices.due_date_modal_confirm' | translate }}
+      </gh-button>
+    </div>
+  </gh-modal>
+
+  <gh-modal
+    [isOpen]="createFacade.isOpen()"
+    (isOpenChange)="!$event && createFacade.closeCreateModal()"
+    [title]="'invoices.create_modal_title' | translate"
+    [subtitle]="'invoices.create_modal_subtitle' | translate"
+    size="lg">
+    <gh-invoice-harvest-create-panel #createPanel />
+    <div slot="footer" class="modal-footer-actions">
+      <gh-button variant="outline" (click)="createFacade.closeCreateModal()">
+        {{ 'common.cancel' | translate }}
+      </gh-button>
+      <gh-button variant="primary"
+        [disabled]="!createFacade.canSubmit()"
+        [loading]="createFacade.isSubmitting()"
+        (click)="createPanel?.submit()">
+        {{ 'invoices.create_submit' | translate }}
       </gh-button>
     </div>
   </gh-modal>
 
 </div>
-
-

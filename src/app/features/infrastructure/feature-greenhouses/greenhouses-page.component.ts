@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -33,11 +33,10 @@ export class GreenhousesPageComponent implements OnInit {
   readonly #cdr = inject(ChangeDetectorRef);
 
   readonly sortOptions = computed(() => [
-    { value: 'all', label: this.i18n.t('common.all') },
     { value: 'name-asc', label: this.i18n.t('sort.name_asc') },
     { value: 'name-desc', label: this.i18n.t('sort.name_desc') },
     { value: 'date-newest', label: this.i18n.t('sort.date_newest') },
-    { value: 'date-oldest', label: this.i18n.t('sort.date_oldest') }
+    { value: 'date-oldest', label: this.i18n.t('sort.date_oldest') },
   ]);
 
   readonly statusOptions = computed(() => [
@@ -49,11 +48,17 @@ export class GreenhousesPageComponent implements OnInit {
 
   readonly form = this.#fb.nonNullable.group({
     name: ['', Validators.required],
+    address: ['', Validators.required],
     locationId: ['', Validators.required],
-    status: ['active' as 'active' | 'inactive']
+    status: ['active' as 'active' | 'inactive'],
   });
 
-  readonly #defaultFormValue = { name: '', locationId: '', status: 'active' as 'active' | 'inactive' };
+  readonly #defaultFormValue = {
+    name: '',
+    address: '',
+    locationId: '',
+    status: 'active' as 'active' | 'inactive',
+  };
 
   /** Active locations, plus the current row’s location when editing (so `<select>` can show inactive sites). */
   readonly availableLocations = computed(() => {
@@ -76,6 +81,7 @@ export class GreenhousesPageComponent implements OnInit {
       patchFromItem: (item) =>
         this.form.patchValue({
           name: item.name,
+          address: this.#displayAddress(item.address) || item.address,
           locationId: item.locationId,
           status: item.status as 'active' | 'inactive',
         }),
@@ -137,20 +143,22 @@ export class GreenhousesPageComponent implements OnInit {
     return status === 'active' ? 'active' : 'inactive';
   }
 
-  protected utilizationPct(
-    row: {
-      occupiedCapacity: number;
-      totalCapacity?: number;
-      capacity?: number;
-      occupancyPct?: number;
-    }
-  ): number {
+  /** Hides API placeholder address in the table and edit form. */
+  #displayAddress(address?: string): string {
+    const value = address?.trim();
+    return value && value !== '.' ? value : '';
+  }
+
+  unitAddressLine(address?: string): string {
+    return this.#displayAddress(address);
+  }
+
+  protected utilizationPct(row: GreenhouseRow): number {
     if (row.occupancyPct != null && Number.isFinite(row.occupancyPct)) {
-      return Math.min(100, Math.round(row.occupancyPct));
+      return Math.min(100, row.occupancyPct);
     }
-    const max = row.totalCapacity ?? row.capacity ?? 0;
-    if (max === 0) return 0;
-    return Math.round((row.occupiedCapacity / max) * 100);
+    if (row.totalCapacity === 0) return 0;
+    return (row.occupiedCapacity / row.totalCapacity) * 100;
   }
 }
 

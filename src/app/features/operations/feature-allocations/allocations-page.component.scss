@@ -63,7 +63,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-block-start: var(--space-2);
+    padding-block-start: var(--space-4);
   }
 
   &__timeline-dot {
@@ -167,79 +167,7 @@
     font-weight: 500;
   }
 
-  &__loss-entry {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    padding-block: var(--space-4);
-    border-block-end: 1px solid var(--color-border);
 
-    &:last-of-type {
-      border: none;
-    }
-  }
-
-  &__loss-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  &__loss-badges {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  &__loss-qty {
-    color: var(--color-destructive);
-    font-weight: 700;
-    font-size: var(--font-size-sm);
-  }
-
-  &__loss-date {
-    font-size: var(--font-size-xs);
-    color: var(--color-muted-foreground);
-  }
-
-  &__reason-card {
-    padding: var(--space-3);
-    background: var(--color-destructive-light, hsl(0 86% 94%));
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-  }
-
-  &__reason-label {
-    font-weight: 700;
-    font-size: var(--font-size-xs);
-    margin-block-end: var(--space-1);
-  }
-
-  &__notes-card {
-    padding: var(--space-3);
-    background: var(--color-muted);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    color: var(--color-muted-foreground);
-  }
-
-  &__recorded-by {
-    font-size: var(--font-size-xs);
-    color: var(--color-muted-foreground);
-  }
-
-  &__loss-summary {
-    padding: var(--space-4);
-    background: var(--color-destructive-light, hsl(0 86% 94%));
-    border: 1px solid var(--color-destructive-border, hsl(0 80% 78%));
-    border-radius: var(--radius-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    font-size: var(--font-size-sm);
-    color: var(--color-destructive);
-    font-weight: 500;
-  }
 
   &__move-grid {
     display: grid;

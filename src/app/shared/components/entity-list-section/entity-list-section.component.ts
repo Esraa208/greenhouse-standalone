@@ -21,12 +21,16 @@ import { PaginationComponent } from '../ui/pagination/pagination.component';
         <gh-table [loading]="loading()">
           <ng-content />
         </gh-table>
-        <gh-pagination
-          [currentPage]="currentPage()"
-          [totalPages]="totalPages()"
-          [totalCount]="totalCount()"
-          [pageSize]="pageSize()"
-          (pageChange)="pageChange.emit($event)" />
+        <div class="gh-card__footer">
+          <gh-pagination
+            [currentPage]="currentPage()"
+            [totalPages]="totalPages()"
+            [totalCount]="totalCount()"
+            [itemCount]="itemCount()"
+            [pageSize]="pageSize()"
+            (pageChange)="pageChange.emit($event)"
+            (pageSizeChange)="pageSizeChange.emit($event)" />
+        </div>
       }
     </div>
   `,
@@ -41,4 +45,5 @@ export class GhEntityListSectionComponent {
   readonly totalCount = input<number>(0);
   readonly pageSize = input<number>(10);
   readonly pageChange = output<number>();
+  readonly pageSizeChange = output<number>();
 }

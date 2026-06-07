@@ -16,9 +16,8 @@ import { BreakpointService, TranslationService } from '@app/core';
 import { CRUD_LIST_PAGE_IMPORTS_STANDARD } from '@app/shared/page-imports';
 import {
   CropsFacade,
-  CROP_SORT_OPTIONS,
   CreateCropDto,
-  CropSortKey,
+  UpdateCropDto,
 } from '@app/core/data-access/operations';
 import { syncCrudModalForm, trackByEntityId } from '@app/shared/utils/sync-crud-modal-form';
 
@@ -38,20 +37,30 @@ export class CropsPageComponent implements OnInit {
   readonly #fb = inject(FormBuilder).nonNullable;
 
   // --- FORM ---
-  readonly #defaultForm = { name: '', growthDuration: null as number | null };
+  readonly #defaultForm = {
+    name: '',
+    growthDuration: null as number | null,
+    status: 'active' as 'active' | 'inactive',
+  };
 
   protected readonly form = this.#fb.group({
     name: ['', [Validators.required]],
     growthDuration: [null as number | null, [Validators.required, Validators.min(1)]],
+    status: ['active' as 'active' | 'inactive'],
   });
 
   // --- CONFIG ---
-  protected readonly sortOptions = computed(() =>
-    CROP_SORT_OPTIONS.map(opt => ({
-      value: opt.value,
-      label: this.i18n.t(opt.translationKey),
-    }))
-  );
+  protected readonly sortOptions = computed(() => [
+    { value: 'name-asc', label: this.i18n.t('sort.name_asc') },
+    { value: 'name-desc', label: this.i18n.t('sort.name_desc') },
+    { value: 'date-newest', label: this.i18n.t('sort.date_newest') },
+    { value: 'date-oldest', label: this.i18n.t('sort.date_oldest') },
+  ]);
+
+  protected readonly statusOptions = computed(() => [
+    { value: 'active', label: this.i18n.t('common.active') },
+    { value: 'inactive', label: this.i18n.t('common.inactive') },
+  ]);
 
   constructor() {
     syncCrudModalForm({
@@ -62,6 +71,7 @@ export class CropsPageComponent implements OnInit {
         this.form.patchValue({
           name: item.name,
           growthDuration: item.growthDuration,
+          status: item.status,
         }),
       defaultValue: () => ({ ...this.#defaultForm }),
     });
@@ -73,10 +83,26 @@ export class CropsPageComponent implements OnInit {
 
   // --- ACTIONS ---
 
-  /** Updates sort filter; empty / «الكل» sends no `SetOrder` to CropType fetch. */
-  protected updateSortFilter(sort: string): void {
-    const sortBy = sort && sort !== 'all' ? (sort as CropSortKey) : 'all';
-    this.facade.patchFilters({ sortBy });
+  protected onSortFilterChange(val: string): void {
+    this.facade.patchFilters({ sortBy: val as never });
+  }
+
+  protected onStatusFilterChange(status: string): void {
+    this.facade.patchFilters({ status: status as 'all' | 'active' | 'inactive' });
+  }
+
+  protected statusVariant(status: string): string {
+    return status === 'active' ? 'active' : 'inactive';
+  }
+
+  protected statusLabel(status: string): string {
+    return status === 'active'
+      ? this.i18n.t('common.active')
+      : this.i18n.t('common.inactive');
+  }
+
+  protected setStatus(val: string): void {
+    this.form.patchValue({ status: val as 'active' | 'inactive' });
   }
 
   /** Tracks items by unique ID for efficient DOM rendering */
@@ -86,13 +112,21 @@ export class CropsPageComponent implements OnInit {
   protected submitForm(): void {
     if (this.form.invalid) return;
 
-    const dto = this.form.getRawValue() as CreateCropDto;
+    const val = this.form.getRawValue();
     const editing = this.facade.editingItem();
 
     if (editing) {
+      const dto: UpdateCropDto = {
+        name: val.name,
+        growthDuration: val.growthDuration!,
+        status: val.status,
+      };
       this.facade.update(editing.id, dto);
     } else {
-      this.facade.create(dto);
+      this.facade.create({
+        name: val.name,
+        growthDuration: val.growthDuration!,
+      });
     }
   }
 }

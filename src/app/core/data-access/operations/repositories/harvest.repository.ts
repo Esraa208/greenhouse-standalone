@@ -2,7 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { HarvestRow, CreateHarvestDto, HarvestRefCustomer } from '../models/harvest.model';
-import { API_BASE_URL, PaginatedResult } from '@app/core/data-access/infrastructure';
+import {
+  API_BASE_URL,
+  PaginatedResult,
+  PagedListQuery,
+  buildPagedListParams,
+  normalizePaginatedResult,
+} from '@app/core/data-access/infrastructure';
 import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiHarvestItem, ApiCreateHarvestDto, ApiCustomerItem
@@ -15,9 +21,8 @@ export class HarvestRepository {
   readonly #http = inject(HttpClient);
   readonly #apiUrl = inject(API_BASE_URL);
 
-  getAll(stockBatchId?: string): Observable<PaginatedResult<HarvestRow>> {
-    const params: Record<string, string | number> = {};
-    if (stockBatchId) params['stockBatchId'] = Number(stockBatchId);
+  getAll(query: PagedListQuery = { pageNumber: 1 }): Observable<PaginatedResult<HarvestRow>> {
+    const params = buildPagedListParams(query);
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Harvest, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiHarvestItem> | ApiHarvestItem[]>(url, { params }).pipe(
@@ -34,14 +39,10 @@ export class HarvestRepository {
           harvestDate: apiHarvest.date || new Date().toISOString(),
           customerName: '',
         }));
-        const paginated = !Array.isArray(response) ? (response as ApiPaginatedResult<ApiHarvestItem>).result : null;
-        return {
-          items,
-          totalCount: paginated?.totalCount ?? items.length,
-          pageNumber: paginated?.pageNumber ?? 1,
-          pageSize: paginated?.pageSize ?? 50,
-          totalPages: paginated?.totalPages ?? 1,
-        };
+        const paginated = !Array.isArray(response)
+          ? (response as ApiPaginatedResult<ApiHarvestItem>).result
+          : null;
+        return normalizePaginatedResult(paginated, items, query.pageSize);
       })
     );
   }
@@ -98,8 +99,8 @@ export class HarvestRepository {
   }
 
   getCustomers(): Observable<HarvestRefCustomer[]> {
-    const url = `${this.#apiUrl}/${ApiController.Customer}`;
-    return this.#http.get<ApiPaginatedResult<ApiCustomerItem> | ApiCustomerItem[]>(url).pipe(
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Customer, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiCustomerItem>>(url, { params: { PageNumber: 1 } }).pipe(
       map(response => {
         const items = Array.isArray(response) ? response : (response as ApiPaginatedResult<ApiCustomerItem>).result?.items ?? [];
         return items.map(c => ({

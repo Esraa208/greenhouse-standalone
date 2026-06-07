@@ -6,6 +6,7 @@ import {
   GhButtonComponent,
   GhDeleteConfirmModalComponent,
   GhEmptyStateComponent,
+  GhEntityListSectionComponent,
   GhFormGroupComponent,
   GhModalComponent,
   GhPageHeaderComponent,
@@ -13,26 +14,20 @@ import {
   GhTableComponent,
   GhTableFiltersComponent,
 } from '@app/shared/components';
-import { CRUD_LIST_PAGE_IMPORTS_STANDARD } from './crud-list.imports';
+import { CRUD_LIST_PAGE_IMPORTS_STANDARD, CRUD_LIST_PAGE_IMPORTS_TABLE_VIEW_MODAL } from './crud-list.imports';
 
-/** Customers CRUD: standard list kit + date pipe. */
+/** Customers CRUD: standard list kit + date pipe + paginated table shell. */
 export const SALES_CUSTOMERS_PAGE_IMPORTS = [
   GhDatePipe,
+  GhEntityListSectionComponent,
   ...CRUD_LIST_PAGE_IMPORTS_STANDARD,
 ] as const;
 
-/** Invoices: list + detail modal, no delete-confirm / form-group / segmented. */
+/** Invoices: paginated list + print preview modal. */
 export const SALES_INVOICES_PAGE_IMPORTS = [
-  CommonModule,
-  TranslatePipe,
   GhDatePipe,
-  GhPageHeaderComponent,
-  GhTableFiltersComponent,
-  GhTableComponent,
-  GhBadgeComponent,
-  GhButtonComponent,
-  GhEmptyStateComponent,
-  GhModalComponent,
+  GhEntityListSectionComponent,
+  ...CRUD_LIST_PAGE_IMPORTS_TABLE_VIEW_MODAL,
 ] as const;
 
 /** Sales report page (KPI-style). */

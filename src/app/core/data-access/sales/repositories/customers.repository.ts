@@ -1,68 +1,67 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { CustomerRow, CreateCustomerDto } from '../models/customer.model';
+import { CustomerRow, CreateCustomerDto, UpdateCustomerDto } from '../models/customer.model';
 import { API_BASE_URL } from '@app/core/data-access/infrastructure';
 import {
   ApiController, ApiAction, getEndpoint,
-  ApiPaginatedResult, ApiCustomerItem, ApiCreateCustomerCommand
+  ApiPaginatedResult, ApiCustomerItem, ApiCreateCustomerCommand,
 } from '@app/core/data-access/api';
-
-interface ApiCreateResponse { readonly id?: number; }
+import {
+  PagedListQuery,
+  PaginatedResult,
+  buildPagedListParams,
+  buildTableFetchParams,
+  normalizePaginatedResult,
+} from '@app/core/data-access/infrastructure/list-query';
+import { extractCreatedId } from '@app/core/data-access/infrastructure/extract-created-id';
+import type { PutPatch } from '@app/core/data-access/infrastructure/put-patch-merge';
+import { mapCustomerToRow } from './customers.mapper';
 
 @Injectable({ providedIn: 'root' })
 export class CustomersRepository {
   readonly #http = inject(HttpClient);
   readonly #apiUrl = inject(API_BASE_URL);
 
-  getAll(): Observable<CustomerRow[]> {
-    // Note: Swagger uses /api/Customer instead of /api/Customer/fetch
-    const url = `${this.#apiUrl}/${ApiController.Customer}`;
-    return this.#http.get<ApiPaginatedResult<ApiCustomerItem> | ApiCustomerItem[]>(url).pipe(
+  getAll(query: PagedListQuery = { pageNumber: 1 }): Observable<PaginatedResult<CustomerRow>> {
+    const params = buildPagedListParams(query);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Customer, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiCustomerItem>>(url, { params }).pipe(
       map(response => {
-        const items = Array.isArray(response) ? response : (response as ApiPaginatedResult<ApiCustomerItem>).result?.items ?? [];
-        return items.map(c => ({
-          id: String(c.id),
-          name: c.name ?? '',
-          phone: c.phone ?? '',
-          email: c.email ?? '',
-          address: c.address ?? '',
-          invoicesCount: 0,
-          totalPurchases: 0,
-          createdAt: new Date().toISOString(),
-        }));
+        const items = (response.result?.items ?? []).map(mapCustomerToRow);
+        return normalizePaginatedResult(response.result, items, query.pageSize);
       })
     );
   }
 
-  getById(id: string): Observable<CustomerRow> {
-    return this.getAll().pipe(
-      map(items => {
-        const item = items.find(c => c.id === id);
-        if (!item) throw new Error('Customer not found');
-        return item;
-      })
+  /** Dropdowns: pagination only — no `PageSize` (server default). */
+  fetchSelectPage(pageNumber = 1): Observable<CustomerRow[]> {
+    const params = buildTableFetchParams(pageNumber);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Customer, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiCustomerItem>>(url, { params }).pipe(
+      map((response) => (response.result?.items ?? []).map(mapCustomerToRow)),
     );
   }
 
   create(dto: CreateCustomerDto): Observable<CustomerRow> {
-    const url = `${this.#apiUrl}/${ApiController.Customer}`;
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Customer, ApiAction.Create)}`;
     const payload: ApiCreateCustomerCommand = {
+      currentUserId: 'system',
       customer: {
         name: dto.name,
         phone: dto.phone,
         email: dto.email || '',
         address: dto.address || '',
       },
-      currentUserId: 'system',
     };
-    return this.#http.post<ApiCreateResponse>(url, payload).pipe(
+    return this.#http.post<unknown>(url, payload).pipe(
       map(res => ({
-        id: String(res?.id ?? Date.now()),
+        id: extractCreatedId(res),
         name: dto.name,
         phone: dto.phone,
         email: dto.email || '',
         address: dto.address || '',
+        status: 'active' as const,
         invoicesCount: 0,
         totalPurchases: 0,
         createdAt: new Date().toISOString(),
@@ -70,26 +69,29 @@ export class CustomersRepository {
     );
   }
 
-  update(id: string, dto: Partial<CreateCustomerDto>): Observable<CustomerRow> {
-    // Not provided in swagger, returning mock
-    return this.getById(id).pipe(
-      map(existing => ({ ...existing, ...dto } as CustomerRow))
+  update(id: string, dto: UpdateCustomerDto): Observable<PutPatch<CustomerRow>> {
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Customer, ApiAction.Update)}`;
+    const payload = {
+      name: dto.name,
+      phone: dto.phone,
+      email: dto.email || '',
+      address: dto.address || '',
+      active: dto.status === 'active',
+    };
+    return this.#http.put<unknown>(url, payload, { params: { id } }).pipe(
+      map(() => ({
+        id,
+        name: dto.name,
+        phone: dto.phone,
+        email: dto.email || '',
+        address: dto.address || '',
+        status: dto.status,
+      }))
     );
   }
 
   delete(id: string): Observable<void> {
-    // Not provided in swagger
-    const url = `${this.#apiUrl}/${ApiController.Customer}/${id}`;
-    return this.#http.delete<void>(url);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Customer, ApiAction.Delete)}`;
+    return this.#http.delete<void>(url, { params: { Id: id } });
   }
 }
-
-
-
-
-
-
-
-
-
-

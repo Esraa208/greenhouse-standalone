@@ -44,3 +44,21 @@
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
+
+/* Primary Variant (Outlined container, Purple active state) */
+.gh-segmented--primary {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  padding: 2px;
+
+  .gh-segmented__button {
+    border-radius: calc(var(--radius-xl) - 2px);
+    color: var(--color-foreground);
+
+    &.is-active {
+      background-color: var(--color-primary, #8b5cf6);
+      color: white;
+      box-shadow: none;
+    }
+  }
+}

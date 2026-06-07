@@ -1,4 +1,4 @@
-﻿import { Injectable, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { BatchRow, CreateBatchDto, UpdateBatchDto } from '../models/batch.model';
@@ -8,6 +8,8 @@ import {
   PaginatedResult,
   buildPagedListParams,
   buildActiveSelectParams,
+  buildTableFetchParams,
+  normalizePaginatedResult,
 } from '../../infrastructure/list-query';
 import { extractCreatedId } from '../../infrastructure/extract-created-id';
 import type { PutPatch } from '../../infrastructure/put-patch-merge';
@@ -28,14 +30,16 @@ export class BatchesRepository {
     return this.#http.get<ApiPaginatedResult<ApiBatchItem>>(url, { params }).pipe(
       map(response => {
         const items = (response.result?.items ?? []).map((api) => mapBatchToRow(api));
-        return {
-          items,
-          totalCount: response.result?.totalCount ?? 0,
-          pageNumber: response.result?.pageNumber ?? 1,
-          pageSize: response.result?.pageSize ?? 50,
-          totalPages: response.result?.totalPages ?? 1,
-        };
+        return normalizePaginatedResult(response.result, items, query.pageSize);
       })
+    );
+  }
+
+  fetchSelectPage(pageNumber = 1): Observable<BatchRow[]> {
+    const params = buildTableFetchParams(pageNumber);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Batch, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiBatchItem>>(url, { params }).pipe(
+      map(response => (response.result?.items ?? []).map((api) => mapBatchToRow(api)))
     );
   }
 
@@ -66,6 +70,7 @@ export class BatchesRepository {
         growthStageKey: 'seedlings',
         growthPercent: 0,
         status: 'active' as const,
+        isActive: true,
         lossesCount: 0,
         lossesPercentage: 0,
       }))
@@ -77,14 +82,16 @@ export class BatchesRepository {
     const payload = {
       cropTypeId: Number(dto.cropTypeId),
       quantity: dto.quantity,
-      active: dto.status === 'active',
+      active: dto.isActive,
     };
     return this.#http.put<unknown>(url, payload, { params: { id } }).pipe(
       map(() => ({
         id,
         cropTypeId: dto.cropTypeId,
         quantity: dto.quantity,
-        status: dto.status as 'active' | 'harvested' | 'lost',
+        isActive: dto.isActive,
+        ...(dto.cropType ? { cropType: dto.cropType } : {}),
+        status: (dto.isActive ? 'active' : 'harvested') as 'active' | 'harvested' | 'lost',
       }))
     );
   }

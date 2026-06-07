@@ -11,4 +11,10 @@
   &__phone {
     font-variant-numeric: tabular-nums;
   }
+
+  &__modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
 }

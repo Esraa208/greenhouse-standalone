@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { TranslationService } from '@app/core';
@@ -6,6 +6,7 @@ import { ZonesFacade, LocationsFacade, GreenhousesFacade, type ZoneRow } from '@
 import { GhCrudPageShellComponent, GhEntityListSectionComponent } from '@app/shared/components';
 import { CRUD_LIST_PAGE_IMPORTS_WITH_PROGRESS } from '@app/shared/page-imports';
 import { syncCrudModalForm, trackByEntityId } from '@app/shared/utils/sync-crud-modal-form';
+import { modalCascadeOptions, withEditFallback } from '../infrastructure-cascade.helper';
 
 @Component({
   selector: 'gh-zones-page',
@@ -30,9 +31,8 @@ export class ZonesPageComponent implements OnInit {
   readonly sortOptions = computed(() => [
     { value: 'name-asc', label: this.i18n.t('sort.name_asc') },
     { value: 'name-desc', label: this.i18n.t('sort.name_desc') },
-    { value: 'greenhouse-asc', label: this.i18n.t('sort.greenhouse_asc') },
-    { value: 'capacity-desc', label: this.i18n.t('sort.capacity_desc') },
-    { value: 'systems-desc', label: this.i18n.t('sort.systems_desc') }
+    { value: 'date-newest', label: this.i18n.t('sort.date_newest') },
+    { value: 'date-oldest', label: this.i18n.t('sort.date_oldest') },
   ]);
 
   readonly statusOptions = computed(() => [
@@ -57,7 +57,7 @@ export class ZonesPageComponent implements OnInit {
 
   readonly modalLocations = computed(() => {
     const editing = this.facade.editingItem();
-    return this.#withEditFallback(
+    return withEditFallback(
       this.locationsFacade.selectItems(),
       this.locationsFacade.selectItems(),
       editing?.locationId
@@ -67,18 +67,21 @@ export class ZonesPageComponent implements OnInit {
   readonly availableGreenhouses = computed(() => {
     const editing = this.facade.editingItem();
     const locId = this.formValue().locationId || editing?.locationId || '';
-    if (!locId) return [];
-    const base = this.greenhousesFacade.selectItems().filter((gh) => gh.locationId === locId);
-    return this.#withEditFallback(base, this.greenhousesFacade.selectItems(), editing?.greenhouseId);
+    return modalCascadeOptions(
+      locId,
+      this.greenhousesFacade.selectForLocation(),
+      this.greenhousesFacade.selectItems(),
+      this.formValue().greenhouseId,
+      editing ? { parentId: editing.locationId, childId: editing.greenhouseId } : null
+    );
   });
   readonly filteredItems = this.facade.filteredItems;
 
   /** Greenhouses available in the table filter row (filtered by selected location) */
   readonly filterGreenhouses = computed(() => {
     const locId = this.facade.filters().locationId;
-    const src = this.greenhousesFacade.selectItems();
-    if (locId === 'all') return src;
-    return src.filter((gh) => gh.locationId === locId);
+    if (locId === 'all') return this.greenhousesFacade.selectItems();
+    return this.greenhousesFacade.selectForLocation();
   });
 
   constructor() {
@@ -86,13 +89,17 @@ export class ZonesPageComponent implements OnInit {
       isModalOpen: () => this.facade.isModalOpen(),
       editingItem: () => this.facade.editingItem(),
       form: this.form,
-      patchFromItem: (item) =>
+      patchFromItem: (item) => {
+        const gh = this.greenhousesFacade.selectItems().find((g) => g.id === item.greenhouseId);
+        const locationId = item.locationId || gh?.locationId || '';
         this.form.patchValue({
           name: item.name,
-          locationId: item.locationId,
+          locationId,
           greenhouseId: item.greenhouseId,
           status: item.status as 'active' | 'inactive',
-        }),
+        });
+        this.greenhousesFacade.loadActiveForLocation(locationId);
+      },
       defaultValue: () => ({ ...this.#defaultFormValue }),
       schedule: (run) =>
         queueMicrotask(() => {
@@ -108,20 +115,14 @@ export class ZonesPageComponent implements OnInit {
     this.greenhousesFacade.loadActiveForSelect();
   }
 
-  #withEditFallback<T extends { id: string }>(
-    base: T[],
-    all: T[],
-    editingId: string | undefined | null
-  ): T[] {
-    const id = editingId?.trim();
-    if (!id) return base;
-    if (base.some((x) => x.id === id)) return base;
-    const linked = all.find((x) => x.id === id);
-    return linked ? [...base, linked] : base;
-  }
-
   onLocationChange(id: string) {
     this.form.patchValue({ locationId: id, greenhouseId: '' });
+    this.greenhousesFacade.loadActiveForLocation(id);
+  }
+
+  onFilterLocationChange(val: string) {
+    this.facade.patchFilters({ locationId: val as never, greenhouseId: 'all' });
+    this.greenhousesFacade.loadActiveForLocation(val === 'all' ? '' : val);
   }
 
   openEditModal(item: ZoneRow): void {
@@ -174,12 +175,12 @@ export class ZonesPageComponent implements OnInit {
     return status === 'active' ? 'active' : 'inactive';
   }
 
-  protected utilizationPct(
-    row: { occupiedCapacity: number; totalCapacity?: number; capacity?: number }
-  ): number {
-    const max = row.totalCapacity ?? row.capacity ?? 0;
-    if (max === 0) return 0;
-    return Math.round((row.occupiedCapacity / max) * 100);
+  protected utilizationPct(row: ZoneRow): number {
+    if (row.occupancyPct != null && Number.isFinite(row.occupancyPct)) {
+      return Math.min(100, row.occupancyPct);
+    }
+    if (row.totalCapacity === 0) return 0;
+    return (row.occupiedCapacity / row.totalCapacity) * 100;
   }
 }
 

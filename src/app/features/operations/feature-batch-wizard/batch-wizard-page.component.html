@@ -73,18 +73,6 @@
 
       @case (1) {
         <div class="form-layout">
-          <div class="form-group">
-            <label class="form-label" for="wizard-batch-name">
-              <span class="form-label__dot"></span>{{ 'batches.form_name' | translate }}
-            </label>
-            <input
-              id="wizard-batch-name"
-              type="text"
-              class="form-input"
-              [value]="batchName()"
-              [placeholder]="'batches.form_name_placeholder' | translate"
-              (input)="setBatchName($event)" />
-          </div>
 
           <div class="form-group">
             <label class="form-label" for="wizard-crop">
@@ -346,11 +334,12 @@
 
               <h5 class="gh-system-distribution__section-title">{{ 'batches.wizard_select_layers' | translate }}</h5>
               <div class="gh-layer-picker" role="group">
-                @for (layer of availableLayers(); track layer.id) {
+                @for (layer of layersForSystem(sys.systemId); track layer.id) {
                   <button
                     type="button"
                     class="gh-layer-picker__card"
                     [class.gh-layer-picker__card--selected]="isLayerSelected(sys.systemId, layer.id)"
+                    [disabled]="layer.capacity <= 0"
                     (click)="toggleLayer(sys.systemId, layer)">
                     <span class="gh-layer-picker__name">
                       {{ layer.name }}
@@ -359,7 +348,7 @@
                       }
                     </span>
                     <span class="gh-layer-picker__capacity">
-                      {{ 'batches.wizard_capacity' | translate }}: {{ layer.capacity | number }}
+                      {{ 'batches.wizard_available' | translate }}: {{ layer.capacity | number }}
                     </span>
                   </button>
                 }
@@ -384,7 +373,7 @@
                         </div>
                       </div>
                       <div class="gh-layer-qty-row__input-wrap">
-                        <span class="gh-layer-qty-row__capacity">{{ layer.capacity | number }} /</span>
+                        <span class="gh-layer-qty-row__capacity" [attr.title]="'batches.wizard_available' | translate">{{ layer.capacity | number }} /</span>
                         <input
                           class="form-input gh-layer-qty-row__input"
                           type="text"
@@ -422,10 +411,6 @@
         <div class="form-layout">
           <h3 class="wizard__review-title">{{ 'batches.wizard_summary' | translate }}</h3>
           <div class="gh-info-panel">
-            <div class="gh-info-panel__row">
-              <span class="gh-info-panel__label">{{ 'batches.form_name' | translate }}</span>
-              <span class="gh-info-panel__value">{{ batchName() }}</span>
-            </div>
             <div class="gh-info-panel__row">
               <span class="gh-info-panel__label">{{ 'batches.wizard_summary_location' | translate }}</span>
               <span class="gh-info-panel__value">{{ selectedLocationName() }} → {{ selectedGreenhouseName() }}</span>

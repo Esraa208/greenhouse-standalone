@@ -10,170 +10,215 @@
     [search]="facade.filters().searchQuery"
     [status]="facade.filters().status"
     [statusOptions]="allocationStatusOptions()"
-    [sort]="facade.filters().sortBy"
+    [sort]="facade.filters().sortBy === 'all' ? '' : facade.filters().sortBy"
     [sortOptions]="sortOptions()"
     [showStatus]="true"
     (searchChange)="facade.patchFilters({ searchQuery: $event })"
-    (statusChange)="updateStatusFilter($event)"
+    (statusChange)="facade.patchFilters({ status: $any($event) })"
     (sortChange)="updateSortFilter($event)" />
 
-  <!-- Filter row 2: batch + location -> greenhouse -> zone -> system -> layer (pipes layout) -->
-
-  <!-- Filter row 2: batch + location → greenhouse → zone → system → layer → pipe -->
+  <!-- Filter row 2: batch + infrastructure cascade -->
   <div class="gh-filter-row-secondary">
-    <select class="gh-filter-select" [value]="facade.filters().batchNumber"
-      (change)="facade.patchFilters({ batchNumber: selectValue($event) })" id="gh-allocations-filter-batch">
+    <select class="gh-filter-select" [value]="facade.filters().stockBatchId"
+      (change)="onFilterBatchChange(selectValue($event))" id="gh-allocations-filter-batch">
       <option value="">{{ 'allocations.filter_all_batches' | translate }}</option>
-      @for (b of facade.uniqueBatches(); track b) { <option [value]="b">{{ b }}</option> }
+      @for (batch of filterBatches(); track batch.id) {
+        <option [value]="batch.id">{{ batch.batchNumber }} — {{ batch.cropType }}</option>
+      }
     </select>
     <select class="gh-filter-select" [value]="facade.filters().locationId"
-      (change)="facade.patchFilters({ locationId: selectValue($event), greenhouseId: 'all', zoneId: 'all', systemId: 'all', layerId: 'all', pipeId: 'all' })"
+      (change)="onFilterLocationChange(selectValue($event))"
       id="gh-allocations-filter-location">
-      <option value="all">{{ 'pipes.filter_all_locations' | translate }}</option>
-      @for (loc of facade.filterLocations(); track loc.id) { <option [value]="loc.id">{{ loc.name }}</option> }
+      <option value="all">{{ 'filter.all_locations' | translate }}</option>
+      @for (loc of filterLocations(); track loc.id) { <option [value]="loc.id">{{ loc.name }}</option> }
     </select>
     <select class="gh-filter-select" [value]="facade.filters().greenhouseId"
-      (change)="facade.patchFilters({ greenhouseId: selectValue($event), zoneId: 'all', systemId: 'all', layerId: 'all', pipeId: 'all' })"
+      (change)="onFilterGreenhouseChange(selectValue($event))"
       id="gh-allocations-filter-greenhouse">
-      <option value="all">{{ 'pipes.filter_all_greenhouses' | translate }}</option>
-      @for (gh of facade.filterGreenhouses(); track gh.id) { <option [value]="gh.id">{{ gh.name }}</option> }
+      <option value="all">{{ 'filter.all_greenhouses' | translate }}</option>
+      @for (gh of filterGreenhouses(); track gh.id) { <option [value]="gh.id">{{ gh.name }}</option> }
     </select>
     <select class="gh-filter-select" [value]="facade.filters().zoneId"
-      (change)="facade.patchFilters({ zoneId: selectValue($event), systemId: 'all', layerId: 'all', pipeId: 'all' })"
+      (change)="onFilterZoneChange(selectValue($event))"
       id="gh-allocations-filter-zone">
-      <option value="all">{{ 'pipes.filter_all_zones' | translate }}</option>
-      @for (z of facade.filterZones(); track z.id) { <option [value]="z.id">{{ z.name }}</option> }
+      <option value="all">{{ 'filter.all_zones' | translate }}</option>
+      @for (z of filterZones(); track z.id) { <option [value]="z.id">{{ z.name }}</option> }
     </select>
     <select class="gh-filter-select" [value]="facade.filters().systemId"
-      (change)="facade.patchFilters({ systemId: selectValue($event), layerId: 'all', pipeId: 'all' })"
+      (change)="onFilterSystemChange(selectValue($event))"
       id="gh-allocations-filter-system">
-      <option value="all">{{ 'pipes.filter_all_systems' | translate }}</option>
-      @for (sys of facade.filterSystems(); track sys.id) { <option [value]="sys.id">{{ sys.name }}</option> }
+      <option value="all">{{ 'filter.all_systems' | translate }}</option>
+      @for (sys of filterSystems(); track sys.id) { <option [value]="sys.id">{{ sys.name }}</option> }
     </select>
     <select class="gh-filter-select" [value]="facade.filters().layerId"
-      (change)="facade.patchFilters({ layerId: selectValue($event), pipeId: 'all' })"
+      (change)="onFilterLayerChange(selectValue($event))"
       id="gh-allocations-filter-layer">
-      <option value="all">{{ 'pipes.filter_all_layers' | translate }}</option>
-      @for (layer of facade.filterLayers(); track layer.id) { <option [value]="layer.id">{{ layer.name }}</option> }
-    </select>
-    <select class="gh-filter-select" [value]="facade.filters().pipeId"
-      (change)="facade.patchFilters({ pipeId: selectValue($event) })"
-      id="gh-allocations-filter-pipe">
-      <option value="all">{{ 'pipes.filter_all_pipes' | translate }}</option>
-      @for (pipe of facade.filterPipes(); track pipe.id) { <option [value]="pipe.id">{{ pipe.name }}</option> }
+      <option value="all">{{ 'filter.all_layers' | translate }}</option>
+      @for (layer of filterLayers(); track layer.id) { <option [value]="layer.id">{{ layer.name }}</option> }
     </select>
   </div>
   <div class="gh-card">
     @if (!facade.isLoading() && facade.filteredItems().length === 0) {
       <gh-empty-state [title]="'allocations.empty' | translate" />
     } @else {
-      <gh-table [loading]="facade.isLoading()" [striped]="false">
+      <div class="gh-table--rich-rows">
+      <gh-table [loading]="facade.isLoading()" [striped]="true">
         <thead>
           <tr>
-            <th>{{ 'allocations.col_batch' | translate }}</th>
             <th>{{ 'allocations.col_crop' | translate }}</th>
             <th>{{ 'allocations.col_location' | translate }}</th>
-            <th>{{ 'allocations.col_zone' | translate }}</th>
-            <th>{{ 'allocations.col_layer' | translate }}</th>
-            <th>{{ 'allocations.col_qty' | translate }}</th>
-            <th>{{ 'allocations.col_allocated' | translate }}</th>
-            <th>{{ 'allocations.col_movements' | translate }}</th>
-            <th>{{ 'allocations.col_losses' | translate }}</th>
+            <th>{{ 'allocations.col_qty_growth' | translate }}</th>
+            <th>{{ 'allocations.col_age' | translate }}</th>
             <th>{{ 'allocations.col_status' | translate }}</th>
+            <th>{{ 'allocations.col_records' | translate }}</th>
             <th>{{ 'allocations.col_actions' | translate }}</th>
           </tr>
         </thead>
         <tbody>
           @for (row of facade.filteredItems(); track row.id) {
-            <tr>
+            <tr class="gh-table__row">
+              <!-- Crop & batch -->
               <td>
-                <div class="gh-cell-entity">
-                  <span class="gh-entity-icon" aria-hidden="true">📦</span>
-                  <span class="gh-cell-entity__label">{{ row.batchNumber }}</span>
+                <div class="gh-cell-entity-block">
+                  <span class="gh-entity-icon gh-entity-icon--mark" aria-hidden="true"></span>
+                  <div class="gh-cell-entity-block__body">
+                    <span class="gh-cell-entity-block__title">{{ row.cropType }}</span>
+                    <span class="gh-cell-entity-block__code">{{ row.batchNumber }}</span>
+                  </div>
                 </div>
               </td>
-              <td><span class="gh-cell-entity__text">{{ row.cropType }}</span></td>
+
+              <!-- Location & placement -->
               <td>
-                <div class="gh-cell-stack">
-                  <span class="gh-cell-stack__primary">
-                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">📍</span>
-                    {{ row.location }}
-                  </span>
-                  <span class="gh-cell-stack__secondary">
-                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">🏠</span>
-                    {{ row.greenhouse }}
-                  </span>
+                <div class="gh-cell-placement">
+                  <div class="gh-cell-stack">
+                    @if (row.location) {
+                      <span class="gh-cell-stack__primary">
+                        <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                        </svg>
+                        <span>{{ row.location }}</span>
+                      </span>
+                    }
+                    @if (row.greenhouse) {
+                      <span class="gh-cell-stack__secondary">
+                        <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                        <span>{{ row.greenhouse }}</span>
+                      </span>
+                    }
+                  </div>
+                  @if (row.zone || row.system || row.layer) {
+                    <div class="gh-cell-placement__tags">
+                      @if (row.zone) {
+                        <span class="gh-tag gh-tag--info">{{ row.zone }}</span>
+                      }
+                      @if (row.system) {
+                        <span class="gh-tag gh-tag--primary">{{ row.system }}</span>
+                      }
+                      @if (row.layer) {
+                        <span class="gh-tag gh-tag--accent">{{ row.layer }}</span>
+                      }
+                    </div>
+                  }
                 </div>
               </td>
+
+              <!-- Quantity & growth -->
               <td>
-                <div class="gh-cell-stack">
-                  <span class="gh-cell-stack__primary">
-                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">〰️</span>
-                    {{ row.zone }}
-                  </span>
-                  <span class="gh-cell-stack__secondary">
-                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">⚙️</span>
-                    {{ row.system }}
-                  </span>
+                <div class="gh-cell-schedule">
+                  <div class="gh-cell-schedule__item">
+                    <span class="gh-cell-schedule__label">{{ 'allocations.plant_count_label' | translate }}</span>
+                    <div class="gh-cell-schedule__row">
+                      <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      <span class="gh-cell-schedule__value">{{ row.quantity | number }} {{ 'common.plants' | translate }}</span>
+                    </div>
+                  </div>
+                  @if (row.growthDuration > 0) {
+                    <div class="gh-cell-schedule__item">
+                      <span class="gh-cell-schedule__label">{{ 'allocations.growth_duration_label' | translate }}</span>
+                      <div class="gh-cell-schedule__row">
+                        <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.307a1.125 1.125 0 0 0 1.591 0L21.75 9M21.75 9v4.5" />
+                        </svg>
+                        <span class="gh-cell-schedule__value">{{ row.growthDuration | number }} {{ 'batches.days_suffix' | translate }}</span>
+                      </div>
+                    </div>
+                  }
                 </div>
               </td>
+
+              <!-- Age -->
               <td>
-                @if (row.layerPosition > 0) {
-                  <span class="gh-cell-layer">
-                    <!-- <span class="gh-cell-icon gh-cell-icon--primary gh-cell-icon--sm" aria-hidden="true">🗂️</span> -->
-                    {{ 'allocations.layer_number' | translate:{ count: '' + row.layerPosition } }}
-                  </span>
-                } @else if (row.layer) {
-                  <span class="gh-cell-layer">
-                    <!-- <span class="gh-cell-icon gh-cell-icon--primary gh-cell-icon--sm" aria-hidden="true">🗂️</span> -->
-                    {{ row.layer }}
-                  </span>
-                }
-              </td>
-              <td>
-                <div class="gh-qty-cell gh-qty-cell--stacked">
-                  <span class="gh-qty-cell__value">{{ row.quantity | number }}</span>
-                  <span class="gh-qty-cell__unit">{{ 'common.plants' | translate }}</span>
+                <div class="gh-cell-schedule">
+                  <div class="gh-cell-schedule__item">
+                    <span class="gh-cell-schedule__label">{{ 'allocations.plant_age_label' | translate }}</span>
+                    <div class="gh-cell-schedule__row">
+                      <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                      </svg>
+                      <span class="gh-cell-schedule__value">{{ row.daysSincePlanting | number }} {{ 'batches.days_suffix' | translate }}</span>
+                    </div>
+                  </div>
+                  <div class="gh-cell-schedule__item">
+                    <span class="gh-cell-schedule__label">{{ 'allocations.housing_age_label' | translate }}</span>
+                    <div class="gh-cell-schedule__row">
+                      <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3" />
+                      </svg>
+                      <span class="gh-cell-schedule__value">{{ row.daysInHousing | number }} {{ 'batches.days_suffix' | translate }}</span>
+                    </div>
+                  </div>
                 </div>
               </td>
+
+              <!-- Status -->
               <td>
-                <div class="gh-cell-date">
-                  <span class="gh-cell-date__primary">{{ row.allocatedDate | date:'d MMMM':'':i18n.currentLang() }}</span>
-                  <span class="gh-cell-date__secondary">{{ row.allocatedDate | date:'y':'':i18n.currentLang() }}</span>
-                </div>
+                <gh-badge [variant]="getStatusVariant(row.status)">
+                  {{ statusLabel(row) }}
+                </gh-badge>
               </td>
+
+              <!-- Records -->
               <td>
-                <button type="button" class="gh-cell-chip" (click)="facade.openHistoryModal(row)">
-                  <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">↺</span>
-                  {{ row.movementHistory.length }} {{ 'allocations.movements_suffix' | translate }}
-                </button>
-              </td>
-              <td>
-                @if (totalLossQty(row.lossHistory) > 0) {
-                  <button type="button" class="gh-loss-badge" (click)="facade.openLossHistoryModal(row)">
-                    <span class="gh-cell-icon gh-cell-icon--sm" aria-hidden="true">⚠</span>
-                    {{ totalLossQty(row.lossHistory) | number }} {{ 'allocations.losses_suffix' | translate }}
+                <div class="gh-cell-records">
+                  <button type="button" class="gh-cell-chip gh-cell-chip--info" (click)="facade.openHistoryModal(row)">
+                    <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    {{ 'allocations.records_transfer' | translate }} ({{ row.movementCount | number }})
                   </button>
-                } @else {
-                  <span class="gh-cell-empty">{{ 'allocations.no_loss' | translate }}</span>
-                }
+                  <button
+                    type="button"
+                    class="gh-cell-chip gh-cell-chip--danger"
+                    [disabled]="row.lossCount === 0"
+                    (click)="facade.openLossHistoryModal(row)">
+                    <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    {{ 'allocations.records_loss' | translate }} ({{ row.lossCount | number }})
+                  </button>
+                </div>
               </td>
-              <td>
-                @switch (row.status) {
-                  @case ('active') { <gh-badge variant="active">{{ 'allocations.status_active' | translate }}</gh-badge> }
-                  @case ('moved') { <gh-badge variant="warning">{{ 'allocations.status_moved' | translate }}</gh-badge> }
-                  @case ('harvested') { <gh-badge variant="harvested">{{ 'allocations.status_harvested' | translate }}</gh-badge> }
-                }
-              </td>
+
+              <!-- Actions -->
               <td>
                 @if (row.status === 'active') {
-                  <div class="gh-table-actions gh-table-actions--compact">
-                    <gh-button variant="primary" size="sm" (click)="facade.openMoveModal(row)">
+                  <div class="gh-cell-action-btns">
+                    <gh-button variant="primary" size="sm" [fullWidth]="true" (click)="facade.openMoveModal(row)">
+                      <svg class="gh-cell-action-btns__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
                       {{ 'allocations.btn_move' | translate }}
-                      <span class="gh-btn-trailing-icon" aria-hidden="true">←</span>
                     </gh-button>
-                    <gh-button variant="destructive" size="sm" (click)="facade.openLossModal(row)">
-                      <span class="gh-btn-trailing-icon" aria-hidden="true">⚠</span>
+                    <gh-button variant="destructive" size="sm" [fullWidth]="true" (click)="openRegisterLoss(row)">
+                      <svg class="gh-cell-action-btns__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      </svg>
                       {{ 'allocations.btn_loss' | translate }}
                     </gh-button>
                   </div>
@@ -183,24 +228,30 @@
           }
         </tbody>
       </gh-table>
-      <gh-pagination
-        [currentPage]="facade.currentPage()"
-        [totalPages]="facade.totalPages()"
-        [totalCount]="facade.totalCount()"
-        [pageSize]="facade.pageSize()"
-        (pageChange)="facade.goToPage($event)" />
+      </div>
+      <div class="gh-card__footer">
+        <gh-pagination
+          [currentPage]="facade.currentPage()"
+          [totalPages]="facade.totalPages()"
+          [totalCount]="facade.totalCount()"
+          [itemCount]="facade.filteredItems().length"
+          [pageSize]="facade.pageSize()"
+          (pageChange)="facade.goToPage($event)"
+          (pageSizeChange)="facade.setPageSize($event)" />
+      </div>
     }
   </div>
 
   <!-- MODAL 1: MOVEMENT HISTORY -->
-  <gh-modal [isOpen]="facade.isHistoryModalOpen()" [title]="'allocations.modal_history_title' | translate" size="lg" (closed)="facade.closeHistoryModal()">
+  <gh-modal [isOpen]="facade.isHistoryModalOpen()" [title]="'allocations.modal_history_title' | translate" size="lg" (isOpenChange)="!$event && facade.closeHistoryModal()">
     @if (facade.viewingHistoryItem(); as item) {
       <gh-stock-history-panel
         [batchNumber]="item.batchNumber"
         [cropType]="item.cropType"
-        [quantity]="item.quantity"
+        [quantity]="facade.housingHistorySummary()?.currentQuantity ?? item.quantity"
         [entries]="facade.historyEntries()"
         [loading]="facade.historyLoading()"
+        [countTransfersOnly]="true"
         footerCountKey="allocations.total_movements"
         footerSuffixKey="allocations.movements_suffix" />
     }
@@ -210,43 +261,82 @@
   </gh-modal>
 
   <!-- MODAL 2: LOSS HISTORY -->
-  <gh-modal [isOpen]="facade.isLossHistModalOpen()" [title]="'allocations.modal_loss_history_title' | translate" size="md" (closed)="facade.closeLossHistoryModal()">
+  <gh-modal [isOpen]="facade.isLossHistModalOpen()" [title]="'allocations.modal_loss_history_title' | translate" size="md" (isOpenChange)="!$event && facade.closeLossHistoryModal()">
     @if (facade.viewingLossItem(); as item) {
-      <div class="allocations-page__info-card allocations-page__info-card--red">
-        <div>
-          <p class="allocations-page__info-batch">{{ item.batchNumber }} - {{ item.cropType }}</p>
-          <p class="allocations-page__info-qty">{{ 'allocations.current_qty' | translate }}: {{ item.quantity | number }} {{ 'common.plants' | translate }}</p>
+      <div class="gh-loss-history-info-card">
+        <div style="text-align: right">
+          <p class="gh-loss-history-info-batch">{{ item.batchNumber }} - {{ item.cropType }}</p>
+          <p class="gh-loss-history-info-qty">{{ 'allocations.current_qty' | translate }}: {{ item.quantity | number }} {{ 'common.plants' | translate }}</p>
         </div>
+        <span class="gh-entity-icon gh-loss-history-icon" aria-hidden="true">📦</span>
       </div>
-      @for (loss of item.lossHistory; track loss.id) {
-        <div class="allocations-page__loss-entry">
-          <div class="allocations-page__loss-header">
-            <div class="allocations-page__loss-badges">
-              @switch (loss.lossType) {
-                @case ('disease') { <gh-badge variant="partial">{{ 'losses.type_disease' | translate }}</gh-badge> }
-                @case ('pest') { <gh-badge variant="warning">{{ 'losses.type_pest' | translate }}</gh-badge> }
-                @case ('weather') { <gh-badge variant="info">{{ 'losses.type_weather' | translate }}</gh-badge> }
-                @default { <gh-badge variant="inactive">{{ 'losses.type_other' | translate }}</gh-badge> }
-              }
-              <span class="allocations-page__loss-qty">{{ 'allocations.loss_qty_prefix' | translate }} {{ loss.quantity | number }} {{ 'common.plants' | translate }}</span>
-            </div>
-            <span class="allocations-page__loss-date">{{ loss.date | date:'d MMMM y':'':i18n.currentLang() }}</span>
-          </div>
-          <div class="allocations-page__reason-card">
-            <p class="allocations-page__reason-label">{{ 'allocations.loss_reason' | translate }}:</p>
-            <p>{{ loss.reason }}</p>
-          </div>
-          @if (loss.notes) {
-            <div class="allocations-page__notes-card"><p>{{ loss.notes }}</p></div>
-          }
-          @if (loss.recordedBy) {
-            <div class="allocations-page__recorded-by">{{ 'allocations.recorded_by' | translate }}: {{ loss.recordedBy }}</div>
-          }
+      
+      <div class="gh-loss-history-timeline">
+        <div class="gh-loss-history-timeline-header">
+          <p class="gh-loss-history-section-title">{{ 'allocations.registered_losses' | translate }}</p>
         </div>
-      }
-      <div class="allocations-page__loss-summary">
-        <p>{{ 'allocations.total_loss_incidents' | translate }}: {{ item.lossHistory.length }}</p>
-        <p>{{ 'allocations.total_loss_qty' | translate }}: {{ totalLossQty(item.lossHistory) | number }} {{ 'common.plants' | translate }}</p>
+        
+        @if (facade.historyLoading()) {
+          <div class="gh-loss-history-loading"><div class="gh-loading-spinner"></div></div>
+        } @else if (facade.lossHistoryEntries().length === 0) {
+          <p class="gh-loss-history-empty">{{ 'allocations.loss_history_empty' | translate }}</p>
+        } @else {
+          @for (loss of facade.lossHistoryEntries(); track loss.id; let last = $last) {
+            <div class="gh-loss-history-timeline-item">
+              <div class="gh-loss-history-timeline-dot-wrap">
+                <div class="gh-loss-history-timeline-dot"
+                  [class.gh-loss-history-timeline-dot--disease]="lossTypeCode(loss) === 1"
+                  [class.gh-loss-history-timeline-dot--weather]="lossTypeCode(loss) === 2"
+                  [class.gh-loss-history-timeline-dot--electricity]="lossTypeCode(loss) === 3"
+                  [class.gh-loss-history-timeline-dot--pest]="lossTypeCode(loss) === 4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </div>
+                @if (!last) { <div class="gh-loss-history-timeline-line"></div> }
+              </div>
+              <div class="gh-loss-history-timeline-content">
+                <div class="gh-loss-history-entry">
+                  <div class="gh-loss-history-entry-header">
+                    <div class="gh-loss-history-entry-badges">
+                      @if (loss.lossTypeLabel) {
+                        <gh-badge variant="inactive">{{ loss.lossTypeLabel }}</gh-badge>
+                      } @else {
+                        @switch (lossTypeCode(loss)) {
+                          @case (1) { <gh-badge variant="partial" class="gh-loss-history-badge--disease">{{ 'losses.type_disease' | translate }}</gh-badge> }
+                          @case (2) { <gh-badge variant="info" class="gh-loss-history-badge--weather">{{ 'losses.type_weather' | translate }}</gh-badge> }
+                          @case (3) { <gh-badge variant="warning" class="gh-loss-history-badge--electricity">{{ 'losses.type_electricity' | translate }}</gh-badge> }
+                          @case (4) { <gh-badge variant="warning" class="gh-loss-history-badge--pest">{{ 'losses.type_pest' | translate }}</gh-badge> }
+                          @default { <gh-badge variant="inactive">{{ 'losses.type_other' | translate }}</gh-badge> }
+                        }
+                      }
+                      <span class="gh-loss-history-entry-qty">{{ 'allocations.loss_qty_prefix' | translate }} {{ loss.quantity | number }} {{ 'common.plants' | translate }}</span>
+                    </div>
+                    <span class="gh-loss-history-entry-date">{{ loss.date | date:'d MMMM y':'':i18n.currentLang() }}</span>
+                  </div>
+                  <div class="gh-loss-history-reason-card">
+                    <p class="gh-loss-history-reason-label">{{ 'allocations.loss_reason' | translate }}</p>
+                    <p>{{ loss.reason || '—' }}</p>
+                  </div>
+                  <!-- @if (loss.recordedBy) {
+                    <p class="gh-loss-history-recorded-by">
+                      {{ 'allocations.recorded_by' | translate }}: {{ loss.recordedBy }}
+                    </p>
+                  } -->
+                  @if (loss.notes) {
+                    <div class="gh-loss-history-notes-card">
+                      <p class="gh-loss-history-reason-label">{{ 'allocations.notes' | translate }}</p>
+                      <p>{{ loss.notes }}</p>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <div class="gh-loss-history-summary">
+        <p>{{ 'allocations.total_loss_incidents' | translate }}: {{ facade.lossHistoryEntries().length }} {{ 'allocations.incident' | translate }}</p>
+        <p class="gh-loss-history-summary-qty">{{ 'allocations.total_loss_qty' | translate }}: {{ totalLossQty(facade.lossHistoryEntries()) | number }} {{ 'common.plants' | translate }}</p>
       </div>
     }
     <div slot="footer" class="modal-footer-actions">
@@ -259,7 +349,7 @@
     [isOpen]="facade.isMoveModalOpen()"
     [title]="'allocations.modal_move_title' | translate"
     size="lg"
-    (closed)="facade.closeMoveModal()">
+    (isOpenChange)="!$event && facade.closeMoveModal()">
     @if (facade.movingItem(); as item) {
       <gh-transfer-allocation-panel
         [item]="item"
@@ -270,17 +360,17 @@
         [zoneId]="facade.moveTargetZoneId()"
         [systemId]="facade.moveTargetSystemId()"
         [layerId]="facade.moveTargetLayerId()"
-        [locations]="facade.refLocations()"
-        [greenhouses]="facade.moveFilteredGhs()"
-        [zones]="facade.moveFilteredZones()"
-        [systems]="facade.moveFilteredSystems()"
-        [layers]="facade.moveFilteredLayers()"
-        [pathSegments]="facade.movePathSegments()"
-        (locationIdChange)="facade.setMoveLocationId($event)"
-        (greenhouseIdChange)="facade.setMoveGhId($event)"
-        (zoneIdChange)="facade.setMoveZoneId($event)"
-        (systemIdChange)="facade.setMoveSystemId($event)"
-        (layerIdChange)="facade.setMoveLayerId($event)"
+        [locations]="moveLocations()"
+        [greenhouses]="moveGreenhouses()"
+        [zones]="moveZones()"
+        [systems]="moveSystems()"
+        [layers]="moveLayers()"
+        [pathSegments]="movePathSegments()"
+        (locationIdChange)="onMoveLocationChange($event)"
+        (greenhouseIdChange)="onMoveGreenhouseChange($event)"
+        (zoneIdChange)="onMoveZoneChange($event)"
+        (systemIdChange)="onMoveSystemChange($event)"
+        (layerIdChange)="onMoveLayerChange($event)"
         (quantityChange)="facade.setMoveQuantity($event)"
         (quantityPctChange)="facade.setMoveQuantityPct($event)" />
     }
@@ -292,54 +382,24 @@
     </div>
   </gh-modal>
 
-  <!-- MODAL 4: RECORD LOSS -->
-  <gh-modal [isOpen]="facade.isLossModalOpen()" [title]="'allocations.modal_loss_title' | translate" size="md" (closed)="facade.closeLossModal()">
-    <div [formGroup]="lossForm">
-      @if (facade.lossingItem(); as item) {
-        <div class="allocations-page__info-card allocations-page__info-card--blue">
-          <div>
-            <p class="allocations-page__info-batch">{{ item.batchNumber }} - {{ item.cropType }}</p>
-            <p class="allocations-page__info-path">{{ item.location }} • {{ item.greenhouse }} • {{ item.zone }} • {{ item.system }} • {{ item.layer }}</p>
-            <p class="allocations-page__info-qty">{{ 'allocations.current_qty' | translate }}: <strong>{{ item.quantity | number }} {{ 'common.plants' | translate }}</strong></p>
-          </div>
-        </div>
-        <div class="allocations-page__form-grid">
-          <gh-form-group [label]="'losses.form_type_label' | translate" [control]="lossForm.get('lossType')!" [errorMessage]="'losses.form_type_error' | translate">
-            <select ghInput formControlName="lossType">
-              <option value="">{{ 'losses.form_type_placeholder' | translate }}</option>
-              <option value="disease">{{ 'losses.type_disease' | translate }}</option>
-              <option value="pest">{{ 'losses.type_pest' | translate }}</option>
-              <option value="weather">{{ 'losses.type_weather' | translate }}</option>
-              <option value="other">{{ 'losses.type_other' | translate }}</option>
-            </select>
-          </gh-form-group>
-          <gh-form-group [label]="'losses.form_date_label' | translate" [control]="lossForm.get('date')!">
-            <input ghInput type="date" formControlName="date" />
-          </gh-form-group>
-        </div>
-        <gh-form-group [label]="'allocations.loss_qty_label' | translate" [control]="lossForm.get('quantity')!" [errorMessage]="'allocations.loss_qty_error' | translate">
-          <input ghInput type="number" formControlName="quantity" placeholder="0" [min]="1" [max]="item.quantity" />
-        </gh-form-group>
-        <gh-form-group [label]="'losses.form_reason_label' | translate" [control]="lossForm.get('reason')!" [errorMessage]="'losses.form_reason_error' | translate">
-          <input ghInput type="text" formControlName="reason" [placeholder]="'losses.form_reason_placeholder' | translate" />
-        </gh-form-group>
-        <gh-form-group [label]="'losses.form_notes_label' | translate">
-          <textarea ghInput formControlName="notes" rows="3" [placeholder]="'losses.form_notes_placeholder' | translate"></textarea>
-        </gh-form-group>
-        @if (lossForm.valid) {
-          <div class="allocations-page__loss-confirm-card">
-            <div>
-              <p class="allocations-page__loss-confirm-title">{{ 'allocations.loss_confirm_title' | translate }}</p>
-              <p>{{ 'allocations.loss_confirm_text' | translate }} <strong>{{ lossForm.get('quantity')!.value | number }} {{ 'common.plants' | translate }}</strong></p>
-              <p class="allocations-page__loss-confirm-remaining">{{ 'allocations.loss_remaining' | translate }}: <strong>{{ item.quantity - (lossForm.get('quantity')!.value ?? 0) | number }} {{ 'common.plants' | translate }}</strong></p>
-            </div>
-          </div>
-        }
-      }
-    </div>
+  <!-- MODAL 4: ALLOCATION LOSS REGISTRATION -->
+  <gh-modal
+    [isOpen]="facade.isLossModalOpen()"
+    (isOpenChange)="!$event && facade.closeLossModal()"
+    [title]="'losses.modal_register_title' | translate"
+    size="md">
+    @if (facade.lossingItem(); as item) {
+      <gh-allocation-loss-panel [item]="item" [form]="lossForm" />
+    }
+
     <div slot="footer" class="modal-footer-actions">
       <gh-button variant="outline" (click)="facade.closeLossModal()">{{ 'common.cancel' | translate }}</gh-button>
-      <gh-button variant="destructive" [disabled]="lossForm.invalid" (click)="submitLoss()">{{ 'allocations.btn_record_loss' | translate }}</gh-button>
+      <gh-button
+        variant="primary"
+        [disabled]="!canSubmitLoss()"
+        (click)="submitLoss()">
+        {{ 'losses.btn_register_loss' | translate }}
+      </gh-button>
     </div>
   </gh-modal>
 

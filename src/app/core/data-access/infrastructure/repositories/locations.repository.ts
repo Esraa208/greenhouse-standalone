@@ -7,9 +7,28 @@ import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiLocationItem,
 } from '@app/core/data-access/api';
-import { PagedListQuery, PaginatedResult, buildPagedListParams, buildActiveSelectParams } from '../list-query';
+import {
+  PagedListQuery,
+  PaginatedResult,
+  buildPagedListParams,
+  buildLocationSelectParams,
+  normalizePaginatedResult,
+} from '../list-query';
 import { extractCreatedId } from '../extract-created-id';
 import type { PutPatch } from '../put-patch-merge';
+
+function mapLocationItem(apiLoc: ApiLocationItem): LocationRow {
+  const isActive = apiLoc.status?.isActive ?? apiLoc.active ?? true;
+  return {
+    id: String(apiLoc.id),
+    name: apiLoc.name ?? '',
+    address: apiLoc.address ?? '',
+    unitsCount: apiLoc.greenhouseCount ?? apiLoc.unitsCount ?? 0,
+    totalCapacity: apiLoc.totalCapacity ?? 0,
+    status: isActive ? 'active' : 'inactive',
+    statusTitle: apiLoc.status?.title,
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class LocationsRepository {
@@ -22,41 +41,18 @@ export class LocationsRepository {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Locations, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiLocationItem>>(url, { params }).pipe(
       map(response => {
-        const items = (response.result?.items ?? []).map(apiLoc => ({
-          id: String(apiLoc.id),
-          name: apiLoc.name ?? '',
-          address: apiLoc.address ?? '',
-          unitsCount: apiLoc.unitsCount ?? 0,
-          totalCapacity: apiLoc.totalCapacity ?? 0,
-          status: apiLoc.active ? 'active' as const : 'inactive' as const,
-        }));
-        return {
-          items,
-          totalCount: response.result?.totalCount ?? 0,
-          pageNumber: response.result?.pageNumber ?? 1,
-          pageSize: response.result?.pageSize ?? 50,
-          totalPages: response.result?.totalPages ?? 1,
-        };
+        const items = (response.result?.items ?? []).map(mapLocationItem);
+        return normalizePaginatedResult(response.result, items, query.pageSize);
       })
     );
   }
 
   /** Active rows only (dropdowns / modals). */
   fetchActivePage(pageNumber = 1): Observable<LocationRow[]> {
-    const params = buildActiveSelectParams(pageNumber);
+    const params = buildLocationSelectParams(pageNumber);
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Locations, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiLocationItem>>(url, { params }).pipe(
-      map(response => {
-        const items = response.result?.items ?? [];
-        return items.map(apiLoc => ({
-          id: String(apiLoc.id),
-          name: apiLoc.name ?? '',
-          address: apiLoc.address ?? '',
-          unitsCount: apiLoc.unitsCount ?? 0,
-          totalCapacity: apiLoc.totalCapacity ?? 0,
-          status: apiLoc.active ? 'active' as const : 'inactive' as const,
-        }));
-      })
+      map(response => (response.result?.items ?? []).map(mapLocationItem))
     );
   }
 
@@ -93,12 +89,3 @@ export class LocationsRepository {
     return this.#http.delete<void>(url, { params: { Id: id } });
   }
 }
-
-
-
-
-
-
-
-
-

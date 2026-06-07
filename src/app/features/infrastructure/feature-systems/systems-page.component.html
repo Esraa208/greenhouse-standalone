@@ -1,4 +1,4 @@
-﻿<div class="systems-page" [attr.dir]="i18n.dir()">
+<div class="systems-page" [attr.dir]="i18n.dir()">
 
   <gh-page-header
     [title]="'systems.page_title' | translate"
@@ -22,7 +22,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().locationId"
-      (change)="facade.patchFilters({ locationId: $any($event.target).value, greenhouseId: 'all', zoneId: 'all' })"
+      (change)="onFilterLocationChange($any($event.target).value)"
       id="gh-systems-filter-location"
     >
       <option value="all">{{ 'systems.filter_all_locations' | translate }}</option>
@@ -34,7 +34,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().greenhouseId"
-      (change)="facade.patchFilters({ greenhouseId: $any($event.target).value, zoneId: 'all' })"
+      (change)="onFilterGreenhouseChange($any($event.target).value)"
       id="gh-systems-filter-greenhouse"
     >
       <option value="all">{{ 'systems.filter_all_greenhouses' | translate }}</option>
@@ -53,6 +53,17 @@
       @for (z of filterZones(); track z.id) {
         <option [value]="z.id">{{ z.name }}</option>
       }
+    </select>
+
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().systemType"
+      (change)="facade.patchFilters({ systemType: $any($event.target).value })"
+      id="gh-systems-filter-type"
+    >
+      <option value="all">{{ 'systems.filter_all_types' | translate }}</option>
+      <option value="NFT">{{ 'systems.type_nft' | translate }}</option>
+      <option value="DWC">{{ 'systems.type_dwc' | translate }}</option>
     </select>
   </div>
 
@@ -99,7 +110,7 @@
                 <div class="occupancy-cell">
                   <div class="occupancy-text">
                     <span>{{ row.occupiedCapacity | number }} / {{ row.totalCapacity | number }}
-                      ({{ utilizationPct(row) }}%)</span>
+                      ({{ utilizationPct(row) | number:'1.0-1' }}%)</span>
                   </div>
                   <gh-progress-bar
                     [value]="row.occupiedCapacity"
@@ -132,12 +143,16 @@
           }
         </tbody>
       </gh-table>
-      <gh-pagination
-        [currentPage]="facade.currentPage()"
-        [totalPages]="facade.totalPages()"
-        [totalCount]="facade.totalCount()"
-        [pageSize]="facade.pageSize()"
-        (pageChange)="facade.goToPage($event)" />
+      <div class="gh-card__footer">
+        <gh-pagination
+          [currentPage]="facade.currentPage()"
+          [totalPages]="facade.totalPages()"
+          [totalCount]="facade.totalCount()"
+          [itemCount]="facade.filteredItems().length"
+          [pageSize]="facade.pageSize()"
+          (pageChange)="facade.goToPage($event)"
+          (pageSizeChange)="facade.setPageSize($event)" />
+      </div>
     }
   </div>
 

@@ -1,4 +1,4 @@
-﻿// libs/shared/ui/src/lib/segmented-control/segmented-control.component.ts
+// libs/shared/ui/src/lib/segmented-control/segmented-control.component.ts
 import { ChangeDetectionStrategy, Component, input, model } from '@angular/core';
 
 export interface SegmentOption {
@@ -16,6 +16,7 @@ export interface SegmentOption {
 export class SegmentedControlComponent {
   readonly options = input<SegmentOption[]>([]);
   readonly value = model<string>('');
+  readonly variant = input<'default' | 'primary'>('default');
 
   selectOption(val: string): void {
     this.value.set(val);

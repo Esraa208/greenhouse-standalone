@@ -7,6 +7,8 @@ export interface LocationRow {
   readonly unitsCount: number;
   readonly totalCapacity: number;
   readonly status: EntityStatus;
+  /** Display label from API `status.title` when provided. */
+  readonly statusTitle?: string;
 }
 
 export type SortKey = 'name-asc' | 'name-desc' | 'date-newest' | 'date-oldest';
@@ -39,6 +41,18 @@ export const LOCATION_SORT_OPTIONS: readonly { value: SortKey; translationKey: s
   { value: 'date-newest', translationKey: 'sort.date_newest' },
   { value: 'date-oldest', translationKey: 'sort.date_oldest' }
 ];
+
+/** Maps UI sort keys to Locations/fetch `SetOrder` query values. */
+export function mapLocationSetOrder(sortBy: SortKey | 'all'): string | undefined {
+  if (sortBy === 'all') return undefined;
+  const map: Record<SortKey, string> = {
+    'name-asc': 'nameAsc',
+    'name-desc': 'nameDesc',
+    'date-newest': 'newest',
+    'date-oldest': 'oldest',
+  };
+  return map[sortBy];
+}
 
 export interface RefLocation {
   readonly id: string;

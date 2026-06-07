@@ -87,8 +87,7 @@ export class BatchWizardPageComponent {
     { id: 5, labelKey: 'batches.wizard_step_review', icon: 'review' as const },
   ];
 
-  // Step 1: Name, crop & quantity
-  readonly batchName = signal('');
+  // Step 1: crop & quantity
   readonly selectedCropId = signal('');
   readonly totalQuantity = signal<number>(0);
 
@@ -169,9 +168,17 @@ export class BatchWizardPageComponent {
     );
   });
 
-  readonly availableLayers = computed(() =>
-    this.layersFacade.selectItems().map(l => ({ id: l.id, name: l.name, capacity: (l as any).totalCapacity || 500 }))
-  );
+  /** Returns layers for the system; `capacity` is available plants (not total). */
+  protected layersForSystem(systemId: string): { id: string; name: string; capacity: number }[] {
+    return this.layersFacade
+      .selectItems()
+      .filter((l) => String(l.systemId) === String(systemId))
+      .map((l) => ({
+        id: l.id,
+        name: l.name,
+        capacity: l.availableCapacity,
+      }));
+  }
 
   readonly totalAllocated = computed(() =>
     this.selectedSystems().reduce((total, sys) =>
@@ -194,7 +201,6 @@ export class BatchWizardPageComponent {
 
   readonly canProceedStep1 = computed(
     () =>
-      this.batchName().trim().length > 0 &&
       !!this.selectedCropId() &&
       this.totalQuantity() > 0,
   );
@@ -253,9 +259,7 @@ export class BatchWizardPageComponent {
     }
   }
 
-  protected setBatchName(event: Event): void {
-    this.batchName.set((event.target as HTMLInputElement).value);
-  }
+
 
   protected selectCrop(event: Event): void {
     this.selectedCropId.set((event.target as HTMLSelectElement).value);
@@ -475,15 +479,10 @@ export class BatchWizardPageComponent {
     const qty = layers.reduce((sum, l) => sum + l.quantity, 0);
 
     this.isSubmitting.set(true);
-    const name = this.batchName().trim();
-    if (!name) {
-      this.#toast.error(this.i18n.t('batches.form_name_error'));
-      return;
-    }
 
     this.batchesFacade.create(
       {
-        name,
+        name: 'BTH-' + (new Date().getFullYear() - 2026).toString() + '-' + Math.floor(Math.random() * 1000000).toString(),
         cropTypeId: cropId,
         quantity: qty,
         layers,

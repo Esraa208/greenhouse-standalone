@@ -20,6 +20,7 @@ export enum ApiAction {
   Update = 'update',
   Delete = 'Delete',
   Move = 'Move',
+  Preview = 'preview',
 }
 
 /**

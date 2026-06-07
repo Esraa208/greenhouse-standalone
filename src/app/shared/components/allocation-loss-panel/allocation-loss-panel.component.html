@@ -1,0 +1,85 @@
+<div class="gh-loss-reg-batch-card">
+  <div class="gh-loss-reg-batch-card__main">
+    <span class="gh-loss-reg-batch-card__icon" aria-hidden="true">📦</span>
+    <div>
+      <p class="gh-loss-reg-batch-card__batch">{{ item().batchNumber }}</p>
+      <p class="gh-loss-reg-batch-card__crop">{{ item().cropType }}</p>
+    </div>
+  </div>
+</div>
+
+<article class="gh-allocation-loss-layer" aria-labelledby="allocation-loss-layer-title">
+  <div class="gh-allocation-loss-layer__head">
+    <div class="gh-allocation-loss-layer__identity">
+      <span class="gh-loss-reg-layer__layer-icon" aria-hidden="true">▤</span>
+      <div>
+        <p id="allocation-loss-layer-title" class="gh-allocation-loss-layer__name">{{ layerTitle() }}</p>
+        @if (item().pipe) {
+          <p class="gh-allocation-loss-layer__pipe">{{ item().pipe }}</p>
+        }
+      </div>
+    </div>
+    <div class="gh-allocation-loss-layer__qty">
+      <span class="gh-allocation-loss-layer__qty-label">{{ 'losses.stat_quantity' | translate }}</span>
+      <span class="gh-allocation-loss-layer__qty-value">
+        {{ item().quantity | number }} {{ 'common.plants' | translate }}
+      </span>
+    </div>
+  </div>
+</article>
+
+<div class="gh-loss-reg-form" [formGroup]="form()">
+  <div class="gh-loss-reg-form__grid">
+    <gh-form-group
+      [label]="'losses.form_type_label' | translate"
+      [errorMessage]="'losses.form_type_error' | translate"
+      [control]="form().controls['lossType']">
+      <select ghInput formControlName="lossType">
+        <option value="">{{ 'losses.form_type_placeholder' | translate }}</option>
+        <option value="disease">{{ 'losses.type_disease' | translate }}</option>
+        <option value="weather">{{ 'losses.type_weather' | translate }}</option>
+        <option value="electricity">{{ 'losses.type_electricity' | translate }}</option>
+        <option value="pest">{{ 'losses.type_pest' | translate }}</option>
+        <option value="other">{{ 'losses.type_other' | translate }}</option>
+      </select>
+    </gh-form-group>
+
+    <gh-form-group [label]="'losses.form_date_label' | translate" [control]="form().controls['date']">
+      <input ghInput type="date" formControlName="date" />
+    </gh-form-group>
+  </div>
+
+  <gh-form-group
+    class="gh-loss-reg-form__field--full"
+    [label]="'losses.form_quantity_label' | translate"
+    [errorMessage]="'losses.form_quantity_error' | translate"
+    [control]="form().controls['quantity']">
+    <gh-input
+      [positiveOnly]="true"
+      formControlName="quantity"
+      [placeholder]="'losses.form_quantity_placeholder' | translate" />
+  </gh-form-group>
+
+  <gh-form-group
+    class="gh-loss-reg-form__field--full"
+    [label]="'losses.form_reason_label' | translate"
+    [errorMessage]="'losses.form_reason_error' | translate"
+    [control]="form().controls['reason']">
+    <input
+      ghInput
+      type="text"
+      formControlName="reason"
+      [placeholder]="'losses.form_reason_placeholder' | translate" />
+  </gh-form-group>
+
+  <gh-form-group
+    class="gh-loss-reg-form__field--full"
+    [label]="'losses.form_notes_label' | translate"
+    [control]="form().controls['notes']">
+    <textarea
+      ghInput
+      formControlName="notes"
+      rows="3"
+      [placeholder]="'losses.form_notes_placeholder' | translate"></textarea>
+  </gh-form-group>
+</div>

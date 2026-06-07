@@ -1,21 +1,27 @@
-﻿import { CreateLocationDto, LocationFilters, LocationRow } from '../models/location.model';
+import { CreateLocationDto, LocationFilters, LocationRow, mapLocationSetOrder } from '../models/location.model';
 import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { GhToastService, TranslationService } from '@app/core';
 import { LocationsRepository } from '../repositories/locations.repository';
 import { Subject } from 'rxjs';
-import { PagedListQuery } from '../list-query';
+import { DEFAULT_PAGE_SIZE, PagedListQuery } from '../list-query';
 import {
   bindListReloadStream,
   applyListFilterPatch,
+  applyListPaginationFromResult,
+  changeListPageSize,
   subscribeMutationWithResult,
   subscribeMutationWithVoid,
 } from '../entity-list-facade.helpers';
 import { mergeAfterPut } from '../put-patch-merge';
+import { toastInfrastructureCrudSuccess } from '../infrastructure-crud-toast.helper';
 
 @Injectable({ providedIn: 'root' })
 export class LocationsFacade {
   readonly #repo = inject(LocationsRepository);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #toast = inject(GhToastService);
+  readonly #i18n = inject(TranslationService);
 
   readonly #items = signal<LocationRow[]>([]);
   readonly #filters = signal<LocationFilters>({
@@ -32,7 +38,7 @@ export class LocationsFacade {
   readonly #error = signal<string | null>(null);
   readonly #totalCount = signal(0);
   readonly #totalPages = signal(1);
-  readonly #pageSize = signal(50);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
 
   readonly #reloadNow$ = new Subject<void>();
   readonly #reloadSearch$ = new Subject<void>();
@@ -72,11 +78,7 @@ export class LocationsFacade {
       setItems: (items) => this.#items.set(items),
       setLoading: (v) => this.#isLoading.set(v),
       setError: (msg) => this.#error.set(msg),
-      setPagination: (p) => {
-        this.#totalCount.set(p.totalCount);
-        this.#totalPages.set(p.totalPages);
-        this.#pageSize.set(p.pageSize);
-      },
+      setPagination: (p) => applyListPaginationFromResult(p, this.#totalCount, this.#totalPages),
     });
   }
 
@@ -84,9 +86,10 @@ export class LocationsFacade {
     const f = this.#filters();
     return {
       pageNumber: this.#pageNumber(),
+      pageSize: this.#pageSize(),
       search: f.searchQuery,
       status: f.status,
-      setOrder: f.sortBy,
+      setOrder: mapLocationSetOrder(f.sortBy),
     };
   }
 
@@ -114,6 +117,10 @@ export class LocationsFacade {
     this.#reloadNow$.next();
   }
 
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
+  }
+
   patchFilters(patch: Partial<LocationFilters>): void {
     applyListFilterPatch(patch, this.#filters, this.#pageNumber, this.#reloadNow$, this.#reloadSearch$);
   }
@@ -137,6 +144,7 @@ export class LocationsFacade {
         if (row.status === 'active') {
           this.#selectItems.update((s) => [...s.filter((i) => i.id !== row.id), row]);
         }
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'locations', 'create');
       },
     });
   }
@@ -156,6 +164,7 @@ export class LocationsFacade {
           const rest = s.filter((i) => i.id !== row.id);
           return row.status === 'active' ? [...rest, row] : rest;
         });
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'locations', 'edit');
       },
     });
   }
@@ -173,6 +182,7 @@ export class LocationsFacade {
         this.#items.update((items) => items.filter((i) => i.id !== item.id));
         this.#totalCount.update(c => Math.max(0, c - 1));
         this.#selectItems.update((s) => s.filter((i) => i.id !== item.id));
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'locations', 'delete');
       },
     });
   }

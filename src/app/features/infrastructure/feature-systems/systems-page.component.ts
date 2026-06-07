@@ -1,4 +1,4 @@
-﻿import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, OnInit, computed } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { TranslationService } from '@app/core';
@@ -11,6 +11,7 @@ import {
 } from '@app/core/data-access/infrastructure';
 import { INFRASTRUCTURE_CRUD_PAGE_IMPORTS_WITH_PROGRESS } from '../infrastructure-crud.imports';
 import { syncCrudModalForm, trackByEntityId } from '@app/shared/utils/sync-crud-modal-form';
+import { modalCascadeOptions, withEditFallback } from '../infrastructure-cascade.helper';
 
 @Component({
   selector: 'gh-systems-page',
@@ -32,9 +33,8 @@ export class SystemsPageComponent implements OnInit {
   readonly sortOptions = computed(() => [
     { value: 'name-asc', label: this.i18n.t('sort.name_asc') },
     { value: 'name-desc', label: this.i18n.t('sort.name_desc') },
-    { value: 'zone-asc', label: this.i18n.t('sort.zone_asc') },
-    { value: 'capacity-desc', label: this.i18n.t('sort.capacity_desc') },
-    { value: 'utilization-desc', label: this.i18n.t('sort.utilization_desc') }
+    { value: 'date-newest', label: this.i18n.t('sort.date_newest') },
+    { value: 'date-oldest', label: this.i18n.t('sort.date_oldest') },
   ]);
 
   readonly systemTypeOptions = computed(() => [
@@ -69,7 +69,7 @@ export class SystemsPageComponent implements OnInit {
 
   readonly modalLocations = computed(() => {
     const editing = this.facade.editingItem();
-    return this.#withEditFallback(
+    return withEditFallback(
       this.locationsFacade.selectItems(),
       this.locationsFacade.selectItems(),
       editing?.locationId
@@ -79,35 +79,39 @@ export class SystemsPageComponent implements OnInit {
   readonly availableGreenhouses = computed(() => {
     const editing = this.facade.editingItem();
     const locId = this.formValue().locationId || editing?.locationId || '';
-    if (!locId) return [];
-    const base = this.greenhousesFacade.selectItems().filter((gh) => gh.locationId === locId);
-    return this.#withEditFallback(base, this.greenhousesFacade.selectItems(), editing?.greenhouseId);
+    return modalCascadeOptions(
+      locId,
+      this.greenhousesFacade.selectForLocation(),
+      this.greenhousesFacade.selectItems(),
+      this.formValue().greenhouseId,
+      editing ? { parentId: editing.locationId, childId: editing.greenhouseId } : null
+    );
   });
   readonly availableZones = computed(() => {
     const editing = this.facade.editingItem();
     const ghId = this.formValue().greenhouseId || editing?.greenhouseId || '';
-    if (!ghId) return [];
-    const base = this.zonesFacade.selectItems().filter((z) => z.greenhouseId === ghId);
-    return this.#withEditFallback(base, this.zonesFacade.selectItems(), editing?.zoneId);
+    return modalCascadeOptions(
+      ghId,
+      this.zonesFacade.selectForUnit(),
+      this.zonesFacade.selectItems(),
+      this.formValue().zoneId,
+      editing ? { parentId: editing.greenhouseId, childId: editing.zoneId } : null
+    );
   });
   readonly filteredItems = this.facade.filteredItems;
 
   readonly filterGreenhouses = computed(() => {
     const locId = this.facade.filters().locationId;
-    const src = this.greenhousesFacade.selectItems();
-    if (locId === 'all') return src;
-    return src.filter((gh) => gh.locationId === locId);
+    if (locId === 'all') return this.greenhousesFacade.selectItems();
+    return this.greenhousesFacade.selectForLocation();
   });
 
   readonly filterZones = computed(() => {
     const ghId = this.facade.filters().greenhouseId;
-    const src = this.zonesFacade.selectItems();
-    if (ghId === 'all') {
-       const locId = this.facade.filters().locationId;
-       if (locId === 'all') return src;
-       return src.filter(z => z.locationId === locId);
-    }
-    return src.filter(z => z.greenhouseId === ghId);
+    const locId = this.facade.filters().locationId;
+    if (ghId !== 'all') return this.zonesFacade.selectForUnit();
+    if (locId !== 'all') return this.zonesFacade.selectForLocation();
+    return this.zonesFacade.selectItems();
   });
 
   constructor() {
@@ -115,7 +119,7 @@ export class SystemsPageComponent implements OnInit {
       isModalOpen: () => this.facade.isModalOpen(),
       editingItem: () => this.facade.editingItem(),
       form: this.form,
-      patchFromItem: (item) =>
+      patchFromItem: (item) => {
         this.form.patchValue({
           name: item.name,
           type: item.type,
@@ -123,7 +127,10 @@ export class SystemsPageComponent implements OnInit {
           greenhouseId: item.greenhouseId,
           zoneId: item.zoneId,
           status: item.status as 'active' | 'inactive',
-        }),
+        });
+        this.greenhousesFacade.loadActiveForLocation(item.locationId);
+        this.zonesFacade.loadActiveForUnit(item.greenhouseId);
+      },
       defaultValue: () => ({ ...this.#defaultFormValue }),
       schedule: (run) =>
         queueMicrotask(() => {
@@ -153,18 +160,6 @@ export class SystemsPageComponent implements OnInit {
     this.facade.openEditModal(item);
   }
 
-  #withEditFallback<T extends { id: string }>(
-    base: T[],
-    all: T[],
-    editingId: string | undefined | null
-  ): T[] {
-    const id = editingId?.trim();
-    if (!id) return base;
-    if (base.some((x) => x.id === id)) return base;
-    const linked = all.find((x) => x.id === id);
-    return linked ? [...base, linked] : base;
-  }
-
   onTypeChange(type: string) {
     this.form.patchValue({ type });
   }
@@ -177,10 +172,34 @@ export class SystemsPageComponent implements OnInit {
 
   onLocationChange(id: string) {
     this.form.patchValue({ locationId: id, greenhouseId: '', zoneId: '' });
+    this.greenhousesFacade.loadActiveForLocation(id);
+    this.zonesFacade.loadActiveForUnit('');
   }
 
   onGreenhouseChange(id: string) {
     this.form.patchValue({ greenhouseId: id, zoneId: '' });
+    this.zonesFacade.loadActiveForUnit(id);
+  }
+
+  onFilterLocationChange(val: string) {
+    this.facade.patchFilters({ locationId: val as never, greenhouseId: 'all', zoneId: 'all' });
+    this.greenhousesFacade.loadActiveForLocation(val === 'all' ? '' : val);
+    this.zonesFacade.loadActiveForUnit('');
+    this.zonesFacade.loadActiveForLocation(val === 'all' ? '' : val);
+  }
+
+  onFilterGreenhouseChange(val: string) {
+    this.facade.patchFilters({ greenhouseId: val as never, zoneId: 'all' });
+    if (val === 'all') {
+      this.zonesFacade.loadActiveForUnit('');
+      const locId = this.facade.filters().locationId;
+      if (locId !== 'all') {
+        this.zonesFacade.loadActiveForLocation(locId);
+      }
+    } else {
+      this.zonesFacade.loadActiveForLocation('');
+      this.zonesFacade.loadActiveForUnit(val);
+    }
   }
 
   onStatusFilterChange(val: string) {
@@ -202,8 +221,12 @@ export class SystemsPageComponent implements OnInit {
     }
     const val = this.form.getRawValue();
     const editing = this.facade.editingItem();
-    const zone = this.zonesFacade.selectItems().find(z => z.id === val.zoneId);
-    const gh = this.greenhousesFacade.selectItems().find(g => g.id === val.greenhouseId);
+    const zone =
+      this.zonesFacade.selectForUnit().find((z) => z.id === val.zoneId) ??
+      this.zonesFacade.selectItems().find((z) => z.id === val.zoneId);
+    const gh =
+      this.greenhousesFacade.selectForLocation().find((g) => g.id === val.greenhouseId) ??
+      this.greenhousesFacade.selectItems().find((g) => g.id === val.greenhouseId);
     const loc = this.locationsFacade.selectItems().find(l => l.id === val.locationId);
     const payload = {
       ...val,
@@ -226,12 +249,12 @@ export class SystemsPageComponent implements OnInit {
     return status === 'active' ? 'active' : 'inactive';
   }
 
-  protected utilizationPct(
-    row: { occupiedCapacity: number; totalCapacity?: number; capacity?: number }
-  ): number {
-    const max = row.totalCapacity ?? row.capacity ?? 0;
-    if (max === 0) return 0;
-    return Math.round((row.occupiedCapacity / max) * 100);
+  protected utilizationPct(row: SystemRow): number {
+    if (row.occupancyPct != null && Number.isFinite(row.occupancyPct)) {
+      return Math.min(100, row.occupancyPct);
+    }
+    if (row.totalCapacity === 0) return 0;
+    return (row.occupiedCapacity / row.totalCapacity) * 100;
   }
 }
 

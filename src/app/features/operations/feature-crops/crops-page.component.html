@@ -8,15 +8,16 @@
     (buttonClick)="facade.openCreateModal()"
   ></gh-page-header>
 
-  <!-- Filter Bar (search + sort only — no status filter on Crops) -->
+  <!-- Filter Bar (search + status + sort) -->
   <gh-table-filters
     [searchPlaceholder]="'crops.search' | translate"
     [search]="facade.filters().searchQuery"
-    [sort]="facade.filters().sortBy === 'all' ? '' : facade.filters().sortBy"
+    [status]="facade.filters().status"
+    [sort]="facade.filters().sortBy"
     [sortOptions]="sortOptions()"
-    [showStatus]="false"
     (searchChange)="facade.patchFilters({ searchQuery: $event })"
-    (sortChange)="updateSortFilter($event)"
+    (statusChange)="onStatusFilterChange($event)"
+    (sortChange)="onSortFilterChange($event)"
   ></gh-table-filters>
 
   <!-- Data Table -->
@@ -27,11 +28,13 @@
       <gh-table [striped]="true">
         <thead>
           <tr>
-            <th>{{ 'crops.col_name'     | translate }}</th>
-            <th>{{ 'crops.col_duration' | translate }}</th>
-            <th>{{ 'crops.col_batches'  | translate }}</th>
-            <th>{{ 'crops.col_plants'   | translate }}</th>
-            <th>{{ 'crops.col_actions'  | translate }}</th>
+            <th>{{ 'crops.col_name'         | translate }}</th>
+            <th>{{ 'crops.col_duration'     | translate }}</th>
+            <th>{{ 'crops.col_batches'      | translate }}</th>
+            <th>{{ 'crops.col_total_batches'| translate }}</th>
+            <th>{{ 'crops.col_plants'       | translate }}</th>
+            <th>{{ 'crops.col_status'       | translate }}</th>
+            <th>{{ 'crops.col_actions'      | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -66,12 +69,27 @@
                 }
               </td>
 
+              <!-- إجمالي الدفعات -->
+              <td>
+                <span class="crops-page__quantity">
+                  {{ row.stockBatch | number:'1.0-0' }}
+                  {{ 'crops.col_batch_count' | translate }}
+                </span>
+              </td>
+
               <!-- إجمالي النباتات -->
               <td>
                 <span class="crops-page__quantity">
                   {{ row.totalPlants | number:'1.0-0' }}
                   {{ 'common.plants' | translate }}
                 </span>
+              </td>
+
+              <!-- الحالة -->
+              <td>
+                <gh-badge [variant]="statusVariant(row.status)">
+                  {{ statusLabel(row.status) }}
+                </gh-badge>
               </td>
 
               <!-- الإجراءات -->
@@ -93,12 +111,16 @@
           }
         </tbody>
       </gh-table>
-      <gh-pagination
-        [currentPage]="facade.currentPage()"
-        [totalPages]="facade.totalPages()"
-        [totalCount]="facade.totalCount()"
-        [pageSize]="facade.pageSize()"
-        (pageChange)="facade.goToPage($event)" />
+      <div class="gh-card__footer">
+        <gh-pagination
+          [currentPage]="facade.currentPage()"
+          [totalPages]="facade.totalPages()"
+          [totalCount]="facade.totalCount()"
+          [itemCount]="facade.filteredItems().length"
+          [pageSize]="facade.pageSize()"
+          (pageChange)="facade.goToPage($event)"
+          (pageSizeChange)="facade.setPageSize($event)" />
+      </div>
     }
   </div>
 
@@ -128,13 +150,23 @@
         [errorMessage]="'crops.form_duration_error' | translate"
         [helperText]="'crops.form_duration_hint' | translate"
       >
-        <input
-          ghInput
-          type="number"
+        <gh-input
+          [positiveOnly]="true"
           formControlName="growthDuration"
           [placeholder]="'crops.form_duration_placeholder' | translate"
         />
       </gh-form-group>
+
+      @if (facade.editingItem()) {
+        <gh-form-group
+          [label]="'crops.form_status_label' | translate"
+          [control]="form.get('status')!">
+          <gh-segmented-control
+            [options]="statusOptions()"
+            [value]="form.get('status')?.value ?? 'active'"
+            (valueChange)="setStatus($event)" />
+        </gh-form-group>
+      }
 
       @if (!facade.editingItem()) {
         <div class="gh-modal-hint" role="note">

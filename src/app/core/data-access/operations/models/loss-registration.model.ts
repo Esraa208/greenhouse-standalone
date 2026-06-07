@@ -33,5 +33,5 @@ export interface CreateBatchLossDto {
   readonly reason: string;
   readonly notes?: string;
   readonly registerWholeBatch: boolean;
-  readonly items: readonly { readonly distributionId: string; readonly quantity: number }[];
+  readonly items: readonly { readonly housingId: string; readonly quantity: number }[];
 }

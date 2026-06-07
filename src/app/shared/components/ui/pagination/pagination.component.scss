@@ -1,15 +1,38 @@
+:host.gh-pagination-host {
+  display: block;
+  width: 100%;
+}
+
 .gh-pagination {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
   gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) 0;
+  background: transparent;
 }
 
 .gh-pagination__info {
+  margin-inline-end: auto;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+}
+
+.gh-pagination__size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: 0.8125rem;
   color: var(--color-muted-foreground);
   white-space: nowrap;
+
+  .gh-filter-select-wrapper {
+    flex-shrink: 0;
+  }
 }
 
 .gh-pagination__controls {
@@ -22,32 +45,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 var(--space-1);
+  min-width: 32px;
+  height: 32px;
+  padding: 0 var(--space-2);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
   color: var(--color-muted-foreground);
   font-size: 0.8125rem;
   font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
 
   &:hover:not(:disabled):not(.gh-pagination__btn--active) {
     color: var(--color-primary);
-    background-color: rgba(147, 51, 234, 0.06);
   }
 
   &:disabled {
-    opacity: 0.3;
+    opacity: 0.35;
     cursor: not-allowed;
   }
 
   &--active {
     color: var(--color-primary);
     font-weight: 600;
-    background: transparent;
     pointer-events: none;
   }
 
@@ -61,8 +82,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
+  min-width: 32px;
+  height: 32px;
   color: var(--color-muted-foreground);
   font-size: 0.875rem;
   user-select: none;

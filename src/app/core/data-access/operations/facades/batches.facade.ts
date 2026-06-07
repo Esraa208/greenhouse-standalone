@@ -1,13 +1,13 @@
-﻿import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { BatchesRepository } from '../repositories/batches.repository';
-import { BatchRow, BatchFilters, DEFAULT_BATCH_FILTERS, CreateBatchDto, UpdateBatchDto } from '../models/batch.model';
-import { PagedListQuery } from '../../infrastructure/list-query';
+import { BatchRow, BatchFilters, DEFAULT_BATCH_FILTERS, CreateBatchDto, UpdateBatchDto, mapBatchSetOrder } from '../models/batch.model';
+import { DEFAULT_PAGE_SIZE, PagedListQuery } from '../../infrastructure/list-query';
 import {
   bindListReloadStream,
-  applyListFilterPatch,
+  applyListFilterPatch, applyListPaginationFromResult, changeListPageSize,
   subscribeMutationWithResult,
   subscribeMutationWithVoid,
 } from '../../infrastructure/entity-list-facade.helpers';
@@ -42,7 +42,7 @@ export class BatchesFacade {
   readonly #error = signal<string | null>(null);
   readonly #totalCount = signal(0);
   readonly #totalPages = signal(1);
-  readonly #pageSize = signal(50);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
 
   readonly #reloadNow$ = new Subject<void>();
   readonly #reloadSearch$ = new Subject<void>();
@@ -63,17 +63,7 @@ export class BatchesFacade {
   readonly totalPages = this.#totalPages.asReadonly();
   readonly pageSize = this.#pageSize.asReadonly();
 
-  readonly filteredItems = computed<BatchRow[]>(() => {
-    let result = this.#items();
-    const f = this.#filters();
-    if (f.status !== 'all') {
-      result = result.filter((r) => r.status === f.status);
-    }
-    if (f.cropTypeId) {
-      result = result.filter((r) => r.cropTypeId === f.cropTypeId);
-    }
-    return result;
-  });
+  readonly filteredItems = computed<BatchRow[]>(() => this.#items());
 
   constructor() {
     bindListReloadStream({
@@ -84,26 +74,23 @@ export class BatchesFacade {
       setItems: (items) => this.#items.set(items),
       setLoading: (v) => this.#isLoading.set(v),
       setError: (msg) => this.#error.set(msg),
-      setPagination: (p) => {
-        this.#totalCount.set(p.totalCount);
-        this.#totalPages.set(p.totalPages);
-        this.#pageSize.set(p.pageSize);
-      },
+      setPagination: (p) => applyListPaginationFromResult(p, this.#totalCount, this.#totalPages),
     });
   }
 
   #listQuery(): PagedListQuery {
     const f = this.#filters();
-    let apiStatus: 'all' | 'active' | 'inactive' = 'all';
-    if (f.status === 'active') apiStatus = 'active';
-    if (f.status === 'harvested' || f.status === 'lost') apiStatus = 'inactive';
     const extra: Record<string, string | number | boolean> = {};
     if (f.cropTypeId) extra['CropTypeId'] = Number(f.cropTypeId);
+    if (f.locationId && f.locationId !== 'all') extra['LocationId'] = Number(f.locationId);
+    if (f.unitId && f.unitId !== 'all') extra['UnitId'] = Number(f.unitId);
+    if (f.status === 'active') extra['Status'] = 'active';
+    if (f.status === 'harvested' || f.status === 'lost') extra['Status'] = 'harvested';
     return {
       pageNumber: this.#pageNumber(),
+      pageSize: this.#pageSize(),
       search: f.searchQuery,
-      status: apiStatus,
-      setOrder: f.sortBy === 'all' ? undefined : f.sortBy,
+      setOrder: mapBatchSetOrder(f.sortBy),
       extra,
     };
   }
@@ -125,9 +112,21 @@ export class BatchesFacade {
       .subscribe({ next: (rows) => this.#selectItems.set(rows) });
   }
 
+  /** Batch filter dropdowns — all batches, no Active filter. */
+  loadForSelect(): void {
+    this.#repo
+      .fetchSelectPage(1)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({ next: (rows) => this.#selectItems.set(rows) });
+  }
+
   goToPage(page: number): void {
     this.#pageNumber.set(page);
     this.#reloadNow$.next();
+  }
+
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
   }
 
   patchFilters(patch: Partial<BatchFilters>): void {
@@ -151,7 +150,6 @@ export class BatchesFacade {
         this.#items.set(page.items);
         this.#totalCount.set(page.totalCount);
         this.#totalPages.set(page.totalPages);
-        this.#pageSize.set(page.pageSize);
         if (!options?.suppressToast) {
           this.#toast.success(this.#i18n.t('batches.toast_create_success'));
         }

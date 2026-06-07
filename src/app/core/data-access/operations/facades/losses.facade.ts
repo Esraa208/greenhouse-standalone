@@ -1,6 +1,6 @@
-﻿import { Injectable, inject, DestroyRef, signal, computed } from '@angular/core';
+import { Injectable, inject, DestroyRef, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, Subject, switchMap } from 'rxjs';
+import { catchError, debounceTime, finalize, forkJoin, of, Subject, switchMap } from 'rxjs';
 import { LossesRepository } from '../repositories/losses.repository';
 import { GhToastService, TranslationService } from '@app/core';
 import { normalizeAppError } from '@app/core/errors/app-error';
@@ -9,14 +9,19 @@ import {
   LossFilters,
   DEFAULT_LOSS_FILTERS,
   CreateLossDto,
+  buildLossFetchExtraParams,
   LossRefLocation,
   LossRefGreenhouse,
   LossRefZone,
   LossRefSystem,
   LossRefLayer,
-  LossRefAllocation,
   LossRefBatch,
 } from '../models/loss.model';
+import type { LossScopePreview } from '../models/loss-preview.model';
+import { bindListReloadStream, applyListFilterPatch, applyListPaginationFromResult, changeListPageSize } from '../../infrastructure/entity-list-facade.helpers';
+import { DEFAULT_PAGE_SIZE } from '../../infrastructure/list-query';
+import type { CreateBatchLossDto } from '../models/loss-registration.model';
+import type { ApiLossPreviewParams } from '@app/core/data-access/api';
 
 @Injectable({ providedIn: 'root' })
 export class LossesFacade {
@@ -30,11 +35,15 @@ export class LossesFacade {
   readonly #isModalOpen = signal(false);
   readonly #isLoading = signal(false);
   readonly #error = signal<string | null>(null);
+
   readonly #pageNumber = signal(1);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
   readonly #totalCount = signal(0);
   readonly #totalPages = signal(1);
-  readonly #pageSize = signal(50);
+
   readonly #reloadNow$ = new Subject<void>();
+  readonly #reloadSearch$ = new Subject<void>();
+  readonly #previewRequest$ = new Subject<void>();
 
   readonly #modalMode = signal<'infrastructure' | 'batch'>('infrastructure');
   readonly #selLocationId = signal('');
@@ -50,8 +59,10 @@ export class LossesFacade {
   readonly #refZones = signal<LossRefZone[]>([]);
   readonly #refSystems = signal<LossRefSystem[]>([]);
   readonly #refLayers = signal<LossRefLayer[]>([]);
-  readonly #refAllocations = signal<LossRefAllocation[]>([]);
   readonly #refBatches = signal<LossRefBatch[]>([]);
+  readonly #preview = signal<LossScopePreview | null>(null);
+  readonly #previewLoading = signal(false);
+  readonly #refLoading = signal(false);
 
   readonly items = this.#items.asReadonly();
   readonly filters = this.#filters.asReadonly();
@@ -64,97 +75,135 @@ export class LossesFacade {
   readonly totalPages = this.#totalPages.asReadonly();
   readonly pageSize = this.#pageSize.asReadonly();
 
+  readonly selLocationId = this.#selLocationId.asReadonly();
+  readonly selGreenhouseId = this.#selGreenhouseId.asReadonly();
+  readonly selZoneId = this.#selZoneId.asReadonly();
+  readonly selSystemId = this.#selSystemId.asReadonly();
+  readonly selLayerId = this.#selLayerId.asReadonly();
+  readonly selAllocationId = this.#selAllocationId.asReadonly();
+  readonly selBatchId = this.#selBatchId.asReadonly();
+  readonly preview = this.#preview.asReadonly();
+  readonly previewLoading = this.#previewLoading.asReadonly();
+  readonly refLoading = this.#refLoading.asReadonly();
+
   readonly refLocations = this.#refLocations.asReadonly();
   readonly refBatches = this.#refBatches.asReadonly();
 
-  readonly filteredItems = computed<LossRow[]>(() => {
-    const { searchQuery, sourceType, lossType, sortBy } = this.#filters();
-    let result = this.#items();
+  readonly filteredItems = computed<LossRow[]>(() => this.#items());
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (l) =>
-          l.sourceName.toLowerCase().includes(q) ||
-          l.reason.toLowerCase().includes(q) ||
-          l.location.toLowerCase().includes(q)
-      );
-    }
-    if (sourceType !== 'all') {
-      result = result.filter((l) => l.sourceType === sourceType);
-    }
-    if (lossType !== 'all') {
-      result = result.filter((l) => l.lossType === lossType);
-    }
-    return [...result].sort((a, b) => {
-      if (sortBy === 'date-desc')
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
+  readonly filteredModalGreenhouses = computed(() => {
+    const locId = this.#selLocationId();
+    if (!locId) return [];
+    return this.#refGreenhouses().filter((gh) => gh.locationId === locId);
   });
 
-  readonly filteredModalGreenhouses = computed(() =>
-    this.#refGreenhouses().filter((gh) => !this.#selLocationId() || gh.locationId === this.#selLocationId())
-  );
-  readonly filteredModalZones = computed(() =>
-    this.#refZones().filter((z) => !this.#selGreenhouseId() || z.greenhouseId === this.#selGreenhouseId())
-  );
-  readonly filteredModalSystems = computed(() =>
-    this.#refSystems().filter((s) => !this.#selZoneId() || s.zoneId === this.#selZoneId())
-  );
-  readonly filteredModalLayers = computed(() =>
-    this.#refLayers().filter((l) => !this.#selSystemId() || l.systemId === this.#selSystemId())
-  );
-  readonly filteredModalAllocations = computed(() =>
-    this.#refAllocations().filter((a) => !this.#selLayerId() || a.layerId === this.#selLayerId())
-  );
+  readonly filteredModalZones = computed(() => {
+    const ghId = this.#selGreenhouseId();
+    const locId = this.#selLocationId();
+    if (ghId) return this.#refZones().filter((z) => z.greenhouseId === ghId);
+    if (locId) {
+      const ghIds = new Set(
+        this.#refGreenhouses().filter((g) => g.locationId === locId).map((g) => g.id),
+      );
+      return this.#refZones().filter((z) => ghIds.has(z.greenhouseId));
+    }
+    return [];
+  });
 
-  readonly affectedPlantsCount = computed<number>(() => {
-    if (this.#selAllocationId()) {
-      return this.#refAllocations().find((a) => a.id === this.#selAllocationId())?.quantity ?? 0;
+  readonly filteredModalSystems = computed(() => {
+    const zoneId = this.#selZoneId();
+    if (!zoneId) return [];
+    return this.#refSystems().filter((s) => s.zoneId === zoneId);
+  });
+
+  readonly filteredModalLayers = computed(() => {
+    const sysId = this.#selSystemId();
+    if (!sysId) return [];
+    return this.#refLayers().filter((l) => l.systemId === sysId);
+  });
+
+  readonly modalHousingOptions = computed(() => {
+    const preview = this.#preview();
+    if (!preview) return [];
+    const layerId = this.#selLayerId();
+    let housings = preview.housings;
+    if (layerId) {
+      housings = housings.filter((h) => h.layerId === layerId);
     }
-    if (this.#selLayerId()) {
-      return this.#refLayers().find((l) => l.id === this.#selLayerId())?.totalQuantity ?? 0;
-    }
-    if (this.#selBatchId() && this.#modalMode() === 'batch') {
-      return this.#refBatches().find((b) => b.id === this.#selBatchId())?.totalQuantity ?? 0;
-    }
-    return 0;
+    return housings.map((h) => ({
+      value: h.id,
+      label: h.pathLabel
+        ? `${h.pathLabel} (${h.quantity})`
+        : `${h.id} (${h.quantity})`,
+    }));
+  });
+
+  readonly selectedHousingQuantity = computed(() => {
+    const housingId = this.#selAllocationId();
+    if (!housingId) return 0;
+    return this.#preview()?.housings.find((h) => h.id === housingId)?.quantity ?? 0;
+  });
+
+  readonly showPreview = computed(() => {
+    if (this.#modalMode() === 'batch') return !!this.#selBatchId();
+    return !!this.#selLocationId();
   });
 
   constructor() {
-    this.#reloadNow$
+    bindListReloadStream({
+      destroyRef: this.#destroyRef,
+      reloadNow$: this.#reloadNow$,
+      reloadSearch$: this.#reloadSearch$,
+      load: () => {
+        const f = this.#filters();
+        const extra = buildLossFetchExtraParams(f);
+
+        return this.#repo.getAll({
+          pageNumber: this.#pageNumber(),
+          pageSize: this.#pageSize(),
+          search: f.searchQuery,
+          extra: Object.keys(extra).length > 0 ? extra : undefined,
+        });
+      },
+      setItems: (items) => this.#items.set(items),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      setPagination: (p) =>
+        applyListPaginationFromResult(p, this.#totalCount, this.#totalPages, this.#pageNumber),
+    });
+
+    this.#previewRequest$
       .pipe(
+        debounceTime(250),
         switchMap(() => {
-          this.#isLoading.set(true);
-          this.#error.set(null);
-          return this.#repo
-            .getAll(this.#pageNumber())
-            .pipe(finalize(() => this.#isLoading.set(false)));
+          const params = this.#buildPreviewParams();
+          if (!params) {
+            this.#preview.set(null);
+            return of(null);
+          }
+          this.#previewLoading.set(true);
+          return this.#repo.previewScope(params).pipe(
+            catchError(() => of(null)),
+            finalize(() => this.#previewLoading.set(false)),
+          );
         }),
-        takeUntilDestroyed(this.#destroyRef)
+        takeUntilDestroyed(this.#destroyRef),
       )
-      .subscribe({
-        next: (result) => {
-          this.#items.set(result.items);
-          this.#totalCount.set(result.totalCount);
-          this.#totalPages.set(result.totalPages);
-          this.#pageSize.set(result.pageSize);
-        },
-        error: (err: unknown) => this.#error.set(normalizeAppError(err).message),
-      });
+      .subscribe((preview) => this.#preview.set(preview));
   }
 
   loadAll(): void {
     this.#reloadNow$.next();
+  }
 
-    this.#repo.getRefLocations().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refLocations.set(d));
-    this.#repo.getRefGreenhouses().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refGreenhouses.set(d));
-    this.#repo.getRefZones().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refZones.set(d));
-    this.#repo.getRefSystems().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refSystems.set(d));
-    this.#repo.getRefLayers().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refLayers.set(d));
-    this.#repo.getRefAllocations().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refAllocations.set(d));
-    this.#repo.getRefBatches().pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((d) => this.#refBatches.set(d));
+  patchFilters(patch: Partial<LossFilters>): void {
+    applyListFilterPatch(
+      patch,
+      this.#filters,
+      this.#pageNumber,
+      this.#reloadNow$,
+      this.#reloadSearch$,
+    );
   }
 
   enterPage(): void {
@@ -172,6 +221,10 @@ export class LossesFacade {
     this.#reloadNow$.next();
   }
 
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
+  }
+
   create(dto: CreateLossDto): void {
     this.#isModalOpen.set(false);
     this.#isLoading.set(true);
@@ -179,7 +232,7 @@ export class LossesFacade {
       .create(dto)
       .pipe(
         takeUntilDestroyed(this.#destroyRef),
-        finalize(() => this.#isLoading.set(false))
+        finalize(() => this.#isLoading.set(false)),
       )
       .subscribe({
         next: () => {
@@ -192,8 +245,24 @@ export class LossesFacade {
       });
   }
 
-  patchFilters(patch: Partial<LossFilters>): void {
-    this.#filters.update((f) => ({ ...f, ...patch }));
+  createBatchLoss(dto: CreateBatchLossDto): void {
+    this.#isModalOpen.set(false);
+    this.#isLoading.set(true);
+    this.#repo
+      .createBatchLoss(dto)
+      .pipe(
+        takeUntilDestroyed(this.#destroyRef),
+        finalize(() => this.#isLoading.set(false)),
+      )
+      .subscribe({
+        next: () => {
+          this.#toast.success(this.#i18n.t('losses.toast_create_success'));
+          this.#reloadNow$.next();
+        },
+        error: (err: unknown) => {
+          this.#error.set(normalizeAppError(err).message);
+        },
+      });
   }
 
   resetFilters(): void {
@@ -201,18 +270,22 @@ export class LossesFacade {
   }
 
   openCreateModal(): void {
-    this.setModalMode('infrastructure');
+    this.#modalMode.set('infrastructure');
+    this.#resetCascadeSelections();
     this.#isModalOpen.set(true);
+    this.#loadModalRefData();
   }
 
   closeModal(): void {
     this.#isModalOpen.set(false);
     this.#resetCascadeSelections();
+    this.#preview.set(null);
   }
 
   setModalMode(mode: 'infrastructure' | 'batch'): void {
     this.#modalMode.set(mode);
     this.#resetCascadeSelections();
+    this.#requestPreview();
   }
 
   setLocationId(id: string): void {
@@ -222,34 +295,99 @@ export class LossesFacade {
     this.#selSystemId.set('');
     this.#selLayerId.set('');
     this.#selAllocationId.set('');
+    this.#requestPreview();
   }
+
   setGreenhouseId(id: string): void {
     this.#selGreenhouseId.set(id);
     this.#selZoneId.set('');
     this.#selSystemId.set('');
     this.#selLayerId.set('');
     this.#selAllocationId.set('');
+    this.#requestPreview();
   }
+
   setZoneId(id: string): void {
     this.#selZoneId.set(id);
     this.#selSystemId.set('');
     this.#selLayerId.set('');
     this.#selAllocationId.set('');
+    this.#requestPreview();
   }
+
   setSystemId(id: string): void {
     this.#selSystemId.set(id);
     this.#selLayerId.set('');
     this.#selAllocationId.set('');
+    this.#requestPreview();
   }
+
   setLayerId(id: string): void {
     this.#selLayerId.set(id);
     this.#selAllocationId.set('');
+    this.#requestPreview();
   }
+
   setAllocationId(id: string): void {
     this.#selAllocationId.set(id);
   }
+
   setBatchId(id: string): void {
     this.#selBatchId.set(id);
+    this.#requestPreview();
+  }
+
+  #loadModalRefData(): void {
+    if (this.#refLocations().length > 0 && this.#refBatches().length > 0) return;
+    this.#refLoading.set(true);
+    forkJoin({
+      locations: this.#repo.getRefLocations(),
+      greenhouses: this.#repo.getRefGreenhouses(),
+      zones: this.#repo.getRefZones(),
+      systems: this.#repo.getRefSystems(),
+      layers: this.#repo.getRefLayers(),
+      batches: this.#repo.getRefBatches(),
+    })
+      .pipe(
+        takeUntilDestroyed(this.#destroyRef),
+        finalize(() => this.#refLoading.set(false)),
+      )
+      .subscribe({
+        next: ({ locations, greenhouses, zones, systems, layers, batches }) => {
+          this.#refLocations.set(locations);
+          this.#refGreenhouses.set(greenhouses);
+          this.#refZones.set(zones);
+          this.#refSystems.set(systems);
+          this.#refLayers.set(layers);
+          this.#refBatches.set(batches);
+        },
+      });
+  }
+
+  #buildPreviewParams(): ApiLossPreviewParams | null {
+    if (this.#modalMode() === 'batch') {
+      const batchId = this.#selBatchId();
+      return batchId ? { StockBatchId: Number(batchId) } : null;
+    }
+
+    const locationId = this.#selLocationId();
+    if (!locationId) return null;
+
+    const greenhouseId = this.#selGreenhouseId();
+    const zoneId = this.#selZoneId();
+    const systemId = this.#selSystemId();
+    const layerId = this.#selLayerId();
+    return {
+      LocationId: Number(locationId),
+      ...(greenhouseId ? { UnitId: Number(greenhouseId) } : {}),
+      ...(zoneId ? { ZoneId: Number(zoneId) } : {}),
+      ...(systemId ? { SystemId: Number(systemId) } : {}),
+      ...(layerId ? { LayerId: Number(layerId) } : {}),
+    };
+  }
+
+  #requestPreview(): void {
+    this.#previewRequest$.next();
   }
 
   #resetCascadeSelections(): void {
@@ -260,10 +398,6 @@ export class LossesFacade {
     this.#selLayerId.set('');
     this.#selAllocationId.set('');
     this.#selBatchId.set('');
+    this.#preview.set(null);
   }
 }
-
-
-
-
-

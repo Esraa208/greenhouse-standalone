@@ -2,7 +2,9 @@
 
 export type AllocationStatus = 'active' | 'moved' | 'harvested';
 export type MovementAction = 'allocated' | 'moved' | 'harvested';
-export type LossTypeRef = 'disease' | 'pest' | 'weather' | 'other';
+import type { LossType } from '../utils/loss-type.util';
+
+export type LossTypeRef = LossType;
 
 export interface MovementLocation {
   readonly location: string;
@@ -24,6 +26,7 @@ export interface LossRecord {
   readonly id: string;
   readonly date: string;
   readonly lossType: LossTypeRef;
+  readonly lossTypeLabel?: string;
   readonly quantity: number;
   readonly reason: string;
   readonly notes?: string;
@@ -40,20 +43,27 @@ export interface AllocationRow {
   readonly zone: string;
   readonly system: string;
   readonly layer: string;
+  readonly layerId: string;
   readonly layerPosition: number;
+  readonly layerCapacity?: number;
   readonly pipeId: string;
   readonly pipe: string;
   readonly quantity: number;
   readonly initialQuantity: number;
+  readonly growthDuration: number;
+  readonly daysSincePlanting: number;
+  readonly daysInHousing: number;
+  readonly cropTypeId?: string;
   readonly allocatedDate: string;
   readonly status: AllocationStatus;
+  readonly statusLabel?: string;
+  /** From API `moveCount` */
+  readonly movementCount: number;
+  /** From API `lossCount` */
+  readonly lossCount: number;
   readonly movementHistory: readonly MovementRecord[];
   readonly lossHistory: readonly LossRecord[];
 }
-
-// Derived counts (computed in facade, NOT stored)
-// movementCount = row.movementHistory.length
-// lossCount     = row.lossHistory.length
 
 export type AllocationSortKey =
   | 'date-desc' | 'date-asc'
@@ -63,28 +73,53 @@ export type AllocationSortKey =
 export interface AllocationFilters {
   searchQuery: string;
   status: AllocationStatus | 'all';
-  batchNumber: string; // '' = all batches (client filter)
+  stockBatchId: string;
   locationId: string | 'all';
   greenhouseId: string | 'all';
   zoneId: string | 'all';
   systemId: string | 'all';
   layerId: string | 'all';
   pipeId: string | 'all';
-  sortBy: AllocationSortKey;
+  /** `'all'` = no server sort (only `PageNumber` sent). */
+  sortBy: AllocationSortKey | 'all';
 }
 
 export const DEFAULT_ALLOCATION_FILTERS: AllocationFilters = {
   searchQuery: '',
   status: 'all',
-  batchNumber: '',
+  stockBatchId: '',
   locationId: 'all',
   greenhouseId: 'all',
   zoneId: 'all',
   systemId: 'all',
   layerId: 'all',
   pipeId: 'all',
-  sortBy: 'date-desc',
+  sortBy: 'all',
 };
+
+/** Maps UI status filter → API `Status` for BatchDistribution/fetch. */
+export function mapAllocationStatusParam(
+  status: AllocationStatus | 'all',
+): string | undefined {
+  if (status === 'all') return undefined;
+  return status;
+}
+
+/** Maps UI sort keys → API `SetOrder` values for BatchDistribution/fetch. */
+export function mapAllocationSetOrder(
+  sortBy: AllocationSortKey | 'all',
+): string | undefined {
+  if (!sortBy || sortBy === 'all') return undefined;
+  const map: Record<AllocationSortKey, string> = {
+    'date-desc': 'newest',
+    'date-asc': 'oldest',
+    'quantity-desc': 'quantityDesc',
+    'quantity-asc': 'quantityAsc',
+    'batch-asc': 'asc',
+    'batch-desc': 'desc',
+  };
+  return map[sortBy];
+}
 
 export const ALLOCATION_SORT_OPTIONS = [
   { value: 'date-desc',     translationKey: 'sort.date_newest'    },
@@ -97,12 +132,14 @@ export const ALLOCATION_SORT_OPTIONS = [
 
 export interface MoveAllocationDto {
   allocationId: string;
+  batchId: string;
   targetLayerId: string;
   quantity: number;
 }
 
 export interface RecordAllocationLossDto {
   allocationId: string;
+  layerId?: string;
   lossType: LossTypeRef;
   date: string;
   quantity: number;

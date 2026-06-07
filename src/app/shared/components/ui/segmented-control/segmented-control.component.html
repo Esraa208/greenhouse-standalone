@@ -1,5 +1,4 @@
-﻿<!-- libs/shared/ui/src/lib/segmented-control/segmented-control.component.html -->
-<div class="gh-segmented" role="radiogroup">
+<div class="gh-segmented" [class.gh-segmented--primary]="variant() === 'primary'" role="radiogroup">
   @for (option of options(); track option.value) {
     <label class="gh-segmented__label">
       <input

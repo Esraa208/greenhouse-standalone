@@ -1,0 +1,162 @@
+// ── Invoice / harvest registration form (invoices create modal, …) ──
+
+.gh-invoice-harvest-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-1);
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  &__section-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding-block-end: var(--space-2);
+    border-block-end: 1px solid var(--color-border);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 700;
+    color: var(--color-foreground);
+
+    &-icon {
+      font-size: 1rem;
+      line-height: 1;
+    }
+  }
+
+  &__cascade-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__add-row {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__summary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid #bbf7d0;
+    background: #ecfdf5;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: #166534;
+
+    strong {
+      font-weight: 700;
+      color: #15803d;
+    }
+  }
+
+  &__layer-card {
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-card);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  &__layer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  &__layer-title {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+
+  &__layer-path {
+    margin: var(--space-1) 0 0;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--color-muted-foreground);
+  }
+
+  &__housing-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__housing-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(5.5rem, 7rem));
+    gap: var(--space-2);
+    align-items: end;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-muted);
+    border: 1px solid var(--color-border);
+
+    @media (max-width: 720px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__housing-info {
+    min-width: 0;
+  }
+
+  &__housing-label {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--color-foreground);
+  }
+
+  &__housing-available {
+    margin: var(--space-1) 0 0;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--color-success, #16a34a);
+    font-weight: 500;
+  }
+
+  &__crop-prices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__dates-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-foreground);
+    cursor: pointer;
+  }
+}

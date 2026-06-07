@@ -61,3 +61,26 @@
   color: var(--color-muted-foreground);
   margin: 0;
 }
+
+.gh-control-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .gh-control {
+    &.has-suffix {
+      padding-left: 50px; /* Space for the suffix on the left side (RTL context) */
+    }
+  }
+
+  .gh-control-suffix {
+    position: absolute;
+    left: 12px; /* RTL context places suffix on the left side inside the input */
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-primary, #8b5cf6);
+    font-size: var(--font-size-sm);
+    pointer-events: none;
+    font-weight: 500;
+  }
+}

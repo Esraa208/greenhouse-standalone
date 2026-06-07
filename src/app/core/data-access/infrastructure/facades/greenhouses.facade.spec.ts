@@ -10,6 +10,7 @@ describe('GreenhousesFacade', () => {
     const row: GreenhouseRow = {
       id: '1',
       name: 'GH-A',
+      address: 'Site A',
       locationId: 'loc-1',
       locationName: 'HQ',
       totalCapacity: 100,

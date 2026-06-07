@@ -11,17 +11,25 @@ describe('CustomersFacade', () => {
       {
         id: 'c1',
         name: 'Acme',
-        phone: '+1',
+        phone: '0500000000',
         email: '',
         address: '',
+        status: 'active',
         invoicesCount: 0,
         totalPurchases: 0,
         createdAt: new Date().toISOString(),
       },
     ];
     const repo = {
-      getAll: vi.fn(() => of(rows)),
-      getById: vi.fn(),
+      getAll: vi.fn(() =>
+        of({
+          items: rows,
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 50,
+          totalPages: 1,
+        })
+      ),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -32,7 +40,7 @@ describe('CustomersFacade', () => {
     });
 
     const facade = TestBed.inject(CustomersFacade);
-    facade.loadAll();
+    facade.enterPage();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
     expect(facade.items()).toEqual(rows);
     expect(facade.isLoading()).toBe(false);

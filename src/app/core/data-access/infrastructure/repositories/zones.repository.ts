@@ -7,9 +7,17 @@ import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiZoneItem,
 } from '@app/core/data-access/api';
-import { PagedListQuery, PaginatedResult, buildPagedListParams, buildActiveSelectParams } from '../list-query';
+import {
+  PagedListQuery,
+  PaginatedResult,
+  buildPagedListParams,
+  buildZoneSelectParams,
+  normalizePaginatedResult,
+} from '../list-query';
 import { extractCreatedId } from '../extract-created-id';
 import type { PutPatch } from '../put-patch-merge';
+import { normalizeGreenhouseLabel } from '@app/shared/utils/normalize-greenhouse-label';
+import { apiRefId, apiRefName, mapApiEntityStatus, readApiOccupancy } from '../api-entity-ref';
 
 @Injectable({ providedIn: 'root' })
 export class ZonesRepository {
@@ -21,18 +29,33 @@ export class ZonesRepository {
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Zone, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiZoneItem>>(url, { params }).pipe(
-      map(response => ({
-        items: (response.result?.items ?? []).map(z => this.#mapToDomain(z)),
-        totalCount: response.result?.totalCount ?? 0,
-        pageNumber: response.result?.pageNumber ?? 1,
-        pageSize: response.result?.pageSize ?? 50,
-        totalPages: response.result?.totalPages ?? 1,
-      }))
+      map(response => {
+        const items = (response.result?.items ?? []).map(z => this.#mapToDomain(z));
+        return normalizePaginatedResult(response.result, items, query.pageSize);
+      })
     );
   }
 
   fetchActivePage(pageNumber = 1): Observable<ZoneRow[]> {
-    const params = buildActiveSelectParams(pageNumber);
+    const params = buildZoneSelectParams(pageNumber);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Zone, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiZoneItem>>(url, { params }).pipe(
+      map(response => (response.result?.items ?? []).map(z => this.#mapToDomain(z)))
+    );
+  }
+
+  /** Active zones for one greenhouse (unit); API may omit `unitId` on list rows. */
+  fetchActiveByUnit(unitId: string, pageNumber = 1): Observable<ZoneRow[]> {
+    const params = { ...buildZoneSelectParams(pageNumber), UnitId: Number(unitId) };
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Zone, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiZoneItem>>(url, { params }).pipe(
+      map(response => (response.result?.items ?? []).map(z => this.#mapToDomain(z)))
+    );
+  }
+
+  /** Active zones for one location — table-filter cascades when greenhouse is "all". */
+  fetchActiveByLocation(locationId: string, pageNumber = 1): Observable<ZoneRow[]> {
+    const params = { ...buildZoneSelectParams(pageNumber), LocationId: Number(locationId) };
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Zone, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiZoneItem>>(url, { params }).pipe(
       map(response => (response.result?.items ?? []).map(z => this.#mapToDomain(z)))
@@ -43,10 +66,8 @@ export class ZonesRepository {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Zone, ApiAction.Create)}`;
     const payload = {
       currentUserId: 'system',
-      zonedto: {
+      zone: {
         name: dto.name,
-        address: '',
-        locationId: Number(dto.locationId),
         unitId: Number(dto.greenhouseId),
       },
     };
@@ -68,8 +89,12 @@ export class ZonesRepository {
 
   update(id: string, dto: UpdateZoneDto): Observable<PutPatch<ZoneRow>> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Zone, ApiAction.Update)}`;
-    const payload = { unitId: Number(dto.greenhouseId), name: dto.name, active: dto.status === 'active', address: '' };
-    return this.#http.put<unknown>(url, payload, { params: { id: String(Number(id)) } }).pipe(
+    const payload = {
+      unitId: Number(dto.greenhouseId),
+      name: dto.name,
+      active: dto.status === 'active',
+    };
+    return this.#http.put<unknown>(url, payload, { params: { id: Number(id) } }).pipe(
       map(() => ({
         id,
         name: dto.name || '',
@@ -88,34 +113,23 @@ export class ZonesRepository {
   }
 
   #mapToDomain(z: ApiZoneItem): ZoneRow {
-    const zr = z as ApiZoneItem & {
-      readonly unitName?: string;
-      readonly locationName?: string;
-      readonly locationId?: number;
-      readonly capacity?: number;
-      readonly systemsCount?: number;
-      readonly used?: number;
-    };
+    const occ = readApiOccupancy(z.occupancy, {
+      totalCapacity: z.capacity,
+      used: z.used,
+      percent: z.occupancyPercent,
+    });
     return {
       id: String(z.id),
       name: z.name ?? '',
-      greenhouseId: String(z.unitId),
-      greenhouseName: zr.unitName ?? '',
-      locationId: zr.locationId != null ? String(zr.locationId) : '',
-      locationName: zr.locationName ?? '',
-      totalCapacity: zr.capacity ?? 0,
-      occupiedCapacity: zr.used ?? 0,
-      status: z.active ? ('active' as const) : ('inactive' as const),
-      systemsCount: zr.systemsCount ?? 0,
+      greenhouseId: apiRefId(z.unit, z.unitId),
+      greenhouseName: normalizeGreenhouseLabel(apiRefName(z.unit, z.unitName)),
+      locationId: apiRefId(z.location, z.locationId),
+      locationName: apiRefName(z.location, z.locationName),
+      totalCapacity: occ.totalCapacity,
+      occupiedCapacity: occ.used,
+      occupancyPct: occ.percent,
+      status: mapApiEntityStatus(z.status, z.active),
+      systemsCount: z.systemsCount ?? 0,
     };
   }
 }
-
-
-
-
-
-
-
-
-

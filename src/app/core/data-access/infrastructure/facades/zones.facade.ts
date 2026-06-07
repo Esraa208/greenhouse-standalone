@@ -1,20 +1,27 @@
-﻿import { ZoneRow, ZoneFilters, CreateZoneDto, UpdateZoneDto } from '../models/zone.model';
+import { ZoneRow, ZoneFilters, CreateZoneDto, UpdateZoneDto, mapZoneSetOrder } from '../models/zone.model';
 import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { GhToastService, TranslationService } from '@app/core';
 import { ZonesRepository } from '../repositories/zones.repository';
+import { DEFAULT_PAGE_SIZE } from '../list-query';
 import { Subject } from 'rxjs';
 import {
   bindListReloadStream,
   applyListFilterPatch,
+  applyListPaginationFromResult,
+  changeListPageSize,
   subscribeMutationWithResult,
   subscribeMutationWithVoid,
 } from '../entity-list-facade.helpers';
 import { mergeAfterPut } from '../put-patch-merge';
+import { toastInfrastructureCrudSuccess } from '../infrastructure-crud-toast.helper';
 
 @Injectable({ providedIn: 'root' })
 export class ZonesFacade {
   readonly #repo = inject(ZonesRepository);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #toast = inject(GhToastService);
+  readonly #i18n = inject(TranslationService);
 
   readonly #items = signal<ZoneRow[]>([]);
   readonly #filters = signal<ZoneFilters>({
@@ -33,15 +40,19 @@ export class ZonesFacade {
   readonly #error = signal<string | null>(null);
   readonly #totalCount = signal(0);
   readonly #totalPages = signal(1);
-  readonly #pageSize = signal(50);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
 
   readonly #reloadNow$ = new Subject<void>();
   readonly #reloadSearch$ = new Subject<void>();
 
   readonly #selectItems = signal<ZoneRow[]>([]);
+  readonly #selectForUnit = signal<ZoneRow[]>([]);
+  readonly #selectForLocation = signal<ZoneRow[]>([]);
 
   readonly items = this.#items.asReadonly();
   readonly selectItems = this.#selectItems.asReadonly();
+  readonly selectForUnit = this.#selectForUnit.asReadonly();
+  readonly selectForLocation = this.#selectForLocation.asReadonly();
   readonly filters = this.#filters.asReadonly();
   readonly editingItem = this.#editingItem.asReadonly();
   readonly deletingItem = this.#deletingItem.asReadonly();
@@ -76,25 +87,22 @@ export class ZonesFacade {
       setItems: (items) => this.#items.set(items),
       setLoading: (v) => this.#isLoading.set(v),
       setError: (msg) => this.#error.set(msg),
-      setPagination: (p) => {
-        this.#totalCount.set(p.totalCount);
-        this.#totalPages.set(p.totalPages);
-        this.#pageSize.set(p.pageSize);
-      },
+      setPagination: (p) => applyListPaginationFromResult(p, this.#totalCount, this.#totalPages),
     });
   }
 
   #listQuery() {
     const f = this.#filters();
+    const extra: Record<string, string | number | boolean> = {};
+    if (f.locationId !== 'all') extra['LocationId'] = Number(f.locationId);
+    if (f.greenhouseId !== 'all') extra['UnitId'] = Number(f.greenhouseId);
     return {
       pageNumber: this.#pageNumber(),
+      pageSize: this.#pageSize(),
       search: f.searchQuery,
       status: f.status,
-      setOrder: f.sortBy,
-      extra: {
-        LocationId: f.locationId === 'all' ? '' : f.locationId,
-        UnitId: f.greenhouseId === 'all' ? '' : f.greenhouseId,
-      },
+      setOrder: mapZoneSetOrder(f.sortBy),
+      extra: Object.keys(extra).length > 0 ? extra : undefined,
     };
   }
 
@@ -122,9 +130,37 @@ export class ZonesFacade {
       .subscribe({ next: (rows) => this.#selectItems.set(rows) });
   }
 
+  loadActiveForUnit(unitId: string): void {
+    const id = unitId?.trim();
+    if (!id || id === 'all') {
+      this.#selectForUnit.set([]);
+      return;
+    }
+    this.#repo
+      .fetchActiveByUnit(id)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({ next: (rows) => this.#selectForUnit.set(rows) });
+  }
+
+  loadActiveForLocation(locationId: string): void {
+    const id = locationId?.trim();
+    if (!id || id === 'all') {
+      this.#selectForLocation.set([]);
+      return;
+    }
+    this.#repo
+      .fetchActiveByLocation(id)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({ next: (rows) => this.#selectForLocation.set(rows) });
+  }
+
   goToPage(page: number): void {
     this.#pageNumber.set(page);
     this.#reloadNow$.next();
+  }
+
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
   }
 
   patchFilters(patch: Partial<ZoneFilters>): void {
@@ -156,6 +192,7 @@ export class ZonesFacade {
         if (row.status === 'active') {
           this.#selectItems.update((s) => [...s.filter((i) => i.id !== row.id), row]);
         }
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'zones', 'create');
       },
     });
   }
@@ -175,6 +212,7 @@ export class ZonesFacade {
           const rest = s.filter((i) => i.id !== row.id);
           return row.status === 'active' ? [...rest, row] : rest;
         });
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'zones', 'edit');
       },
     });
   }
@@ -192,6 +230,7 @@ export class ZonesFacade {
         this.#items.update((items) => items.filter((i) => i.id !== item.id));
         this.#totalCount.update(c => Math.max(0, c - 1));
         this.#selectItems.update((s) => s.filter((i) => i.id !== item.id));
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'zones', 'delete');
       },
     });
   }

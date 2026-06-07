@@ -2,6 +2,10 @@
   <span class="gh-stock-history-summary__icon" aria-hidden="true">📦</span>
   <div>
     <p class="gh-stock-history-summary__batch">{{ batchNumber() }}@if (cropType()) { - {{ cropType() }} }</p>
+    <!-- <p class="gh-stock-history-summary__batch">{{ batchNumber() }}</p>
+    @if (cropType()) {
+      <p class="gh-stock-history-summary__crop">{{ cropType() }}</p>
+    } -->
     <p class="gh-stock-history-summary__qty">{{ quantity() | number }} {{ 'common.plants' | translate }}</p>
   </div>
 </div>
@@ -28,19 +32,21 @@
         </div>
         <div class="gh-stock-history-event__body">
           <header class="gh-stock-history-event__header">
-            <span class="gh-stock-history-event__date">
-              {{ entry.date | date:'d MMMM y':'':i18n.currentLang() }}
-            </span>
             <gh-badge [variant]="badgeVariant(entry.actionType)">
               {{ actionLabelKey(entry.actionType) | translate }}
             </gh-badge>
+            <span class="gh-stock-history-event__date">
+              {{ entry.date | date:'d MMMM y':'':i18n.currentLang() }}
+            </span>
           </header>
 
-          @if (isTransferLike(entry.actionType) && entry.from) {
-            <div class="gh-stock-history-loc-card gh-stock-history-loc-card--from">
-              <p class="gh-stock-history-loc-card__label">{{ 'stockHistory.from' | translate }}:</p>
-              <ng-container *ngTemplateOutlet="locBody; context: { $implicit: entry.from }" />
-            </div>
+          @if (isTransferLike(entry.actionType)) {
+            @if (entry.from) {
+              <div class="gh-stock-history-loc-card gh-stock-history-loc-card--from">
+                <p class="gh-stock-history-loc-card__label">{{ 'stockHistory.from' | translate }}:</p>
+                <ng-container *ngTemplateOutlet="locBody; context: { $implicit: entry.from }" />
+              </div>
+            }
             <div class="gh-stock-history-loc-card gh-stock-history-loc-card--to">
               <p class="gh-stock-history-loc-card__label">{{ 'stockHistory.to' | translate }}:</p>
               <ng-container *ngTemplateOutlet="locBody; context: { $implicit: entry.to }" />

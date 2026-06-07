@@ -1,4 +1,4 @@
-﻿<gh-crud-page-shell class="locations-page" [dir]="i18n.dir()">
+<gh-crud-page-shell class="locations-page" [dir]="i18n.dir()">
 
   <div data-gh-crud-slot="header">
     <gh-page-header
@@ -29,7 +29,8 @@
       [totalPages]="facade.totalPages()"
       [totalCount]="facade.totalCount()"
       [pageSize]="facade.pageSize()"
-      (pageChange)="facade.goToPage($event)">
+      (pageChange)="facade.goToPage($event)"
+      (pageSizeChange)="facade.setPageSize($event)">
           <thead>
             <tr>
               <th>{{ 'locations.col_name' | translate }}</th>
@@ -130,8 +131,8 @@
         }
 
         @if (!facade.editingItem()) {
-          <div class="locations-page__modal-hint" role="note">
-            <span class="locations-page__modal-hint-icon" aria-hidden="true">💡</span>
+          <div class="gh-modal-hint" role="note">
+            <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
             <span>{{ 'locations.modal_hint' | translate }}</span>
           </div>
         }

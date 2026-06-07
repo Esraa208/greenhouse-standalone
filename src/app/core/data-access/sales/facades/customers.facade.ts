@@ -1,154 +1,164 @@
-﻿import { computed, inject, Injectable, signal, DestroyRef } from '@angular/core';
+import { computed, inject, Injectable, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject } from 'rxjs';
 import { CustomersRepository } from '../repositories/customers.repository';
 import {
   CustomerRow,
   CustomerFilters,
   CreateCustomerDto,
+  UpdateCustomerDto,
   DEFAULT_CUSTOMER_FILTERS,
+  mapCustomerSetOrder,
 } from '../models/customer.model';
+import { DEFAULT_PAGE_SIZE } from '@app/core/data-access/infrastructure/list-query';
+import {
+  bindListReloadStream,
+  applyListFilterPatch,
+  applyListPaginationFromResult,
+  changeListPageSize,
+  subscribeMutationWithResult,
+  subscribeMutationWithVoid,
+} from '@app/core/data-access/infrastructure/entity-list-facade.helpers';
+import { mergeAfterPut } from '@app/core/data-access/infrastructure/put-patch-merge';
 
 @Injectable({ providedIn: 'root' })
 export class CustomersFacade {
-  readonly #repo       = inject(CustomersRepository);
+  readonly #repo = inject(CustomersRepository);
   readonly #destroyRef = inject(DestroyRef);
 
-  readonly #items             = signal<CustomerRow[]>([]);
-  readonly #filters           = signal<CustomerFilters>(DEFAULT_CUSTOMER_FILTERS);
-  readonly #editingItem       = signal<CustomerRow | null>(null);
-  readonly #deletingItem      = signal<CustomerRow | null>(null);
-  readonly #isModalOpen       = signal(false);
+  readonly #items = signal<CustomerRow[]>([]);
+  readonly #filters = signal<CustomerFilters>(DEFAULT_CUSTOMER_FILTERS);
+  readonly #editingItem = signal<CustomerRow | null>(null);
+  readonly #deletingItem = signal<CustomerRow | null>(null);
+  readonly #isModalOpen = signal(false);
   readonly #isDeleteModalOpen = signal(false);
-  readonly #isLoading         = signal(false);
-  readonly #error             = signal<string | null>(null);
+  readonly #isLoading = signal(false);
+  readonly #error = signal<string | null>(null);
+  readonly #pageNumber = signal(1);
+  readonly #totalCount = signal(0);
+  readonly #totalPages = signal(1);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
 
-  readonly items              = this.#items.asReadonly();
-  readonly filters            = this.#filters.asReadonly();
-  readonly editingItem        = this.#editingItem.asReadonly();
-  readonly deletingItem       = this.#deletingItem.asReadonly();
-  readonly isModalOpen        = this.#isModalOpen.asReadonly();
-  readonly isDeleteModalOpen  = this.#isDeleteModalOpen.asReadonly();
-  readonly isLoading          = this.#isLoading.asReadonly();
-  readonly error              = this.#error.asReadonly();
+  readonly #reloadNow$ = new Subject<void>();
+  readonly #reloadSearch$ = new Subject<void>();
 
-  readonly filteredItems = computed<CustomerRow[]>(() => {
-    const { searchQuery, sortBy } = this.#filters();
-    let result = this.#items();
+  readonly items = this.#items.asReadonly();
+  readonly filters = this.#filters.asReadonly();
+  readonly editingItem = this.#editingItem.asReadonly();
+  readonly deletingItem = this.#deletingItem.asReadonly();
+  readonly isModalOpen = this.#isModalOpen.asReadonly();
+  readonly isDeleteModalOpen = this.#isDeleteModalOpen.asReadonly();
+  readonly isLoading = this.#isLoading.asReadonly();
+  readonly error = this.#error.asReadonly();
+  readonly currentPage = this.#pageNumber.asReadonly();
+  readonly totalCount = this.#totalCount.asReadonly();
+  readonly totalPages = this.#totalPages.asReadonly();
+  readonly pageSize = this.#pageSize.asReadonly();
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        (c.email?.toLowerCase().includes(q) ?? false)
-      );
-    }
+  readonly filteredItems = computed<CustomerRow[]>(() => this.#items());
 
-    return [...result].sort((a, b) => {
-      switch (sortBy) {
-        case 'date-desc':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case 'date-asc':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case 'name-asc':
-          return a.name.localeCompare(b.name, 'ar');
-        case 'name-desc':
-          return b.name.localeCompare(a.name, 'ar');
-        case 'purchases-desc':
-          return b.totalPurchases - a.totalPurchases;
-        default:
-          return 0;
-      }
+  readonly filteredCount = computed(() => this.filteredItems().length);
+  readonly hasActiveFilters = computed(
+    () => this.#filters().searchQuery !== '' || this.#filters().status !== 'all'
+  );
+
+  constructor() {
+    bindListReloadStream({
+      destroyRef: this.#destroyRef,
+      reloadNow$: this.#reloadNow$,
+      reloadSearch$: this.#reloadSearch$,
+      load: () => this.#repo.getAll(this.#listQuery()),
+      setItems: (items) => this.#items.set(items),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      setPagination: (p) => applyListPaginationFromResult(p, this.#totalCount, this.#totalPages),
     });
-  });
+  }
 
-  readonly totalCount       = computed(() => this.#items().length);
-  readonly filteredCount    = computed(() => this.filteredItems().length);
-  readonly hasActiveFilters = computed(() => this.#filters().searchQuery !== '');
+  #listQuery() {
+    const f = this.#filters();
+    return {
+      pageNumber: this.#pageNumber(),
+      pageSize: this.#pageSize(),
+      search: f.searchQuery,
+      status: f.status,
+      setOrder: mapCustomerSetOrder(f.sortBy),
+    };
+  }
+
+  enterPage(): void {
+    this.#filters.set(DEFAULT_CUSTOMER_FILTERS);
+    this.#pageNumber.set(1);
+    this.#reloadNow$.next();
+  }
 
   loadAll(): void {
-    this.#isLoading.set(true);
-    this.#repo.getAll()
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: (items: CustomerRow[]) => {
-          this.#items.set(items);
-          this.#isLoading.set(false);
-        },
-        error: (err: Error) => {
-          this.#error.set(err.message);
-          this.#isLoading.set(false);
-        },
-      });
+    this.#reloadNow$.next();
+  }
+
+  goToPage(page: number): void {
+    this.#pageNumber.set(page);
+    this.#reloadNow$.next();
+  }
+
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
   }
 
   create(dto: CreateCustomerDto): void {
-    const optimistic: CustomerRow = {
-      id: 'temp-' + Date.now(),
-      ...dto,
-      invoicesCount: 0,
-      totalPurchases: 0,
-      createdAt: new Date().toISOString(),
-    };
-    this.#items.update(list => [optimistic, ...list]);
     this.closeModal();
-
-    this.#repo.create(dto)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: (real: CustomerRow) => {
-          this.#items.update(list => list.map(i => i.id === optimistic.id ? real : i));
-        },
-        error: () => {
-          this.#items.update(list => list.filter(i => i.id !== optimistic.id));
-        },
-      });
+    subscribeMutationWithResult({
+      destroyRef: this.#destroyRef,
+      mutation$: this.#repo.create(dto),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      onSuccess: (row) => {
+        this.#items.update((items) => [...items, row]);
+        this.#totalCount.update((c) => c + 1);
+        this.#reloadNow$.next();
+      },
+    });
   }
 
-  update(dto: CreateCustomerDto): void {
-    const editing = this.#editingItem();
-    if (!editing) return;
-    const oldItem = editing;
-
-    const optimistic: CustomerRow = { ...oldItem, ...dto };
-    this.#items.update(list => list.map(i => i.id === oldItem.id ? optimistic : i));
+  update(dto: UpdateCustomerDto): void {
+    const previous = this.#items().find((i) => i.id === dto.id) ?? this.#editingItem() ?? undefined;
     this.closeModal();
-
-    this.#repo.update(oldItem.id, dto)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: (real: CustomerRow) => {
-          this.#items.update(list => list.map(i => i.id === oldItem.id ? real : i));
-        },
-        error: () => {
-          this.#items.update(list => list.map(i => i.id === oldItem.id ? oldItem : i));
-        },
-      });
+    subscribeMutationWithResult({
+      destroyRef: this.#destroyRef,
+      mutation$: this.#repo.update(dto.id, dto),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      onSuccess: (patch) => {
+        const row = mergeAfterPut(previous, patch);
+        this.#items.update((items) => items.map((i) => (i.id === row.id ? row : i)));
+      },
+    });
   }
 
   confirmDelete(): void {
     const item = this.#deletingItem();
     if (!item) return;
-
-    this.#items.update(list => list.filter(i => i.id !== item.id));
     this.closeDeleteModal();
-
-    this.#repo.delete(item.id)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: () => { /* success */ },
-        error: () => {
-          this.#items.update(list => [...list, item]);
-        },
-      });
+    subscribeMutationWithVoid({
+      destroyRef: this.#destroyRef,
+      mutation$: this.#repo.delete(item.id),
+      setLoading: (v) => this.#isLoading.set(v),
+      setError: (msg) => this.#error.set(msg),
+      onSuccess: () => {
+        this.#items.update((items) => items.filter((i) => i.id !== item.id));
+        this.#totalCount.update((c) => Math.max(0, c - 1));
+      },
+    });
   }
 
   patchFilters(patch: Partial<CustomerFilters>): void {
-    this.#filters.update(curr => ({ ...curr, ...patch }));
+    applyListFilterPatch(patch, this.#filters, this.#pageNumber, this.#reloadNow$, this.#reloadSearch$);
   }
 
   resetFilters(): void {
     this.#filters.set(DEFAULT_CUSTOMER_FILTERS);
+    this.#pageNumber.set(1);
+    this.#reloadNow$.next();
   }
 
   openCreateModal(): void {
@@ -176,8 +186,3 @@ export class CustomersFacade {
     this.#deletingItem.set(null);
   }
 }
-
-
-
-
-

@@ -1,4 +1,4 @@
-﻿<div class="customers-page" [attr.dir]="i18n.dir()">
+<div class="customers-page" [attr.dir]="i18n.dir()">
 
   <gh-page-header
     [title]="'customers.page_title' | translate"
@@ -9,98 +9,103 @@
   <gh-table-filters
     [searchPlaceholder]="'customers.search' | translate"
     [search]="facade.filters().searchQuery"
-    [sort]="facade.filters().sortBy"
+    [status]="facade.filters().status"
+    [statusOptions]="filterStatusOptions()"
+    [sort]="facade.filters().sortBy === 'all' ? '' : facade.filters().sortBy"
     [sortOptions]="sortOptions()"
-    [showStatus]="false"
     (searchChange)="facade.patchFilters({ searchQuery: $event })"
-    (sortChange)="facade.patchFilters($any({ sortBy: $event }))" />
+    (statusChange)="facade.patchFilters({ status: $any($event) })"
+    (sortChange)="onSortFilterChange($event)" />
 
-  <div class="gh-card">
-    @if (facade.filteredItems().length === 0 && !facade.isLoading()) {
-      <gh-empty-state [title]="'customers.empty' | translate" />
-    } @else {
-      <gh-table [loading]="facade.isLoading()">
-        <thead>
-          <tr>
-            <th>{{ 'customers.col_name' | translate }}</th>
-            <th>{{ 'customers.col_phone' | translate }}</th>
-            <th>{{ 'customers.col_email' | translate }}</th>
-            <th>{{ 'customers.col_invoices' | translate }}</th>
-            <th>{{ 'customers.col_total' | translate }}</th>
-            <th>{{ 'customers.col_date' | translate }}</th>
-            <th>{{ 'customers.col_actions' | translate }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of facade.filteredItems(); track item.id) {
-            <tr>
-              <!-- Col 1: Name -->
-              <td>
-                <div class="cell-with-icon">
-                  <span class="cell-icon">👤</span>
-                  <span class="cell-name">{{ item.name }}</span>
-                </div>
-              </td>
-              <!-- Col 2: Phone -->
-              <td>
-                <div class="cell-with-icon">
-                  <span class="cell-icon-sm">📞</span>
-                  <span class="customers-page__phone" dir="ltr">{{ item.phone }}</span>
-                </div>
-              </td>
-              <!-- Col 3: Email -->
-              <td>
-                <span class="cell-muted">{{ item.email || '—' }}</span>
-              </td>
-              <!-- Col 4: Invoices count -->
-              <td>
-                <gh-badge variant="inactive">
-                  {{ item.invoicesCount }} {{ 'customers.invoices_count' | translate }}
-                </gh-badge>
-              </td>
-              <!-- Col 5: Total purchases -->
-              <td>
-                <span class="customers-page__purchases">
-                  {{ item.totalPurchases | number:'1.2-2' }} {{ 'common.sar' | translate }}
-                </span>
-              </td>
-              <!-- Col 6: Registration date -->
-              <td>{{ item.createdAt | ghDate }}</td>
-              <!-- Col 7: Actions -->
-              <td>
-                <div class="cell-actions">
-                  <gh-button variant="ghost" size="sm"
-                    (click)="facade.openEditModal(item)">
-                    ✏️ {{ 'common.edit' | translate }}
-                  </gh-button>
-                  <gh-button variant="ghost" size="sm"
-                    [disabled]="!canDeleteCustomer(item)"
-                    (click)="facade.openDeleteModal(item)">
-                    🗑️ {{ 'common.delete' | translate }}
-                  </gh-button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </gh-table>
-    }
-  </div>
+  <gh-entity-list-section
+    [loading]="facade.isLoading()"
+    [itemCount]="facade.filteredItems().length"
+    emptyTitleKey="customers.empty"
+    [currentPage]="facade.currentPage()"
+    [totalPages]="facade.totalPages()"
+    [totalCount]="facade.totalCount()"
+    [pageSize]="facade.pageSize()"
+    (pageChange)="facade.goToPage($event)"
+    (pageSizeChange)="facade.setPageSize($event)">
+    <thead>
+      <tr>
+        <th>{{ 'customers.col_name' | translate }}</th>
+        <th>{{ 'customers.col_phone' | translate }}</th>
+        <th>{{ 'customers.col_email' | translate }}</th>
+        <th>{{ 'customers.col_status' | translate }}</th>
+        <th>{{ 'customers.col_invoices' | translate }}</th>
+        <th>{{ 'customers.col_total' | translate }}</th>
+        <th>{{ 'customers.col_date' | translate }}</th>
+        <th>{{ 'customers.col_actions' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of facade.filteredItems(); track item.id) {
+        <tr>
+          <td>
+            <div class="cell-with-icon">
+              <span class="cell-icon">👤</span>
+              <span class="cell-name">{{ item.name }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="cell-with-icon">
+              <span class="cell-icon-sm">📞</span>
+              <span class="customers-page__phone" dir="ltr">{{ item.phone }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="cell-muted">{{ item.email || '—' }}</span>
+          </td>
+          <td>
+            <gh-badge [variant]="statusVariant(item.status)">
+              {{ statusLabel(item) }}
+            </gh-badge>
+          </td>
+          <td>
+            <gh-badge variant="inactive">
+              {{ item.invoicesCount }} {{ 'customers.invoices_count' | translate }}
+            </gh-badge>
+          </td>
+          <td>
+            <span class="customers-page__purchases">
+              {{ item.totalPurchases | number:'1.2-2' }} {{ 'common.egp' | translate }}
+            </span>
+          </td>
+          <td>{{ item.createdAt | ghDate }}</td>
+          <td>
+            <div class="cell-actions">
+              <gh-button variant="ghost" size="sm"
+                (click)="facade.openEditModal(item)">
+                ✏️ {{ 'common.edit' | translate }}
+              </gh-button>
+              <gh-button variant="ghost" size="sm"
+                [disabled]="!canDeleteCustomer(item)"
+                (click)="facade.openDeleteModal(item)">
+                🗑️ {{ 'common.delete' | translate }}
+              </gh-button>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </gh-entity-list-section>
 
-  <!-- Add/Edit Modal -->
   <gh-modal
     [isOpen]="facade.isModalOpen()"
     (isOpenChange)="!$event && facade.closeModal()"
     [title]="(facade.editingItem() ? 'customers.modal_edit_title' : 'customers.modal_add_title') | translate"
+    [subtitle]="'customers.modal_subtitle' | translate"
+    iconEmoji="👤"
     size="md">
 
     <div [formGroup]="customerForm">
-      <div class="gh-form-grid">
+      <div class="customers-page__modal-form">
         <gh-form-group
           [label]="'customers.form_name_label' | translate"
           [control]="customerForm.get('name')!"
           [errorMessage]="'customers.form_name_error' | translate"
-          class="gh-form-full-width">
+          icon="•">
           <input ghInput type="text" formControlName="name"
             [placeholder]="'customers.form_name_placeholder' | translate" />
         </gh-form-group>
@@ -108,40 +113,50 @@
         <gh-form-group
           [label]="'customers.form_phone_label' | translate"
           [control]="customerForm.get('phone')!"
-          [errorMessage]="'customers.form_phone_error' | translate">
-          <input ghInput type="tel" formControlName="phone" dir="ltr"
+          [errorMessage]="phoneErrorMessage()">
+          <input ghInput ghPositiveInt type="text" inputmode="numeric" formControlName="phone"
+            dir="ltr" maxlength="11"
             [placeholder]="'customers.form_phone_placeholder' | translate" />
         </gh-form-group>
 
         <gh-form-group
           [label]="'customers.form_email_label' | translate"
-          [control]="customerForm.get('email')!">
-          <input ghInput type="email" formControlName="email"
+          [control]="customerForm.get('email')!"
+          [errorMessage]="emailErrorMessage()">
+          <input ghInput type="email" formControlName="email" dir="ltr"
             [placeholder]="'customers.form_email_placeholder' | translate" />
         </gh-form-group>
 
         <gh-form-group
           [label]="'customers.form_address_label' | translate"
-          [control]="customerForm.get('address')!"
-          class="gh-form-full-width">
-          <textarea ghInput formControlName="address" rows="2"
-            [placeholder]="'customers.form_address_placeholder' | translate"></textarea>
+          [control]="customerForm.get('address')!">
+          <input ghInput type="text" formControlName="address"
+            [placeholder]="'customers.form_address_placeholder' | translate" />
         </gh-form-group>
+
+        @if (facade.editingItem()) {
+          <gh-form-group
+            [label]="'customers.form_status_label' | translate"
+            [control]="customerForm.get('status')!">
+            <gh-segmented-control
+              [options]="statusOptions()"
+              [value]="customerForm.get('status')?.value ?? 'active'"
+              (valueChange)="setStatus($event)" />
+          </gh-form-group>
+        }
       </div>
     </div>
 
-    <div slot="footer" class="flex gap-3">
+    <div slot="footer" class="modal-footer-actions">
       <gh-button variant="outline" (click)="facade.closeModal()">
         {{ 'common.cancel' | translate }}
       </gh-button>
-      <gh-button variant="primary" [disabled]="customerForm.invalid"
-        (click)="submitCustomer()">
-        {{ (facade.editingItem() ? 'customers.btn_update' : 'customers.btn_save') | translate }}
+      <gh-button variant="primary" [disabled]="customerForm.invalid" (click)="submitCustomer()">
+        {{ (facade.editingItem() ? 'common.save' : 'customers.add_button') | translate }}
       </gh-button>
     </div>
   </gh-modal>
 
-  <!-- Delete Confirm -->
   <gh-delete-confirm-modal
     [isOpen]="facade.isDeleteModalOpen()"
     [itemName]="facade.deletingItem()?.name ?? ''"
@@ -151,5 +166,4 @@
     (confirmed)="facade.confirmDelete()" />
 
 </div>
-
 

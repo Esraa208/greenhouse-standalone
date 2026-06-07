@@ -1,4 +1,4 @@
-﻿export interface HarvestRow {
+export interface HarvestRow {
   readonly id: string;
   readonly batchNumber: string;
   readonly cropTypeName: string;
@@ -29,7 +29,16 @@ export interface HarvestRefCustomer {
   readonly phone: string;
 }
 
+export type HarvestSortKey = 'date-desc' | 'date-asc';
 
+export interface HarvestFilters {
+  searchQuery: string;
+  status: 'active' | 'inactive' | 'all';
+  sortBy: HarvestSortKey;
+}
 
-
-
+export const DEFAULT_HARVEST_FILTERS: HarvestFilters = {
+  searchQuery: '',
+  status: 'all',
+  sortBy: 'date-desc',
+};

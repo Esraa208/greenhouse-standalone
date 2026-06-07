@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { TranslatePipe } from '@app/shared/pipes';
+import { PositiveIntInputDirective } from '@app/shared/directives';
 import type { AllocationRow } from '@app/core/data-access/operations/models/allocation.model';
 
 export interface TransferSelectOption {
@@ -17,7 +18,7 @@ export interface TransferSelectOption {
 @Component({
   selector: 'gh-transfer-allocation-panel',
   standalone: true,
-  imports: [DecimalPipe, TranslatePipe],
+  imports: [DecimalPipe, TranslatePipe, PositiveIntInputDirective],
   templateUrl: './transfer-allocation-panel.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

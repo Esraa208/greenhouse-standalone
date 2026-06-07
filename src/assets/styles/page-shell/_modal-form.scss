@@ -1,0 +1,144 @@
+// ── Reusable modal / wizard form shell (loss create, invoice harvest, …) ──
+
+.gh-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-1);
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  &__toolbar-label {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 700;
+    color: var(--color-foreground);
+    white-space: nowrap;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    .gh-form-grid {
+      width: 100%;
+
+      gh-form-group,
+      .form-group {
+        min-width: 0;
+      }
+
+      .form-group__control {
+        width: 100%;
+
+        gh-input,
+        gh-select,
+        [ghInput],
+        textarea {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  &__section-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding-block-end: var(--space-2);
+    border-block-end: 1px solid var(--color-border);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 700;
+    color: var(--color-foreground);
+
+    &--accent {
+      color: var(--color-primary, #7c3aed);
+    }
+
+    &--danger {
+      color: var(--color-destructive, #dc2626);
+      border-block-end-color: var(--color-border);
+    }
+  }
+
+  &__section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    color: inherit;
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-6);
+    color: var(--color-muted-foreground);
+    font-size: var(--font-size-sm, 0.875rem);
+  }
+}
+
+// ── Modal date fields (loss date, due date, allocation loss, …) ───
+.gh-modal-form,
+.gh-loss-reg-form,
+.gh-invoice-harvest-form__dates-row {
+  input[type='date'][ghInput] {
+    height: 44px;
+    min-height: 44px;
+    padding-inline: 1rem;
+    padding-inline-end: 2.75rem;
+    border-radius: var(--radius-xl);
+    background-color: var(--color-card);
+    direction: ltr;
+    text-align: start;
+
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.55;
+    }
+
+    &:hover::-webkit-calendar-picker-indicator,
+    &:focus::-webkit-calendar-picker-indicator {
+      opacity: 0.85;
+    }
+  }
+}
+
+// ── Numeric input with trailing unit label ────────────────────────
+.gh-input-with-unit {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+
+  gh-input,
+  .gh-input,
+  input.gh-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__unit {
+    display: inline-flex;
+    align-items: center;
+    padding-inline: var(--space-3);
+    min-height: 2.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-muted);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+    white-space: nowrap;
+  }
+}

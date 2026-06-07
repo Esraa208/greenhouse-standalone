@@ -1,10 +1,9 @@
-﻿import {
+import {
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
   OnInit,
-  signal,
 } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import {
@@ -22,6 +21,8 @@ import {
   UpdateBatchDto,
   CropsFacade,
 } from '@app/core/data-access/operations';
+import { LocationsFacade, GreenhousesFacade } from '@app/core/data-access/infrastructure';
+import { withEditFallback } from '../../infrastructure/infrastructure-cascade.helper';
 import { resolveDisplayDays } from '@app/core/data-access/operations/repositories/batches.mapper';
 import { syncCrudModalForm, trackByEntityId } from '@app/shared/utils/sync-crud-modal-form';
 import { ProgressBarComponent } from '@app/shared/components/ui/progress-bar/progress-bar.component';
@@ -39,13 +40,13 @@ export class BatchesPageComponent implements OnInit {
   protected readonly i18n = inject(TranslationService);
   protected readonly breakpoint = inject(BreakpointService);
   protected readonly cropsFacade = inject(CropsFacade);
+  protected readonly locationsFacade = inject(LocationsFacade);
+  protected readonly greenhousesFacade = inject(GreenhousesFacade);
   protected readonly router = inject(Router);
   readonly #fb = inject(FormBuilder).nonNullable;
 
   protected readonly form = this.#fb.group({
-    name: ['', [Validators.required]],
     cropTypeId: ['', [Validators.required]],
-    quantity: [null as number | null, [Validators.required, Validators.min(1)]],
   });
 
   protected readonly sortOptions = computed(() =>
@@ -59,13 +60,61 @@ export class BatchesPageComponent implements OnInit {
     { value: 'all', label: this.i18n.t('batches.filter_all_status') },
     { value: 'active', label: this.i18n.t('batches.status_active') },
     { value: 'harvested', label: this.i18n.t('batches.status_harvested') },
-    { value: 'lost', label: this.i18n.t('batches.status_lost') },
   ]);
 
-  protected readonly availableCropTypes = computed(() => {
-    const items = this.cropsFacade.filteredItems();
-    return items.map(c => ({ id: c.id, name: c.name }));
+  protected statusLabel(status: BatchRow['status']): string {
+    switch (status) {
+      case 'active':
+        return this.i18n.t('batches.status_active');
+      case 'harvested':
+        return this.i18n.t('batches.status_harvested');
+      case 'lost':
+        return this.i18n.t('batches.status_lost');
+      default:
+        return status;
+    }
+  }
+
+  protected growthStageDisplay(row: BatchRow): string {
+    if (row.growthStageLabel) return row.growthStageLabel;
+    return this.i18n.t(`batches.stage_${row.growthStageKey}`);
+  }
+
+  protected displayProgressPercent(row: BatchRow): number {
+    return Math.round(row.growthPercent);
+  }
+
+  protected progressBarValue(row: BatchRow): number {
+    return Math.min(100, Math.max(0, row.growthPercent));
+  }
+
+  protected isOverdue(row: BatchRow): boolean {
+    if (row.status !== 'active') return false;
+    if (row.growthPercent > 100) return true;
+    return row.growthDuration > 0 && row.daysPassed > row.growthDuration;
+  }
+
+  protected growthBarClass(row: BatchRow): string {
+    return `batches-page__growth-bar--${row.growthStageKey}`;
+  }
+
+  protected readonly filterLocations = computed(() => this.locationsFacade.selectItems());
+
+  protected readonly filterGreenhouses = computed(() => {
+    const locId = this.facade.filters().locationId;
+    if (locId === 'all') return this.greenhousesFacade.selectItems();
+    return this.greenhousesFacade.selectForLocation();
   });
+
+  protected readonly filterCropTypes = computed(() => this.cropsFacade.selectItems());
+
+  protected readonly modalCropTypes = computed(() =>
+    withEditFallback(
+      this.cropsFacade.selectItems(),
+      this.cropsFacade.selectItems(),
+      this.facade.editingItem()?.cropTypeId,
+    ),
+  );
 
   constructor() {
     syncCrudModalForm({
@@ -74,17 +123,23 @@ export class BatchesPageComponent implements OnInit {
       form: this.form,
       patchFromItem: (item) =>
         this.form.patchValue({
-          name: item.name,
           cropTypeId: item.cropTypeId,
-          quantity: item.quantity,
         }),
-      defaultValue: () => ({ name: '', cropTypeId: '', quantity: null }),
+      defaultValue: () => ({ cropTypeId: '' }),
     });
+  }
+
+  protected editLocationLine(item: BatchRow): string {
+    const parts = [item.locationSite, item.greenhouseName].filter((p) => !!p?.trim());
+    if (parts.length > 0) return parts.join(' ← ');
+    return item.locationName?.trim() || this.i18n.t('batches.details_not_set');
   }
 
   ngOnInit(): void {
     this.facade.enterPage();
-    this.cropsFacade.loadAll();
+    this.locationsFacade.loadActiveForSelect();
+    this.greenhousesFacade.loadActiveForSelect();
+    this.cropsFacade.loadActiveForSelect();
   }
 
   protected navigateToWizard(): void {
@@ -98,6 +153,18 @@ export class BatchesPageComponent implements OnInit {
 
   protected updateCropFilter(cropTypeId: string): void {
     this.facade.patchFilters({ cropTypeId });
+  }
+
+  protected onFilterLocationChange(val: string): void {
+    this.facade.patchFilters({
+      locationId: val,
+      unitId: 'all',
+    });
+    this.greenhousesFacade.loadActiveForLocation(val === 'all' ? '' : val);
+  }
+
+  protected onFilterGreenhouseChange(val: string): void {
+    this.facade.patchFilters({ unitId: val });
   }
 
   protected readonly trackById = trackByEntityId;
@@ -120,16 +187,10 @@ export class BatchesPageComponent implements OnInit {
     );
   }
 
-  protected growthStageKey(row: BatchRow): string {
-    return `batches.stage_${row.growthStageKey}`;
-  }
-
-  protected growthBarClass(row: BatchRow): string {
-    return `batches-page__growth-bar--${row.growthStageKey}`;
-  }
-
-  protected growthDaysToneClass(row: BatchRow): string {
-    return `batches-page__growth-days--${row.growthStageKey}`;
+  protected growthProgressVariant(row: BatchRow): 'primary' | 'success' | 'warning' | 'info' {
+    if (row.status === 'harvested') return 'success';
+    if (this.isOverdue(row)) return 'warning';
+    return 'info';
   }
 
   protected displayLossCount(item: BatchRow): number {
@@ -151,10 +212,14 @@ export class BatchesPageComponent implements OnInit {
 
     if (!editing) return;
 
+    const cropType =
+      this.modalCropTypes().find((c) => c.id === val.cropTypeId)?.name ?? editing.cropType;
+
     const dto: UpdateBatchDto = {
       cropTypeId: val.cropTypeId,
-      quantity: val.quantity!,
-      status: editing.status,
+      quantity: editing.quantity,
+      isActive: editing.isActive,
+      cropType,
     };
     this.facade.update(editing.id, dto);
   }

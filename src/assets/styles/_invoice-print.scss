@@ -1,0 +1,121 @@
+/* Invoice print — global rules (modal/dialog styles are not encapsulated here) */
+@media print {
+  gh-sidebar,
+  gh-topbar,
+  .no-print {
+    display: none !important;
+  }
+
+  .invoices-page > gh-page-header,
+  .invoices-page > gh-table-filters,
+  .invoices-page > .invoices-page__filters,
+  .invoices-page > gh-entity-list-section,
+  .invoices-page > gh-modal:not(:has(.invoices-page__print-content)) {
+    display: none !important;
+  }
+
+  dialog.gh-modal {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  dialog.gh-modal::backdrop {
+    display: none !important;
+    background: transparent !important;
+  }
+
+  dialog.gh-modal .gh-modal__panel {
+    margin: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    width: auto !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  dialog.gh-modal .gh-modal__header,
+  dialog.gh-modal .gh-modal__footer,
+  dialog.gh-modal .modal-footer-actions {
+    display: none !important;
+  }
+
+  dialog.gh-modal .gh-modal__body {
+    padding: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .invoices-page__preview-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .invoices-page__print-content {
+    display: block !important;
+  }
+
+  .invoices-page__a4-card {
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column !important;
+    inline-size: 100% !important;
+    max-inline-size: 100% !important;
+    min-block-size: calc(297mm - 26mm) !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .invoices-page__print-body {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+  }
+
+  .invoices-page__print-footer {
+    margin-block-start: auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .invoices-page__print-timestamp {
+    display: block !important;
+  }
+
+  .invoices-page__screen-only {
+    display: none !important;
+  }
+
+  .invoices-page__items-table {
+    thead {
+      display: table-header-group;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+  }
+
+  .invoices-page__print-header,
+  .invoices-page__print-body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

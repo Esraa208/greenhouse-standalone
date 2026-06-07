@@ -41,7 +41,24 @@
   transition: width var(--transition-slow);
 
   &--primary { background-color: var(--color-primary); }
+  &--info    { background-color: var(--color-info, #2563eb); }
   &--success { background-color: var(--color-success); }
-  &--warning { background-color: var(--color-warning); }
+  &--warning { background-color: #f59e0b; }
   &--danger  { background-color: var(--color-danger); }
+}
+
+:host-context(.gh-growth-card) {
+  .gh-progress {
+    gap: 0;
+  }
+
+  .gh-progress__track {
+    background-color: #dbeafe;
+    border-radius: var(--radius-full);
+
+    &--md,
+    &--lg {
+      height: 6px;
+    }
+  }
 }

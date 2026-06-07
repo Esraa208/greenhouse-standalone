@@ -31,8 +31,16 @@ export class StockHistoryPanelComponent {
   readonly showTimelineTitle = input(true);
   readonly footerCountKey = input('stockHistory.total_events');
   readonly footerSuffixKey = input('stockHistory.events_suffix');
+  /** When true, footer counts transfer/merge actions only (movement history modal). */
+  readonly countTransfersOnly = input(false);
 
-  readonly eventCount = computed(() => this.entries().length);
+  readonly eventCount = computed(() => {
+    const list = this.entries();
+    if (this.countTransfersOnly()) {
+      return list.filter((e) => isTransferLikeAction(e.actionType)).length;
+    }
+    return list.length;
+  });
 
   protected dotVariant(type: StockActionType): string {
     switch (type) {
@@ -70,7 +78,11 @@ export class StockHistoryPanelComponent {
   }
 
   protected actionLabelKey(type: StockActionType): string {
-    return `stockHistory.action_${type}`;
+    const n = Number(type);
+    if (Number.isFinite(n) && n >= StockActionType.AddStock && n <= StockActionType.Loss) {
+      return `stockHistory.action_${n}`;
+    }
+    return 'stockHistory.action_1';
   }
 
   protected badgeVariant(type: StockActionType): string {
@@ -80,9 +92,12 @@ export class StockHistoryPanelComponent {
       case StockActionType.Loss:
       case StockActionType.RemoveStock:
         return 'danger';
+      // case StockActionType.AddStock:
       case StockActionType.TransferStock:
       case StockActionType.MergeStock:
-        return 'inactive';
+        return 'partial';
+        case StockActionType.AddStock:
+          return 'info';
       default:
         return 'info';
     }

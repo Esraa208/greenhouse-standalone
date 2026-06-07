@@ -7,8 +7,15 @@ import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiLayerItem,
 } from '@app/core/data-access/api';
-import { PagedListQuery, PaginatedResult, buildPagedListParams, buildActiveSelectParams } from '../list-query';
+import {
+  PagedListQuery,
+  PaginatedResult,
+  buildPagedListParams,
+  buildLayerSelectParams,
+  normalizePaginatedResult,
+} from '../list-query';
 import { extractCreatedId } from '../extract-created-id';
+import { apiRefId, apiRefName, mapApiEntityStatus, readApiOccupancy } from '../api-entity-ref';
 import type { PutPatch } from '../put-patch-merge';
 
 @Injectable({ providedIn: 'root' })
@@ -21,18 +28,24 @@ export class LayersRepository {
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Layer, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiLayerItem>>(url, { params }).pipe(
-      map(response => ({
-        items: (response.result?.items ?? []).map(l => this.#mapToDomain(l)),
-        totalCount: response.result?.totalCount ?? 0,
-        pageNumber: response.result?.pageNumber ?? 1,
-        pageSize: response.result?.pageSize ?? 50,
-        totalPages: response.result?.totalPages ?? 1,
-      }))
+      map(response => {
+        const items = (response.result?.items ?? []).map(l => this.#mapToDomain(l));
+        return normalizePaginatedResult(response.result, items, query.pageSize);
+      })
     );
   }
 
   fetchActivePage(pageNumber = 1): Observable<LayerRow[]> {
-    const params = buildActiveSelectParams(pageNumber);
+    const params = buildLayerSelectParams(pageNumber);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Layer, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiLayerItem>>(url, { params }).pipe(
+      map(response => (response.result?.items ?? []).map(l => this.#mapToDomain(l)))
+    );
+  }
+
+  /** Active layers for one system — modal/filter cascades. */
+  fetchActiveBySystem(systemId: string, pageNumber = 1): Observable<LayerRow[]> {
+    const params = { ...buildLayerSelectParams(pageNumber), SystemId: Number(systemId) };
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Layer, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiLayerItem>>(url, { params }).pipe(
       map(response => (response.result?.items ?? []).map(l => this.#mapToDomain(l)))
@@ -42,15 +55,12 @@ export class LayersRepository {
   create(dto: CreateLayerDto): Observable<LayerRow> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Layer, ApiAction.Create)}`;
     const payload = {
-      layerdto: {
-        name: dto.name,
-        address: '',
-        locationId: Number(dto.locationId),
-        unitId: Number(dto.greenhouseId),
-        zoneId: Number(dto.zoneId),
-        plantSystemId: Number(dto.systemId),
-      },
       currentUserId: 'system',
+      layer: {
+        name: dto.name,
+        plantSystemId: Number(dto.systemId),
+        capacity: dto.totalCapacity,
+      },
     };
     return this.#http.post<unknown>(url, payload).pipe(
       map(res => ({
@@ -58,12 +68,13 @@ export class LayersRepository {
         name: dto.name,
         systemId: dto.systemId,
         systemName: dto.systemName ?? '',
-        zoneId: dto.zoneId,
-        greenhouseId: dto.greenhouseId,
-        locationId: dto.locationId,
-        position: dto.position,
+        zoneId: dto.zoneId ?? '',
+        greenhouseId: dto.greenhouseId ?? '',
+        locationId: dto.locationId ?? '',
+        position: 1,
         totalCapacity: dto.totalCapacity,
         occupiedCapacity: 0,
+        availableCapacity: dto.totalCapacity,
         status: 'active' as const,
         pipesCount: 0,
       }))
@@ -74,12 +85,9 @@ export class LayersRepository {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Layer, ApiAction.Update)}`;
     const payload = {
       name: dto.name,
-      address: '',
       active: dto.status === 'active',
-      systemId: Number(dto.systemId),
-      locationId: Number(dto.locationId),
-      unitId: Number(dto.greenhouseId),
-      zoneId: Number(dto.zoneId),
+      plantSystemId: Number(dto.systemId),
+      capacity: dto.totalCapacity,
     };
     return this.#http.put<unknown>(url, payload, { params: { id: String(Number(id)) } }).pipe(
       map(() => ({
@@ -87,10 +95,9 @@ export class LayersRepository {
         name: dto.name || '',
         systemId: dto.systemId || '',
         systemName: dto.systemName ?? '',
-        zoneId: dto.zoneId || '',
-        greenhouseId: dto.greenhouseId || '',
-        locationId: dto.locationId || '',
-        position: dto.position ?? 1,
+        zoneId: dto.zoneId ?? '',
+        greenhouseId: dto.greenhouseId ?? '',
+        locationId: dto.locationId ?? '',
         totalCapacity: dto.totalCapacity ?? 0,
         status: dto.status || ('active' as const),
       }))
@@ -103,18 +110,27 @@ export class LayersRepository {
   }
 
   #mapToDomain(l: ApiLayerItem): LayerRow {
+    const occ = readApiOccupancy(l.occupancy, {
+      totalCapacity: l.capacity,
+      used: l.used,
+      percent: l.occupancyPercent,
+    });
+    const available =
+      l.available ??
+      Math.max(0, occ.totalCapacity - occ.used);
     return {
       id: String(l.id),
       name: l.name ?? '',
-      systemId: l.systemId != null ? String(l.systemId) : '',
-      systemName: l.systemName ?? '',
-      zoneId: l.zoneId != null ? String(l.zoneId) : '',
-      greenhouseId: l.unitId != null ? String(l.unitId) : '',
-      locationId: l.locationId != null ? String(l.locationId) : '',
+      systemId: apiRefId(l.system, l.systemId),
+      systemName: apiRefName(l.system, l.systemName),
+      zoneId: apiRefId(l.zone, l.zoneId),
+      greenhouseId: apiRefId(l.unit, l.unitId),
+      locationId: apiRefId(l.location, l.locationId),
       position: 1,
-      totalCapacity: l.capacity ?? 0,
-      occupiedCapacity: l.used ?? 0,
-      status: l.active ? ('active' as const) : ('inactive' as const),
+      totalCapacity: occ.totalCapacity,
+      occupiedCapacity: occ.used,
+      availableCapacity: available,
+      status: mapApiEntityStatus(l.status, l.active),
       pipesCount: 0,
     };
   }

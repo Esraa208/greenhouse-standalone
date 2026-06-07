@@ -3,6 +3,7 @@
     <dialog
       #dialogRef
       class="gh-modal"
+      (cancel)="onCancel($event)"
       (click)="onBackdropClick($event)"
       (keydown)="onKeyDown($event)"
       tabindex="0"
@@ -13,9 +14,9 @@
         <!-- Header -->
         <div class="gh-modal__header">
           <div class="gh-modal__header-info">
-            @if (iconEmoji()) {
+            <!-- @if (iconEmoji()) {
               <div class="gh-modal__icon-wrap">{{ iconEmoji() }}</div>
-            }
+            } -->
             <div>
               <h2 class="gh-modal__title">{{ title() }}</h2>
               @if (subtitle()) {

@@ -1,9 +1,14 @@
-﻿// ── Card ──────────────────────────────────────────────────────────
+// ── Card ──────────────────────────────────────────────────────────
 .gh-card {
   background: transparent;
   border: none;
   border-radius: var(--radius-xl);
   overflow: hidden;
+}
+
+.gh-card__footer {
+  margin-block-start: var(--space-4);
+  background: transparent;
 }
 
 .gh-card__list-loading {
@@ -60,6 +65,36 @@
     transition: background var(--transition-fast);
     &:last-child { border-bottom: none; }
     &:hover { background: rgba(147, 51, 234, 0.02); }
+  }
+}
+
+/** Wrapper around `gh-table` for multi-line row cells (e.g. batches, allocations). */
+.gh-table--rich-rows {
+  .gh-table td {
+    vertical-align: top;
+    padding-block: var(--space-4);
+  }
+
+  .gh-table th:nth-child(3),
+  .gh-table td:nth-child(3),
+  .gh-table th:nth-child(4),
+  .gh-table td:nth-child(4) {
+    min-width: 9.5rem;
+  }
+
+  .gh-table th:nth-child(2),
+  .gh-table td:nth-child(2) {
+    min-width: 11rem;
+  }
+
+  .gh-table th:nth-child(6),
+  .gh-table td:nth-child(6) {
+    min-width: 7.5rem;
+  }
+
+  .gh-table th:nth-child(7),
+  .gh-table td:nth-child(7) {
+    min-width: 6rem;
   }
 }
 

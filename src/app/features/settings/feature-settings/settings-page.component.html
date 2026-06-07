@@ -1,4 +1,4 @@
-﻿<div class="gh-settings-page">
+<div class="gh-settings-page">
   <gh-page-header
     [title]="'settings.page_title' | translate"
     [description]="'settings.page_subtitle' | translate"
@@ -40,9 +40,9 @@
 
           <h4 class="gh-settings-section-title">{{ 'settings.section_thresholds' | translate }}</h4>
           <div class="gh-settings-grid">
-            <gh-input [label]="'settings.label_temp_high' | translate" type="number" formControlName="alertThresholdTempHigh"></gh-input>
-            <gh-input [label]="'settings.label_temp_low' | translate" type="number" formControlName="alertThresholdTempLow"></gh-input>
-            <gh-input [label]="'settings.label_humidity' | translate" type="number" formControlName="alertThresholdHumidity"></gh-input>
+            <gh-input [label]="'settings.label_temp_high' | translate" [positiveOnly]="true" formControlName="alertThresholdTempHigh"></gh-input>
+            <gh-input [label]="'settings.label_temp_low' | translate" [positiveOnly]="true" formControlName="alertThresholdTempLow"></gh-input>
+            <gh-input [label]="'settings.label_humidity' | translate" [positiveOnly]="true" formControlName="alertThresholdHumidity"></gh-input>
           </div>
 
           <div class="gh-settings-actions">

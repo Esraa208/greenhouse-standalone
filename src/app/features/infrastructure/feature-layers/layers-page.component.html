@@ -1,4 +1,4 @@
-﻿<div class="layers-page" [attr.dir]="i18n.dir()">
+<div class="layers-page" [attr.dir]="i18n.dir()">
 
   <gh-page-header
     [title]="'layers.page_title' | translate"
@@ -11,7 +11,7 @@
     [searchPlaceholder]="'layers.search' | translate"
     [search]="facade.filters().searchQuery"
     [status]="facade.filters().status"
-    [sort]="facade.filters().sortBy"
+    [sort]="facade.filters().sortBy === 'all' ? '' : facade.filters().sortBy"
     [sortOptions]="sortOptions()"
     (searchChange)="facade.patchFilters({ searchQuery: $event })"
     (statusChange)="onStatusFilterChange($event)"
@@ -22,7 +22,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().locationId"
-      (change)="facade.patchFilters({ locationId: $any($event.target).value, greenhouseId: 'all', zoneId: 'all', systemId: 'all' })"
+      (change)="onFilterLocationChange($any($event.target).value)"
       id="gh-layers-filter-location"
     >
       <option value="all">{{ 'layers.filter_all_locations' | translate }}</option>
@@ -34,7 +34,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().greenhouseId"
-      (change)="facade.patchFilters({ greenhouseId: $any($event.target).value, zoneId: 'all', systemId: 'all' })"
+      (change)="onFilterGreenhouseChange($any($event.target).value)"
       id="gh-layers-filter-greenhouse"
     >
       <option value="all">{{ 'layers.filter_all_greenhouses' | translate }}</option>
@@ -46,7 +46,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().zoneId"
-      (change)="facade.patchFilters({ zoneId: $any($event.target).value, systemId: 'all' })"
+      (change)="onFilterZoneChange($any($event.target).value)"
       id="gh-layers-filter-zone"
     >
       <option value="all">{{ 'layers.filter_all_zones' | translate }}</option>
@@ -141,12 +141,16 @@
           }
         </tbody>
       </gh-table>
-      <gh-pagination
-        [currentPage]="facade.currentPage()"
-        [totalPages]="facade.totalPages()"
-        [totalCount]="facade.totalCount()"
-        [pageSize]="facade.pageSize()"
-        (pageChange)="facade.goToPage($event)" />
+      <div class="gh-card__footer">
+        <gh-pagination
+          [currentPage]="facade.currentPage()"
+          [totalPages]="facade.totalPages()"
+          [totalCount]="facade.totalCount()"
+          [itemCount]="facade.filteredItems().length"
+          [pageSize]="facade.pageSize()"
+          (pageChange)="facade.goToPage($event)"
+          (pageSizeChange)="facade.setPageSize($event)" />
+      </div>
     }
   </div>
 
@@ -196,6 +200,18 @@
           [placeholder]="'layers.form_system_placeholder' | translate"
         />
       </div>
+
+      <gh-form-group
+        [label]="'layers.form_capacity_label' | translate"
+        [control]="form.get('totalCapacity')!"
+        [errorMessage]="capacityErrorMessage()"
+        class="gh-form-full-width">
+        <gh-input
+          [positiveOnly]="true"
+          formControlName="totalCapacity"
+          [placeholder]="'layers.form_capacity_placeholder' | translate"
+        />
+      </gh-form-group>
 
       @if (facade.editingItem()) {
       <div class="gh-form-section">

@@ -16,7 +16,15 @@ describe('LocationsFacade', () => {
       status: 'active',
     };
     const repo = {
-      getAll: vi.fn(() => of([row])),
+      getAll: vi.fn(() =>
+        of({
+          items: [row],
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 50,
+          totalPages: 1,
+        })
+      ),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),

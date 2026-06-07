@@ -1,4 +1,4 @@
-﻿<gh-crud-page-shell class="greenhouses-page" [dir]="i18n.dir()">
+<gh-crud-page-shell class="greenhouses-page" [dir]="i18n.dir()">
 
   <div data-gh-crud-slot="header">
     <gh-page-header
@@ -43,7 +43,8 @@
       [totalPages]="facade.totalPages()"
       [totalCount]="facade.totalCount()"
       [pageSize]="facade.pageSize()"
-      (pageChange)="facade.goToPage($event)">
+      (pageChange)="facade.goToPage($event)"
+      (pageSizeChange)="facade.setPageSize($event)">
         <thead>
           <tr>
             <th>{{ 'greenhouses.col_name' | translate }}</th>
@@ -65,8 +66,15 @@
                   <span class="cell-name">{{ gh.name }}</span>
                 </div>
               </td>
-              <!-- Col 2: location -->
-              <td><span class="cell-muted">{{ gh.locationName }}</span></td>
+              <!-- Col 2: location + unit address -->
+              <td>
+                <div class="gh-cell-stack">
+                  <span class="gh-cell-stack__primary">{{ gh.locationName }}</span>
+                  @if (unitAddressLine(gh.address); as addr) {
+                    <span class="gh-cell-stack__secondary">{{ addr }}</span>
+                  }
+                </div>
+              </td>
               <!-- Col 3: zones count -->
               <td>
                 <div class="cell-with-icon">
@@ -89,7 +97,7 @@
                 <div class="occupancy-cell">
                   <div class="occupancy-text">
                     <span>{{ gh.occupiedCapacity | number }} / {{ gh.totalCapacity | number }}
-                      ({{ utilizationPct(gh) }}%)</span>
+                      ({{ utilizationPct(gh) | number:'1.0-1' }}%)</span>
                   </div>
                   <gh-progress-bar
                     [value]="gh.occupiedCapacity"
@@ -139,6 +147,20 @@
           />
         </gh-form-group>
 
+        <gh-form-group
+          [label]="'greenhouses.form_address_label' | translate"
+          [control]="form.get('address')!"
+          [errorMessage]="'greenhouses.form_address_error' | translate"
+          class="gh-form-full-width"
+        >
+          <input
+            ghInput
+            type="text"
+            formControlName="address"
+            [placeholder]="'greenhouses.form_address_placeholder' | translate"
+          />
+        </gh-form-group>
+
         <gh-select
           formControlName="locationId"
           [items]="availableLocations()"
@@ -161,8 +183,8 @@
       }
 
       @if (!facade.editingItem()) {
-        <div class="greenhouses-page__modal-hint" role="note">
-          <span class="greenhouses-page__modal-hint-icon" aria-hidden="true">💡</span>
+        <div class="gh-modal-hint" role="note">
+          <span class="gh-modal-hint__icon" aria-hidden="true">💡</span>
           <span>{{ 'greenhouses.modal_hint' | translate }}</span>
         </div>
       }

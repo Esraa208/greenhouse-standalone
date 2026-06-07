@@ -7,27 +7,39 @@ import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiUnitItem,
 } from '@app/core/data-access/api';
-import { PagedListQuery, PaginatedResult, buildPagedListParams, buildActiveSelectParams } from '../list-query';
+import {
+  PagedListQuery,
+  PaginatedResult,
+  buildPagedListParams,
+  buildUnitSelectParams,
+  normalizePaginatedResult,
+} from '../list-query';
 import { extractCreatedId } from '../extract-created-id';
 import type { PutPatch } from '../put-patch-merge';
+import { normalizeGreenhouseLabel } from '@app/shared/utils/normalize-greenhouse-label';
+
+/** Fallback when address is omitted (legacy rows). */
+const UNIT_ADDRESS_PLACEHOLDER = '.';
 
 @Injectable({ providedIn: 'root' })
 export class GreenhousesRepository {
   readonly #http = inject(HttpClient);
   readonly #apiUrl = inject(API_BASE_URL);
 
+  #unitAddress(address?: string): string {
+    const trimmed = address?.trim();
+    return trimmed ? trimmed : UNIT_ADDRESS_PLACEHOLDER;
+  }
+
   getAll(query: PagedListQuery = { pageNumber: 1 }): Observable<PaginatedResult<GreenhouseRow>> {
     const params = buildPagedListParams(query);
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Units, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiUnitItem>>(url, { params }).pipe(
-      map(response => ({
-        items: (response.result?.items ?? []).map(u => this.#mapToDomain(u)),
-        totalCount: response.result?.totalCount ?? 0,
-        pageNumber: response.result?.pageNumber ?? 1,
-        pageSize: response.result?.pageSize ?? 50,
-        totalPages: response.result?.totalPages ?? 1,
-      }))
+      map(response => {
+        const items = (response.result?.items ?? []).map(u => this.#mapToDomain(u));
+        return normalizePaginatedResult(response.result, items, query.pageSize);
+      })
     );
   }
 
@@ -40,7 +52,16 @@ export class GreenhousesRepository {
   }
 
   fetchActivePage(pageNumber = 1): Observable<GreenhouseRow[]> {
-    const params = buildActiveSelectParams(pageNumber);
+    const params = buildUnitSelectParams(pageNumber);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.Units, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiUnitItem>>(url, { params }).pipe(
+      map(response => (response.result?.items ?? []).map(u => this.#mapToDomain(u)))
+    );
+  }
+
+  /** Active units for one location — modal/filter cascades. */
+  fetchActiveByLocation(locationId: string, pageNumber = 1): Observable<GreenhouseRow[]> {
+    const params = { ...buildUnitSelectParams(pageNumber), LocationId: Number(locationId) };
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Units, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiUnitItem>>(url, { params }).pipe(
       map(response => (response.result?.items ?? []).map(u => this.#mapToDomain(u)))
@@ -53,7 +74,7 @@ export class GreenhousesRepository {
       currentUserId: 'system',
       unit: {
         name: dto.name,
-        address: '',
+        address: this.#unitAddress(dto.address),
         locationId: Number(dto.locationId),
       },
     };
@@ -61,6 +82,7 @@ export class GreenhousesRepository {
       map(res => ({
         id: extractCreatedId(res),
         name: dto.name,
+        address: this.#unitAddress(dto.address),
         locationId: dto.locationId,
         locationName: dto.locationName ?? '',
         status: 'active' as const,
@@ -75,7 +97,7 @@ export class GreenhousesRepository {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Units, ApiAction.Update)}`;
     const payload = {
       locationId: Number(dto.locationId),
-      address: '',
+      address: this.#unitAddress(dto.address),
       active: dto.status === 'active',
       name: dto.name,
     };
@@ -83,6 +105,7 @@ export class GreenhousesRepository {
       map(() => ({
         id,
         name: dto.name || '',
+        address: this.#unitAddress(dto.address),
         locationId: dto.locationId || '',
         locationName: dto.locationName ?? '',
         status: dto.status || ('active' as const),
@@ -96,15 +119,22 @@ export class GreenhousesRepository {
   }
 
   #mapToDomain(u: ApiUnitItem): GreenhouseRow {
+    const isActive = u.status?.isActive ?? u.active ?? true;
+    const occ = u.occupancy;
+    const totalCapacity = occ?.totalCapacity ?? u.capacity ?? 0;
+    const used = occ?.used ?? u.used ?? 0;
+    const occupancyPct = occ?.percent ?? u.occupancyPercent;
     return {
       id: String(u.id),
-      name: u.name ?? '',
-      locationId: String(u.locationId),
-      locationName: u.locationName ?? '',
-      status: u.active ? 'active' : 'inactive',
+      name: normalizeGreenhouseLabel(u.name),
+      address: u.address?.trim() ?? '',
+      locationId: String(u.location?.id ?? u.locationId ?? ''),
+      locationName: u.location?.name ?? u.locationName ?? '',
+      status: isActive ? 'active' : 'inactive',
       zonesCount: u.zonesCount ?? 0,
-      totalCapacity: u.capacity ?? 0,
-      occupiedCapacity: u.used ?? 0,
+      totalCapacity,
+      occupiedCapacity: used,
+      occupancyPct,
     };
   }
 }

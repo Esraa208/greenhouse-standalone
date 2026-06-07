@@ -5,161 +5,7 @@
     margin-block-end: var(--space-4);
   }
 
-  &__batch-cell {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  &__batch-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: var(--radius-md);
-    background: var(--color-primary-light);
-    border: 1px solid rgba(147, 51, 234, 0.25);
-    flex-shrink: 0;
-
-    &::before {
-      content: '';
-      width: 0.875rem;
-      height: 0.875rem;
-      border-radius: 3px;
-      background: var(--color-primary);
-    }
-  }
-
-  &__location-cell,
-  &__date-cell {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--font-size-sm);
-    color: var(--color-foreground);
-  }
-
-  &__location-icon,
-  &__date-icon {
-    flex-shrink: 0;
-    opacity: 0.85;
-  }
-
-  &__batch-number {
-    font-weight: 700;
-    color: var(--color-foreground);
-    letter-spacing: -0.01em;
-  }
-
-  &__crop {
-    font-weight: 500;
-    color: var(--color-foreground);
-  }
-
-  &__quantity-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  &__quantity {
-    font-weight: 600;
-    font-size: var(--font-size-sm);
-    color: var(--color-foreground);
-  }
-
-  &__initial {
-    color: var(--color-muted-foreground);
-    font-size: var(--font-size-xs);
-  }
-
-  &__date {
-    font-size: var(--font-size-sm);
-    color: var(--color-foreground);
-  }
-
-  &__growth {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    min-inline-size: 11rem;
-    max-inline-size: 15rem;
-  }
-
-  &__growth-header {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
-  }
-
-  &__stage {
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    color: var(--color-foreground);
-    text-align: start;
-  }
-
-  &__growth-days {
-    margin-inline-start: auto;
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    text-align: end;
-
-    &--seedlings,
-    &--harvest {
-      color: var(--color-muted-foreground);
-    }
-
-    &--early,
-    &--vegetative {
-      color: #c2410c;
-    }
-  }
-
-  &__growth-bar {
-    width: 100%;
-
-    &--seedlings ::ng-deep .gh-progress__fill {
-      background-color: #c4b5fd;
-    }
-
-    &--early ::ng-deep .gh-progress__fill,
-    &--vegetative ::ng-deep .gh-progress__fill {
-      background-color: #eab308;
-    }
-
-    &--harvest ::ng-deep .gh-progress__fill {
-      background-color: #22c55e;
-    }
-  }
-
-  &__percent {
-    display: block;
-    text-align: start;
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    color: var(--color-muted-foreground);
-    direction: ltr;
-  }
-
-  &__date-icon {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-    color: var(--color-muted-foreground);
-  }
-
-  &__action-icon {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-    margin-inline-end: var(--space-1);
-  }
-
-  // Details Modal
+  // Details modal only — table rows use global gh-* cell classes
   &__details {
     display: flex;
     flex-direction: column;
@@ -322,6 +168,23 @@
     white-space: nowrap;
   }
 
+  &__growth-bar {
+    width: 100%;
+
+    &--seedlings ::ng-deep .gh-progress__fill {
+      background-color: #c4b5fd;
+    }
+
+    &--early ::ng-deep .gh-progress__fill,
+    &--vegetative ::ng-deep .gh-progress__fill {
+      background-color: #eab308;
+    }
+
+    &--harvest ::ng-deep .gh-progress__fill {
+      background-color: #22c55e;
+    }
+  }
+
   &__details-progress {
     margin-block-start: var(--space-2);
   }
@@ -351,22 +214,62 @@
     font-weight: 600;
     direction: ltr;
   }
+
+  &__edit-summary {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius-lg);
+  }
+
+  &__edit-summary-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    color: #2563eb;
+
+    svg {
+      width: 1.375rem;
+      height: 1.375rem;
+    }
+  }
+
+  &__edit-summary-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  &__edit-summary-label {
+    font-size: var(--font-size-xs);
+    color: #1d4ed8;
+    font-weight: 600;
+  }
+
+  &__edit-summary-id {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-foreground);
+  }
+
+  &__edit-summary-location {
+    font-size: var(--font-size-xs);
+    color: var(--color-muted-foreground);
+    line-height: 1.45;
+  }
 }
 
 .modal-footer-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-}
-
-.cell-actions {
-  display: flex;
-  gap: var(--space-2);
-
-  gh-button button {
-    display: inline-flex;
-    align-items: center;
-  }
 }
 
 .form-layout {

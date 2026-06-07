@@ -31,23 +31,15 @@
     </div>
   </div>
 
-  <label class="gh-loss-reg-whole-batch">
-    <input
-      type="checkbox"
-      class="gh-loss-reg-whole-batch__checkbox"
-      [checked]="wholeBatch()"
-      (change)="wholeBatchChange.emit($any($event.target).checked)" />
-    <div>
-      <p class="gh-loss-reg-whole-batch__title">{{ 'losses.whole_batch_title' | translate }}</p>
-      <p class="gh-loss-reg-whole-batch__hint">{{ 'losses.whole_batch_hint' | translate }}</p>
-    </div>
-  </label>
+  <!-- <label class="gh-loss-reg-whole-batch">
+    ...
+  </label> -->
 }
 
 <section class="gh-loss-reg-picker" [attr.aria-busy]="loading()">
   <div class="gh-loss-reg-picker__head">
     <h3 class="gh-loss-reg-picker__title">{{ 'losses.picker_title' | translate }}</h3>
-    @if (layers().length > 0 && !wholeBatch()) {
+    @if (layers().length > 0) {
       <button type="button" class="gh-loss-reg-picker__select-all" (click)="selectAllClick.emit()">
         {{ 'losses.select_all' | translate }}
       </button>
@@ -109,7 +101,6 @@
               type="checkbox"
               class="gh-loss-reg-layer__checkbox"
               [checked]="isLayerChecked(layer)"
-              [disabled]="wholeBatch()"
               (click)="stopCheckbox($event)"
               (change)="layerCheckChange.emit({ layerId: layer.id, checked: $any($event.target).checked })" />
           </div>
@@ -123,7 +114,6 @@
                       type="checkbox"
                       class="gh-loss-reg-pipe__checkbox"
                       [checked]="isAllocationChecked(allocation.id)"
-                      [disabled]="wholeBatch()"
                       (change)="allocationCheckChange.emit({
                         allocationId: allocation.id,
                         checked: $any($event.target).checked
@@ -152,8 +142,9 @@
       <select ghInput formControlName="lossType">
         <option value="">{{ 'losses.form_type_placeholder' | translate }}</option>
         <option value="disease">{{ 'losses.type_disease' | translate }}</option>
-        <option value="pest">{{ 'losses.type_pest' | translate }}</option>
         <option value="weather">{{ 'losses.type_weather' | translate }}</option>
+        <option value="electricity">{{ 'losses.type_electricity' | translate }}</option>
+        <option value="pest">{{ 'losses.type_pest' | translate }}</option>
         <option value="other">{{ 'losses.type_other' | translate }}</option>
       </select>
     </gh-form-group>
@@ -168,13 +159,10 @@
     [label]="'losses.form_quantity_label' | translate"
     [errorMessage]="'losses.form_quantity_error' | translate"
     [control]="form().controls['quantity']">
-    <input
-      ghInput
-      type="number"
+    <gh-input
+      [positiveOnly]="true"
       formControlName="quantity"
-      [placeholder]="'losses.form_quantity_placeholder' | translate"
-      [min]="1"
-      [max]="selectedQuantityMax() > 0 ? selectedQuantityMax() : null" />
+      [placeholder]="'losses.form_quantity_placeholder' | translate" />
   </gh-form-group>
 
   <gh-form-group

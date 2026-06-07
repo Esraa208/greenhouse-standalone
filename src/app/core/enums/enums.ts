@@ -17,9 +17,10 @@ export enum SystemType {
 
 export enum LossType {
   Disease = 'disease',
-  Pest = 'pest',
   Weather = 'weather',
-  Other = 'other'
+  Electricity = 'electricity',
+  Pest = 'pest',
+  Other = 'other',
 }
 
 export enum InvoiceStatus {

@@ -7,9 +7,11 @@ import {
   PagedListQuery,
   PaginatedResult,
   buildPagedListParams,
-  buildActiveSelectParams,
+  buildCropTypeSelectParams,
+  normalizePaginatedResult,
 } from '../../infrastructure/list-query';
 import { extractCreatedId } from '../../infrastructure/extract-created-id';
+import { mapApiEntityStatus } from '../../infrastructure/api-entity-ref';
 import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiCropTypeItem,
@@ -26,39 +28,18 @@ export class CropsRepository {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.CropType, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiCropTypeItem>>(url, { params }).pipe(
       map(response => {
-        const items = (response.result?.items ?? []).map(apiCrop => ({
-          id: String(apiCrop.id),
-          name: apiCrop.name,
-          growthDuration: 30,
-          activeBatches: apiCrop.activeStocs ?? 0,
-          totalPlants: apiCrop.cropCounts ?? 0,
-        }));
-        return {
-          items,
-          totalCount: response.result?.totalCount ?? 0,
-          pageNumber: response.result?.pageNumber ?? 1,
-          pageSize: response.result?.pageSize ?? 50,
-          totalPages: response.result?.totalPages ?? 1,
-        };
+        const items = (response.result?.items ?? []).map((apiCrop) => this.#mapToDomain(apiCrop));
+        return normalizePaginatedResult(response.result, items, query.pageSize);
       })
     );
   }
 
-  /** Dropdowns / selects: active crop types only. */
+  /** Dropdowns / selects: active crop types only (`IgnoreInactive=true`). */
   fetchActivePage(pageNumber = 1): Observable<CropRow[]> {
-    const params = buildActiveSelectParams(pageNumber);
+    const params = buildCropTypeSelectParams(pageNumber);
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.CropType, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiCropTypeItem>>(url, { params }).pipe(
-      map(response => {
-        const items = response.result?.items ?? [];
-        return items.map(apiCrop => ({
-            id: String(apiCrop.id),
-            name: apiCrop.name,
-            growthDuration: 30,
-            activeBatches: apiCrop.activeStocs ?? 0,
-            totalPlants: apiCrop.cropCounts ?? 0,
-          }));
-      })
+      map(response => (response.result?.items ?? []).map((apiCrop) => this.#mapToDomain(apiCrop)))
     );
   }
 
@@ -88,6 +69,8 @@ export class CropsRepository {
         growthDuration: dto.growthDuration,
         activeBatches: 0,
         totalPlants: 0,
+        stockBatch: 0,
+        status: 'active' as const,
       }))
     );
   }
@@ -97,14 +80,17 @@ export class CropsRepository {
     const payload = {
       name: dto.name,
       growthDuration: dto.growthDuration,
+      active: dto.status === 'active',
     };
     return this.#http.put<unknown>(url, payload, { params: { id } }).pipe(
       map(() => ({
         id,
-        name: dto.name || '',
-        growthDuration: dto.growthDuration || 30,
+        name: dto.name,
+        growthDuration: dto.growthDuration,
+        status: dto.status,
         activeBatches: 0,
         totalPlants: 0,
+        stockBatch: 0,
       }))
     );
   }
@@ -113,14 +99,18 @@ export class CropsRepository {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.CropType, ApiAction.Delete)}`;
     return this.#http.delete<void>(url, { params: { Id: id } });
   }
+
+  #mapToDomain(api: ApiCropTypeItem): CropRow {
+    const status = mapApiEntityStatus(api.status, api.deleted === undefined ? true : !api.deleted);
+    return {
+      id: String(api.id),
+      name: api.name,
+      growthDuration: api.growthDuration ?? 0,
+      activeBatches: api.activeBatchesCount ?? api.activeStocs ?? 0,
+      totalPlants: api.cropCounts ?? 0,
+      stockBatch: api.stockBatch ?? 0,
+      status,
+      statusTitle: api.status?.title,
+    };
+  }
 }
-
-
-
-
-
-
-
-
-
-

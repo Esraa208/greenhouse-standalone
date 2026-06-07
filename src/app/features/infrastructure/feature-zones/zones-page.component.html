@@ -1,4 +1,4 @@
-﻿<gh-crud-page-shell class="zones-page" [dir]="i18n.dir()">
+<gh-crud-page-shell class="zones-page" [dir]="i18n.dir()">
 
   <div data-gh-crud-slot="header">
     <gh-page-header
@@ -23,7 +23,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().locationId"
-      (change)="facade.patchFilters({ locationId: $any($event.target).value, greenhouseId: 'all' })"
+      (change)="onFilterLocationChange($any($event.target).value)"
       id="gh-zones-filter-location"
     >
       <option value="all">{{ 'zones.filter_all_locations' | translate }}</option>
@@ -55,7 +55,8 @@
       [totalPages]="facade.totalPages()"
       [totalCount]="facade.totalCount()"
       [pageSize]="facade.pageSize()"
-      (pageChange)="facade.goToPage($event)">
+      (pageChange)="facade.goToPage($event)"
+      (pageSizeChange)="facade.setPageSize($event)">
         <thead>
           <tr>
             <th>{{ 'zones.col_name' | translate }}</th>
@@ -93,7 +94,7 @@
                 <div class="occupancy-cell">
                   <div class="occupancy-text">
                     <span>{{ row.occupiedCapacity | number }} / {{ row.totalCapacity | number }}
-                      ({{ utilizationPct(row) }}%)</span>
+                      ({{ utilizationPct(row) | number:'1.0-1' }}%)</span>
                   </div>
                   <gh-progress-bar
                     [value]="row.occupiedCapacity"

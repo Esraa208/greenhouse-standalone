@@ -5,11 +5,42 @@ import { merge, Observable, Subject } from 'rxjs';
 import { debounceTime, finalize, switchMap } from 'rxjs/operators';
 import type { PaginatedResult } from './list-query';
 
-/** Shared filter fields for infrastructure list facades. */
+/** Updates page size, resets to page 1, and reloads the list. */
+export function changeListPageSize(
+  size: number,
+  pageNumber: WritableSignal<number>,
+  pageSize: WritableSignal<number>,
+  reloadNow$: Subject<void>
+): void {
+  if (size <= 0 || size === pageSize()) return;
+  pageSize.set(size);
+  pageNumber.set(1);
+  reloadNow$.next();
+}
+
+export type ListPaginationSlice = {
+  readonly totalCount: number;
+  readonly pageNumber: number;
+  readonly totalPages: number;
+};
+
+/** Apply server pagination totals — never overwrite client `pageSize` (UI owns it). */
+export function applyListPaginationFromResult(
+  p: ListPaginationSlice,
+  totalCount: WritableSignal<number>,
+  totalPages: WritableSignal<number>,
+  pageNumber?: WritableSignal<number>,
+): void {
+  totalCount.set(p.totalCount);
+  totalPages.set(p.totalPages);
+  pageNumber?.set(p.pageNumber);
+}
+
 export type ListFacadeFilters = {
-  searchQuery: string;
-  status: string;
-  sortBy: string;
+  searchQuery?: string;
+  status?: string;
+  sortBy?: string;
+  [key: string]: any;
 };
 
 /**

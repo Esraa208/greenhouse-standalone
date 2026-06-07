@@ -1,0 +1,194 @@
+<div class="gh-invoice-harvest-form" [formGroup]="form">
+
+  <section class="gh-invoice-harvest-form__section">
+    <h3 class="gh-invoice-harvest-form__section-head">
+      <span class="gh-invoice-harvest-form__section-head-icon" aria-hidden="true">📦</span>
+      {{ 'invoices.create_select_layer' | translate }}
+    </h3>
+
+    <div class="gh-invoice-harvest-form__cascade-grid">
+      <gh-form-group [label]="'common.location' | translate">
+        <select ghInput class="form-select"
+          [value]="createFacade.cascade().locationId"
+          (change)="onLocationChange($event)">
+          <option value="">{{ 'invoices.create_select_location' | translate }}</option>
+          @for (loc of modalLocations(); track loc.id) {
+            <option [value]="loc.id">{{ loc.name }}</option>
+          }
+        </select>
+      </gh-form-group>
+
+      <gh-form-group [label]="'common.greenhouse' | translate">
+        <select ghInput class="form-select"
+          [disabled]="!createFacade.cascade().locationId"
+          [value]="createFacade.cascade().greenhouseId"
+          (change)="onGreenhouseChange($event)">
+          <option value="">{{ 'invoices.create_select_greenhouse' | translate }}</option>
+          @for (gh of modalGreenhouses(); track gh.id) {
+            <option [value]="gh.id">{{ gh.name }}</option>
+          }
+        </select>
+      </gh-form-group>
+
+      <gh-form-group [label]="'common.zone' | translate">
+        <select ghInput class="form-select"
+          [disabled]="!createFacade.cascade().greenhouseId"
+          [value]="createFacade.cascade().zoneId"
+          (change)="onZoneChange($event)">
+          <option value="">{{ 'invoices.create_select_zone' | translate }}</option>
+          @for (z of modalZones(); track z.id) {
+            <option [value]="z.id">{{ z.name }}</option>
+          }
+        </select>
+      </gh-form-group>
+
+      <gh-form-group [label]="'systems.col_name' | translate">
+        <select ghInput class="form-select"
+          [disabled]="!createFacade.cascade().zoneId"
+          [value]="createFacade.cascade().systemId"
+          (change)="onSystemChange($event)">
+          <option value="">{{ 'invoices.create_select_system' | translate }}</option>
+          @for (sys of modalSystems(); track sys.id) {
+            <option [value]="sys.id">{{ sys.name }}</option>
+          }
+        </select>
+      </gh-form-group>
+
+      <gh-form-group [label]="'common.layer' | translate">
+        <select ghInput class="form-select"
+          [disabled]="!createFacade.cascade().systemId"
+          [value]="createFacade.cascade().layerId"
+          (change)="onLayerChange($event)">
+          <option value="">{{ 'invoices.create_select_layer_option' | translate }}</option>
+          @for (layer of modalLayers(); track layer.id) {
+            <option [value]="layer.id">{{ layer.name }}</option>
+          }
+        </select>
+      </gh-form-group>
+    </div>
+
+    <div class="gh-invoice-harvest-form__add-row">
+      <gh-button variant="primary" size="sm"
+        [disabled]="!createFacade.canAddLayer() || createFacade.isLoadingHousings()"
+        (click)="addLayerHousings()">
+        <span class="gh-btn-plus" aria-hidden="true">+</span>
+        {{ 'invoices.create_add_layer' | translate }}
+      </gh-button>
+    </div>
+  </section>
+
+  @if (createFacade.layerGroups().length > 0) {
+    <section class="gh-invoice-harvest-form__section">
+      <h3 class="gh-invoice-harvest-form__section-head">
+        <span class="gh-invoice-harvest-form__section-head-icon" aria-hidden="true">📋</span>
+        {{ 'invoices.create_added_housings' | translate }} ({{ createFacade.layerGroups().length }})
+      </h3>
+
+      @for (group of createFacade.layerGroups(); track group.layerId) {
+        <article class="gh-invoice-harvest-form__layer-card">
+          <div class="gh-invoice-harvest-form__layer-head">
+            <div>
+              <h4 class="gh-invoice-harvest-form__layer-title">{{ group.layerLabel }}</h4>
+              @if (group.pathLabel) {
+                <p class="gh-invoice-harvest-form__layer-path">{{ group.pathLabel }}</p>
+              }
+            </div>
+            <gh-button variant="outline" size="sm" (click)="createFacade.removeLayerGroup(group.layerId)">
+              ✕
+            </gh-button>
+          </div>
+
+          <div class="gh-invoice-harvest-form__housing-rows">
+            @for (housing of group.housings; track housing.housingId) {
+              <div class="gh-invoice-harvest-form__housing-row">
+                <div class="gh-invoice-harvest-form__housing-info">
+                  <p class="gh-invoice-harvest-form__housing-label">{{ housing.label }}</p>
+                  <p class="gh-invoice-harvest-form__housing-available">
+                    {{ 'invoices.create_available' | translate }}: {{ housing.availableQuantity | number }}
+                    {{ 'common.plants' | translate }}
+                  </p>
+                </div>
+                <gh-form-group [label]="'invoices.create_qty_label' | translate">
+                  <input ghInput type="text" inputmode="numeric" ghPositiveInt
+                    [value]="housing.quantity"
+                    (input)="createFacade.setHousingQuantity(group.layerId, housing.housingId, +inputValue($event) || 0)" />
+                </gh-form-group>
+                <gh-form-group [label]="'invoices.create_weight_label' | translate">
+                  <input ghInput type="text" inputmode="decimal" ghPositiveDecimal
+                    [value]="housing.weightKg ?? ''"
+                    (input)="createFacade.setHousingWeight(group.layerId, housing.housingId, inputValue($event) ? +inputValue($event) : null)" />
+                </gh-form-group>
+              </div>
+            }
+          </div>
+        </article>
+      }
+
+      <div class="gh-invoice-harvest-form__summary-bar">
+        <span>{{ 'invoices.create_total_plants' | translate }}</span>
+        <strong>{{ createFacade.totalPlants() | number }} {{ 'common.plants' | translate }}</strong>
+      </div>
+    </section>
+  }
+
+  @if (createFacade.uniqueCropPrices().length > 0) {
+    <section class="gh-invoice-harvest-form__section">
+      <h3 class="gh-invoice-harvest-form__section-head">
+        <span class="gh-invoice-harvest-form__section-head-icon" aria-hidden="true">🌱</span>
+        {{ 'invoices.create_crop_prices' | translate }}
+      </h3>
+      <div class="gh-invoice-harvest-form__crop-prices">
+        @for (crop of createFacade.uniqueCropPrices(); track crop.cropTypeId) {
+          <gh-form-group [label]="crop.cropTypeName">
+            <input ghInput type="text" inputmode="decimal" ghPositiveDecimal
+              [placeholder]="'invoices.create_price_placeholder' | translate"
+              [value]="crop.pricePerKg ?? ''"
+              (input)="createFacade.setCropPrice(crop.cropTypeId, inputValue($event) ? +inputValue($event) : null)" />
+          </gh-form-group>
+        }
+      </div>
+    </section>
+  }
+
+  <section class="gh-invoice-harvest-form__section">
+    <h3 class="gh-invoice-harvest-form__section-head">
+      <span class="gh-invoice-harvest-form__section-head-icon" aria-hidden="true">⚖️</span>
+      {{ 'invoices.create_details_section' | translate }}
+    </h3>
+
+    <label class="gh-invoice-harvest-form__checkbox">
+      <input type="checkbox" formControlName="hasRoots" />
+      <span>{{ 'harvest.form_has_roots' | translate }}</span>
+    </label>
+
+    @if (form.controls.hasRoots.value) {
+      <gh-form-group [label]="'harvest.form_root_weight_label' | translate" [control]="form.controls.rootWeightPerPlant">
+        <input ghInput type="text" inputmode="decimal" ghPositiveDecimal
+          [placeholder]="'harvest.form_root_weight_placeholder' | translate"
+          formControlName="rootWeightPerPlant" />
+      </gh-form-group>
+    }
+
+    <gh-form-group [label]="'harvest.form_customer_label' | translate" [control]="form.controls.customerId">
+      <select ghInput formControlName="customerId">
+        <option value="">{{ 'harvest.form_customer_placeholder' | translate }}</option>
+        @for (c of createFacade.customers(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </gh-form-group>
+
+    <div class="gh-invoice-harvest-form__dates-row">
+      <gh-form-group [label]="'invoices.create_invoice_date' | translate" [control]="form.controls.invoiceDate">
+        <input ghInput type="date" formControlName="invoiceDate" />
+      </gh-form-group>
+      <gh-form-group [label]="'invoices.col_due_date' | translate" [control]="form.controls.dueDate">
+        <input ghInput type="date" formControlName="dueDate" />
+      </gh-form-group>
+    </div>
+
+    <gh-form-group [label]="'common.notes' | translate" [control]="form.controls.notes">
+      <textarea ghInput rows="3" [placeholder]="'harvest.form_notes_placeholder' | translate" formControlName="notes"></textarea>
+    </gh-form-group>
+  </section>
+</div>

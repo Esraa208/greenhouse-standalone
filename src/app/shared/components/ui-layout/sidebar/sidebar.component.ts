@@ -1,4 +1,4 @@
-﻿// libs/shared/ui-layout/src/lib/sidebar/sidebar.component.ts
+// libs/shared/ui-layout/src/lib/sidebar/sidebar.component.ts
 import {
   ChangeDetectionStrategy,
   Component,
@@ -40,7 +40,7 @@ export const NAV_SECTIONS: ReadonlyArray<NavSection> = [
       { key: 'zones',        labelKey: 'nav.zones',        icon: '🗂️', path: '/zones' },
       { key: 'systems',      labelKey: 'nav.systems',      icon: '⚙️',  path: '/systems' },
       { key: 'layers',       labelKey: 'nav.layers',       icon: '🔲', path: '/layers' },
-      { key: 'pipes',        labelKey: 'nav.pipes',        icon: '🪣', path: '/pipes' },
+      // { key: 'pipes',        labelKey: 'nav.pipes',        icon: '🪣', path: '/pipes' },
     ],
   },
   {
@@ -50,7 +50,7 @@ export const NAV_SECTIONS: ReadonlyArray<NavSection> = [
       { key: 'batches',     labelKey: 'nav.batches',     icon: '📦', path: '/batches' },
       { key: 'allocations', labelKey: 'nav.allocations', icon: '🔀', path: '/allocations' },
       { key: 'losses',      labelKey: 'nav.losses',      icon: '📉', path: '/losses' },
-      { key: 'harvest',     labelKey: 'nav.harvest',     icon: '🌾', path: '/harvest' },
+      // { key: 'harvest',     labelKey: 'nav.harvest',     icon: '🌾', path: '/harvest' },
     ],
   },
   {

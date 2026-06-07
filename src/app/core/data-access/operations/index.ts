@@ -1,4 +1,4 @@
-﻿// Facades
+// Facades
 export { CropsFacade } from './facades/crops.facade';
 export { BatchesFacade } from './facades/batches.facade';
 export { AllocationsFacade } from './facades/allocations.facade';
@@ -8,8 +8,8 @@ export type { BatchLossFormValues } from './facades/batch-loss-registration.faca
 export { HarvestFacade } from './facades/harvest.facade';
 
 // Models: Crops
-export type { CropRow, CropFilters, CreateCropDto, CropSortKey } from './models/crop.model';
-export { CROP_SORT_OPTIONS } from './models/crop.model';
+export type { CropRow, CropFilters, CreateCropDto, UpdateCropDto, CropSortKey } from './models/crop.model';
+export { CROP_SORT_OPTIONS, mapCropSetOrder } from './models/crop.model';
 
 // Models: Batches
 export type {
@@ -34,7 +34,7 @@ export { ALLOCATION_SORT_OPTIONS, DEFAULT_ALLOCATION_FILTERS } from './models/al
 
 // Stock / batch history (allocations, losses, …)
 export { StockActionType, isTransferLikeAction } from './models/stock-action-type';
-export type { StockHistoryEntry, StockHistoryLocation } from './models/batch-history.model';
+export type { StockHistoryEntry, StockHistoryLocation, HousingHistorySummary, HousingHistoryResult } from './models/batch-history.model';
 export { BatchHistoryRepository } from './repositories/batch-history.repository';
 
 // Models: Losses

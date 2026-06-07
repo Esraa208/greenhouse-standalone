@@ -1,122 +1,36 @@
-/* libs/operations/feature-losses/src/lib/losses-page.component.scss */
 :host {
   display: block;
 }
 
 .losses-page {
-  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
 
-  &__filter-select {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-card);
-    color: var(--color-foreground);
-    font-size: var(--font-size-sm);
-    min-width: 140px;
-  }
-
-  &__date-cell {
+  &__date-filters {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-3);
   }
 
-  &__stack {
+  &__date-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-foreground);
+    width: 100%;
+  }
+
+  &__date-field {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
+    min-width: min(100%, 11rem);
   }
 
-  &__text-small {
-    color: var(--color-muted-foreground);
+  &__date-sublabel {
     font-size: var(--font-size-xs);
+    color: var(--color-muted-foreground);
   }
-
-  &__quantity {
-    color: var(--color-danger);
-    font-weight: 700;
-  }
-
-  &__modal-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-    padding: var(--space-4);
-  }
-
-  &__cascade-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-4);
-    background: var(--color-muted);
-    padding: var(--space-4);
-    border-radius: var(--radius-md);
-  }
-
-  &__form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-4);
-  }
-
-  &__form-group--full {
-    grid-column: span 2;
-  }
-
-  &__summary-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-4);
-    background: var(--color-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-  }
-
-  &__summary-val {
-    font-size: var(--font-size-lg);
-    font-weight: 700;
-    color: var(--color-foreground);
-  }
-
-  &__warning-box {
-    display: flex;
-    gap: var(--space-3);
-    padding: var(--space-4);
-    background: var(--color-danger-bg);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: var(--radius-md);
-    color: var(--color-danger);
-
-    > span {
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-  }
-
-  &__warning-text {
-    p {
-      margin-top: var(--space-1);
-      font-size: var(--font-size-sm);
-    }
-  }
-}
-
-.text-muted {
-  color: var(--color-muted-foreground);
-}
-
-.text-danger {
-  color: var(--color-danger);
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.modal-footer-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
 }

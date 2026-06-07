@@ -1,4 +1,4 @@
-﻿<div class="pipes-page" [attr.dir]="i18n.dir()">
+<div class="pipes-page" [attr.dir]="i18n.dir()">
 
   <gh-page-header
     [title]="'pipes.page_title' | translate"
@@ -22,7 +22,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().locationId"
-      (change)="facade.patchFilters({ locationId: $any($event.target).value, greenhouseId: 'all', zoneId: 'all', systemId: 'all', layerId: 'all' })"
+      (change)="onFilterLocationChange($any($event.target).value)"
       id="gh-pipes-filter-location"
     >
       <option value="all">{{ 'pipes.filter_all_locations' | translate }}</option>
@@ -34,7 +34,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().greenhouseId"
-      (change)="facade.patchFilters({ greenhouseId: $any($event.target).value, zoneId: 'all', systemId: 'all', layerId: 'all' })"
+      (change)="onFilterGreenhouseChange($any($event.target).value)"
       id="gh-pipes-filter-greenhouse"
     >
       <option value="all">{{ 'pipes.filter_all_greenhouses' | translate }}</option>
@@ -46,7 +46,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().zoneId"
-      (change)="facade.patchFilters({ zoneId: $any($event.target).value, systemId: 'all', layerId: 'all' })"
+      (change)="onFilterZoneChange($any($event.target).value)"
       id="gh-pipes-filter-zone"
     >
       <option value="all">{{ 'pipes.filter_all_zones' | translate }}</option>
@@ -58,7 +58,7 @@
     <select
       class="gh-filter-select"
       [value]="facade.filters().systemId"
-      (change)="facade.patchFilters({ systemId: $any($event.target).value, layerId: 'all' })"
+      (change)="onFilterSystemChange($any($event.target).value)"
       id="gh-pipes-filter-system"
     >
       <option value="all">{{ 'pipes.filter_all_systems' | translate }}</option>
@@ -164,12 +164,16 @@
           }
         </tbody>
       </gh-table>
-      <gh-pagination
-        [currentPage]="facade.currentPage()"
-        [totalPages]="facade.totalPages()"
-        [totalCount]="facade.totalCount()"
-        [pageSize]="facade.pageSize()"
-        (pageChange)="facade.goToPage($event)" />
+      <div class="gh-card__footer">
+        <gh-pagination
+          [currentPage]="facade.currentPage()"
+          [totalPages]="facade.totalPages()"
+          [totalCount]="facade.totalCount()"
+          [itemCount]="facade.filteredItems().length"
+          [pageSize]="facade.pageSize()"
+          (pageChange)="facade.goToPage($event)"
+          (pageSizeChange)="facade.setPageSize($event)" />
+      </div>
     }
   </div>
 
@@ -195,8 +199,7 @@
         [label]="'pipes.form_capacity_label' | translate"
         [control]="form.get('capacity')!"
         [errorMessage]="'pipes.form_capacity_error' | translate">
-        <input ghInput type="number" formControlName="capacity" min="0"
-          (keydown)="$event.key === '-' || $event.key === 'e' || $event.key === '+' ? $event.preventDefault() : null" />
+        <gh-input [positiveOnly]="true" formControlName="capacity" [placeholder]="'pipes.form_capacity_placeholder' | translate" />
       </gh-form-group>
 
       <div class="gh-form-row">

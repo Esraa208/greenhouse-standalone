@@ -7,9 +7,18 @@ import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiSystemItem,
 } from '@app/core/data-access/api';
-import { PagedListQuery, PaginatedResult, buildPagedListParams, buildActiveSelectParams } from '../list-query';
+import {
+  PagedListQuery,
+  PaginatedResult,
+  buildPagedListParams,
+  buildSystemSelectParams,
+  normalizePaginatedResult,
+} from '../list-query';
+import { systemTypeToApiValue } from '../models/system.model';
 import { extractCreatedId } from '../extract-created-id';
 import type { PutPatch } from '../put-patch-merge';
+import { normalizeGreenhouseLabel } from '@app/shared/utils/normalize-greenhouse-label';
+import { apiRefId, apiRefName, mapApiEntityStatus, readApiOccupancy } from '../api-entity-ref';
 
 @Injectable({ providedIn: 'root' })
 export class SystemsRepository {
@@ -21,18 +30,24 @@ export class SystemsRepository {
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.System, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiSystemItem>>(url, { params }).pipe(
-      map(response => ({
-        items: (response.result?.items ?? []).map(s => this.#mapToDomain(s)),
-        totalCount: response.result?.totalCount ?? 0,
-        pageNumber: response.result?.pageNumber ?? 1,
-        pageSize: response.result?.pageSize ?? 50,
-        totalPages: response.result?.totalPages ?? 1,
-      }))
+      map(response => {
+        const items = (response.result?.items ?? []).map(s => this.#mapToDomain(s));
+        return normalizePaginatedResult(response.result, items, query.pageSize);
+      })
     );
   }
 
   fetchActivePage(pageNumber = 1): Observable<SystemRow[]> {
-    const params = buildActiveSelectParams(pageNumber);
+    const params = buildSystemSelectParams(pageNumber);
+    const url = `${this.#apiUrl}/${getEndpoint(ApiController.System, ApiAction.Fetch)}`;
+    return this.#http.get<ApiPaginatedResult<ApiSystemItem>>(url, { params }).pipe(
+      map(response => (response.result?.items ?? []).map(s => this.#mapToDomain(s)))
+    );
+  }
+
+  /** Active systems for one zone — modal/filter cascades. */
+  fetchActiveByZone(zoneId: string, pageNumber = 1): Observable<SystemRow[]> {
+    const params = { ...buildSystemSelectParams(pageNumber), ZoneId: Number(zoneId) };
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.System, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiSystemItem>>(url, { params }).pipe(
       map(response => (response.result?.items ?? []).map(s => this.#mapToDomain(s)))
@@ -42,15 +57,12 @@ export class SystemsRepository {
   create(dto: CreateSystemDto): Observable<SystemRow> {
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.System, ApiAction.Create)}`;
     const payload = {
-      systemdto: {
+      currentUserId: 'system',
+      system: {
         name: dto.name,
-        address: '',
-        systemType: dto.type.toLowerCase() === 'nft' ? 1 : 2,
-        locationId: Number(dto.locationId),
-        unitId: Number(dto.greenhouseId),
+        systemType: this.#systemTypeApiValue(dto.type),
         zoneId: Number(dto.zoneId),
       },
-      currentUserId: 'system',
     };
     return this.#http.post<unknown>(url, payload).pipe(
       map(res => ({
@@ -76,9 +88,7 @@ export class SystemsRepository {
     const payload = {
       name: dto.name,
       active: dto.status === 'active',
-      systemType: dto.type.toLowerCase() === 'nft' ? 1 : 2,
-      locationId: Number(dto.locationId),
-      unitId: Number(dto.greenhouseId),
+      systemType: this.#systemTypeApiValue(dto.type),
       zoneId: Number(dto.zoneId),
     };
     return this.#http.put<unknown>(url, payload, { params: { id } }).pipe(
@@ -104,22 +114,37 @@ export class SystemsRepository {
 
   #mapToDomain(s: ApiSystemItem): SystemRow {
     const st = s.systemType;
-    const type = st === 2 ? 'DWC' : 'NFT';
+    let type = 'NFT';
+    if (typeof st === 'object' && st != null) {
+      type = st.value === 2 ? 'DWC' : 'NFT';
+    } else if (st === 2) {
+      type = 'DWC';
+    }
+    const occ = readApiOccupancy(s.occupancy, {
+      totalCapacity: s.capacity,
+      used: s.used,
+      percent: s.occupancyPercent,
+    });
     return {
       id: String(s.id),
       name: s.name ?? '',
-      zoneId: s.zoneId != null ? String(s.zoneId) : '',
-      zoneName: s.zoneName ?? '',
-      greenhouseId: s.unitId != null ? String(s.unitId) : '',
-      greenhouseName: s.unitName ?? '',
-      locationId: s.locationId != null ? String(s.locationId) : '',
-      locationName: s.locationName ?? '',
+      zoneId: apiRefId(s.zone, s.zoneId),
+      zoneName: apiRefName(s.zone, s.zoneName),
+      greenhouseId: apiRefId(s.unit, s.unitId),
+      greenhouseName: normalizeGreenhouseLabel(apiRefName(s.unit, s.unitName)),
+      locationId: apiRefId(s.location, s.locationId),
+      locationName: apiRefName(s.location, s.locationName),
       type,
-      status: s.active ? ('active' as const) : ('inactive' as const),
+      status: mapApiEntityStatus(s.status, s.active),
       layersCount: s.layersCount ?? s.systemsCount ?? 0,
-      totalCapacity: s.capacity ?? 0,
-      occupiedCapacity: s.used ?? 0,
+      totalCapacity: occ.totalCapacity,
+      occupiedCapacity: occ.used,
+      occupancyPct: occ.percent,
     };
+  }
+
+  #systemTypeApiValue(type: string): number {
+    return systemTypeToApiValue(type) ?? 1;
   }
 }
 

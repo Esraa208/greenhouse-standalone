@@ -1,20 +1,27 @@
-﻿import { LayerRow, LayerFilters, CreateLayerDto, UpdateLayerDto } from '../models/layer.model';
+import { LayerRow, LayerFilters, CreateLayerDto, UpdateLayerDto, mapLayerSetOrder } from '../models/layer.model';
 import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { GhToastService, TranslationService } from '@app/core';
 import { LayersRepository } from '../repositories/layers.repository';
+import { DEFAULT_PAGE_SIZE } from '../list-query';
 import { Subject } from 'rxjs';
 import {
   bindListReloadStream,
   applyListFilterPatch,
+  applyListPaginationFromResult,
+  changeListPageSize,
   subscribeMutationWithResult,
   subscribeMutationWithVoid,
 } from '../entity-list-facade.helpers';
 import { mergeAfterPut } from '../put-patch-merge';
+import { toastInfrastructureCrudSuccess } from '../infrastructure-crud-toast.helper';
 
 @Injectable({ providedIn: 'root' })
 export class LayersFacade {
   readonly #repo = inject(LayersRepository);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #toast = inject(GhToastService);
+  readonly #i18n = inject(TranslationService);
 
   readonly #items = signal<LayerRow[]>([]);
   readonly #filters = signal<LayerFilters>({
@@ -35,15 +42,17 @@ export class LayersFacade {
   readonly #error = signal<string | null>(null);
   readonly #totalCount = signal(0);
   readonly #totalPages = signal(1);
-  readonly #pageSize = signal(50);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
 
   readonly #reloadNow$ = new Subject<void>();
   readonly #reloadSearch$ = new Subject<void>();
 
   readonly #selectItems = signal<LayerRow[]>([]);
+  readonly #selectForSystem = signal<LayerRow[]>([]);
 
   readonly items = this.#items.asReadonly();
   readonly selectItems = this.#selectItems.asReadonly();
+  readonly selectForSystem = this.#selectForSystem.asReadonly();
   readonly filters = this.#filters.asReadonly();
   readonly editingItem = this.#editingItem.asReadonly();
   readonly deletingItem = this.#deletingItem.asReadonly();
@@ -80,11 +89,7 @@ export class LayersFacade {
       setItems: (items) => this.#items.set(items),
       setLoading: (v) => this.#isLoading.set(v),
       setError: (msg) => this.#error.set(msg),
-      setPagination: (p) => {
-        this.#totalCount.set(p.totalCount);
-        this.#totalPages.set(p.totalPages);
-        this.#pageSize.set(p.pageSize);
-      },
+      setPagination: (p) => applyListPaginationFromResult(p, this.#totalCount, this.#totalPages),
     });
   }
 
@@ -92,9 +97,10 @@ export class LayersFacade {
     const f = this.#filters();
     return {
       pageNumber: this.#pageNumber(),
+      pageSize: this.#pageSize(),
       search: f.searchQuery,
       status: f.status,
-      setOrder: f.sortBy,
+      setOrder: mapLayerSetOrder(f.sortBy),
       extra: {
         LocationId: f.locationId === 'all' ? '' : f.locationId,
         UnitId: f.greenhouseId === 'all' ? '' : f.greenhouseId,
@@ -130,9 +136,25 @@ export class LayersFacade {
       .subscribe({ next: (rows) => this.#selectItems.set(rows) });
   }
 
+  loadActiveForSystem(systemId: string): void {
+    const id = systemId?.trim();
+    if (!id || id === 'all') {
+      this.#selectForSystem.set([]);
+      return;
+    }
+    this.#repo
+      .fetchActiveBySystem(id)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({ next: (rows) => this.#selectForSystem.set(rows) });
+  }
+
   goToPage(page: number): void {
     this.#pageNumber.set(page);
     this.#reloadNow$.next();
+  }
+
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
   }
 
   patchFilters(patch: Partial<LayerFilters>): void {
@@ -166,6 +188,7 @@ export class LayersFacade {
         if (row.status === 'active') {
           this.#selectItems.update((s) => [...s.filter((i) => i.id !== row.id), row]);
         }
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'layers', 'create');
       },
     });
   }
@@ -185,6 +208,7 @@ export class LayersFacade {
           const rest = s.filter((i) => i.id !== row.id);
           return row.status === 'active' ? [...rest, row] : rest;
         });
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'layers', 'edit');
       },
     });
   }
@@ -202,6 +226,7 @@ export class LayersFacade {
         this.#items.update((items) => items.filter((i) => i.id !== item.id));
         this.#totalCount.update(c => Math.max(0, c - 1));
         this.#selectItems.update((s) => s.filter((i) => i.id !== item.id));
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'layers', 'delete');
       },
     });
   }

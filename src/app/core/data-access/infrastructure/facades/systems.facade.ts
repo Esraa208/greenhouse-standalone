@@ -1,31 +1,41 @@
-﻿import { SystemRow, SystemFilters, CreateSystemDto, UpdateSystemDto } from '../models/system.model';
+import {
+  SystemRow,
+  SystemFilters,
+  CreateSystemDto,
+  UpdateSystemDto,
+  mapSystemSetOrder,
+  systemTypeToApiValue,
+} from '../models/system.model';
 import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { GhToastService, TranslationService } from '@app/core';
 import { SystemsRepository } from '../repositories/systems.repository';
+import { DEFAULT_PAGE_SIZE } from '../list-query';
 import { Subject } from 'rxjs';
 import {
   bindListReloadStream,
   applyListFilterPatch,
+  applyListPaginationFromResult,
+  changeListPageSize,
   subscribeMutationWithResult,
   subscribeMutationWithVoid,
 } from '../entity-list-facade.helpers';
 import { mergeAfterPut } from '../put-patch-merge';
-
-function utilizationRatio(s: SystemRow): number {
-  const cap = s.totalCapacity ?? 0;
-  return cap > 0 ? s.occupiedCapacity / cap : 0;
-}
+import { toastInfrastructureCrudSuccess } from '../infrastructure-crud-toast.helper';
 
 @Injectable({ providedIn: 'root' })
 export class SystemsFacade {
   readonly #repo = inject(SystemsRepository);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #toast = inject(GhToastService);
+  readonly #i18n = inject(TranslationService);
 
   readonly #items = signal<SystemRow[]>([]);
   readonly #filters = signal<SystemFilters>({
     searchQuery: '',
     status: 'all',
     sortBy: 'all',
+    systemType: 'all',
     locationId: 'all',
     greenhouseId: 'all',
     zoneId: 'all',
@@ -39,15 +49,17 @@ export class SystemsFacade {
   readonly #error = signal<string | null>(null);
   readonly #totalCount = signal(0);
   readonly #totalPages = signal(1);
-  readonly #pageSize = signal(50);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
 
   readonly #reloadNow$ = new Subject<void>();
   readonly #reloadSearch$ = new Subject<void>();
 
   readonly #selectItems = signal<SystemRow[]>([]);
+  readonly #selectForZone = signal<SystemRow[]>([]);
 
   readonly items = this.#items.asReadonly();
   readonly selectItems = this.#selectItems.asReadonly();
+  readonly selectForZone = this.#selectForZone.asReadonly();
   readonly filters = this.#filters.asReadonly();
   readonly editingItem = this.#editingItem.asReadonly();
   readonly deletingItem = this.#deletingItem.asReadonly();
@@ -71,7 +83,8 @@ export class SystemsFacade {
       this.#filters().status !== 'all' ||
       this.#filters().locationId !== 'all' ||
       this.#filters().greenhouseId !== 'all' ||
-      this.#filters().zoneId !== 'all'
+      this.#filters().zoneId !== 'all' ||
+      this.#filters().systemType !== 'all'
   );
 
   constructor() {
@@ -83,26 +96,25 @@ export class SystemsFacade {
       setItems: (items) => this.#items.set(items),
       setLoading: (v) => this.#isLoading.set(v),
       setError: (msg) => this.#error.set(msg),
-      setPagination: (p) => {
-        this.#totalCount.set(p.totalCount);
-        this.#totalPages.set(p.totalPages);
-        this.#pageSize.set(p.pageSize);
-      },
+      setPagination: (p) => applyListPaginationFromResult(p, this.#totalCount, this.#totalPages),
     });
   }
 
   #listQuery() {
     const f = this.#filters();
+    const extra: Record<string, string | number | boolean> = {};
+    if (f.locationId !== 'all') extra['LocationId'] = Number(f.locationId);
+    if (f.greenhouseId !== 'all') extra['UnitId'] = Number(f.greenhouseId);
+    if (f.zoneId !== 'all') extra['ZoneId'] = Number(f.zoneId);
+    const systemType = systemTypeToApiValue(f.systemType);
+    if (systemType != null) extra['SystemType'] = systemType;
     return {
       pageNumber: this.#pageNumber(),
+      pageSize: this.#pageSize(),
       search: f.searchQuery,
       status: f.status,
-      setOrder: f.sortBy,
-      extra: {
-        LocationId: f.locationId === 'all' ? '' : f.locationId,
-        UnitId: f.greenhouseId === 'all' ? '' : f.greenhouseId,
-        ZoneId: f.zoneId === 'all' ? '' : f.zoneId,
-      },
+      setOrder: mapSystemSetOrder(f.sortBy),
+      extra: Object.keys(extra).length > 0 ? extra : undefined,
     };
   }
 
@@ -116,6 +128,7 @@ export class SystemsFacade {
       searchQuery: '',
       status: 'all',
       sortBy: 'all',
+      systemType: 'all',
       locationId: 'all',
       greenhouseId: 'all',
       zoneId: 'all',
@@ -131,9 +144,25 @@ export class SystemsFacade {
       .subscribe({ next: (rows) => this.#selectItems.set(rows) });
   }
 
+  loadActiveForZone(zoneId: string): void {
+    const id = zoneId?.trim();
+    if (!id || id === 'all') {
+      this.#selectForZone.set([]);
+      return;
+    }
+    this.#repo
+      .fetchActiveByZone(id)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({ next: (rows) => this.#selectForZone.set(rows) });
+  }
+
   goToPage(page: number): void {
     this.#pageNumber.set(page);
     this.#reloadNow$.next();
+  }
+
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
   }
 
   patchFilters(patch: Partial<SystemFilters>): void {
@@ -145,6 +174,7 @@ export class SystemsFacade {
       searchQuery: '',
       status: 'all',
       sortBy: 'all',
+      systemType: 'all',
       locationId: 'all',
       greenhouseId: 'all',
       zoneId: 'all',
@@ -166,6 +196,7 @@ export class SystemsFacade {
         if (row.status === 'active') {
           this.#selectItems.update((s) => [...s.filter((i) => i.id !== row.id), row]);
         }
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'systems', 'create');
       },
     });
   }
@@ -185,6 +216,7 @@ export class SystemsFacade {
           const rest = s.filter((i) => i.id !== row.id);
           return row.status === 'active' ? [...rest, row] : rest;
         });
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'systems', 'edit');
       },
     });
   }
@@ -202,6 +234,7 @@ export class SystemsFacade {
         this.#items.update((items) => items.filter((i) => i.id !== item.id));
         this.#totalCount.update(c => Math.max(0, c - 1));
         this.#selectItems.update((s) => s.filter((i) => i.id !== item.id));
+        toastInfrastructureCrudSuccess(this.#toast, this.#i18n, 'systems', 'delete');
       },
     });
   }

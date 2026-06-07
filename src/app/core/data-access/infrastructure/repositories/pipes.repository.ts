@@ -7,7 +7,13 @@ import {
   ApiController, ApiAction, getEndpoint,
   ApiPaginatedResult, ApiPipeItem,
 } from '@app/core/data-access/api';
-import { PagedListQuery, PaginatedResult, buildPagedListParams, buildActiveSelectParams } from '../list-query';
+import {
+  PagedListQuery,
+  PaginatedResult,
+  buildPagedListParams,
+  buildActiveSelectParams,
+  normalizePaginatedResult,
+} from '../list-query';
 import { extractCreatedId } from '../extract-created-id';
 import type { PutPatch } from '../put-patch-merge';
 
@@ -21,13 +27,10 @@ export class PipesRepository {
 
     const url = `${this.#apiUrl}/${getEndpoint(ApiController.Pipe, ApiAction.Fetch)}`;
     return this.#http.get<ApiPaginatedResult<ApiPipeItem>>(url, { params }).pipe(
-      map(response => ({
-        items: (response.result?.items ?? []).map(p => this.#mapToDomain(p)),
-        totalCount: response.result?.totalCount ?? 0,
-        pageNumber: response.result?.pageNumber ?? 1,
-        pageSize: response.result?.pageSize ?? 50,
-        totalPages: response.result?.totalPages ?? 1,
-      }))
+      map(response => {
+        const items = (response.result?.items ?? []).map(p => this.#mapToDomain(p));
+        return normalizePaginatedResult(response.result, items, query.pageSize);
+      })
     );
   }
 

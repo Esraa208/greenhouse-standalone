@@ -7,6 +7,7 @@ import {
   GhDeleteConfirmModalComponent,
   GhEmptyStateComponent,
   GhFormGroupComponent,
+  GhInputComponent, 
   GhModalComponent,
   GhPageHeaderComponent,
   GhPaginationComponent,
@@ -33,6 +34,7 @@ export const CRUD_LIST_PAGE_IMPORTS_STANDARD = [
   GhEmptyStateComponent,
   GhModalComponent,
   GhFormGroupComponent,
+  GhInputComponent,
   GhSegmentedControlComponent,
   GhSelectComponent,
   GhDeleteConfirmModalComponent,
@@ -75,6 +77,7 @@ export const CRUD_LIST_PAGE_IMPORTS_NO_DELETE_CONFIRM = [
   GhEmptyStateComponent,
   GhModalComponent,
   GhFormGroupComponent,
+  GhInputComponent,
   GhSegmentedControlComponent,
   GhPaginationComponent,
 ] as const;
@@ -92,5 +95,6 @@ export const CRUD_LIST_PAGE_IMPORTS_FORM_MODAL = [
   GhEmptyStateComponent,
   GhModalComponent,
   GhFormGroupComponent,
+  GhInputComponent,
   GhPaginationComponent,
 ] as const;

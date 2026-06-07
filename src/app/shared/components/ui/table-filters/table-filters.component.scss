@@ -77,9 +77,11 @@
       color: #94a3b8;
       font-size: 1.1rem;
     }
-    
+
     .gh-table-filters__select {
+      padding-inline-start: 24px;
       padding-inline-end: 38px;
+      background-image: none;
     }
   }
 }
@@ -121,4 +123,10 @@
   background-position: right 12px center;
   padding-inline-start: 24px;
   padding-inline-end: 32px;
+}
+
+[dir="ltr"] .gh-filter-select-wrapper--sort .gh-table-filters__select {
+  background-image: none;
+  padding-inline-start: 24px;
+  padding-inline-end: 38px;
 }

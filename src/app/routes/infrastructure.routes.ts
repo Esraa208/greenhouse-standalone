@@ -26,9 +26,9 @@ export const infrastructureRoutes: Routes = [
     loadComponent: () =>
       import('@app/features/infrastructure/feature-layers').then((m) => m.LayersPageComponent),
   },
-  {
-    path: 'pipes',
-    loadComponent: () =>
-      import('@app/features/infrastructure/feature-pipes').then((m) => m.PipesPageComponent),
-  },
+  // {
+  //   path: 'pipes',
+  //   loadComponent: () =>
+  //     import('@app/features/infrastructure/feature-pipes').then((m) => m.PipesPageComponent),
+  // },
 ];

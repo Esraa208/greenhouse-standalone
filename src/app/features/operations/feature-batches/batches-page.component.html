@@ -19,133 +19,235 @@
     (sortChange)="updateSortFilter($event)" />
 
   <div class="gh-filter-row-secondary">
-    <div class="gh-filter-select-wrapper">
-      <select
-        class="gh-table-filters__select"
-        [value]="facade.filters().cropTypeId"
-        (change)="updateCropFilter($any($event.target).value)"
-        id="batches-filter-crop"
-      >
-        <option value="">{{ 'batches.filter_all_crops' | translate }}</option>
-        @for (crop of availableCropTypes(); track crop.id) {
-          <option [value]="crop.id">{{ crop.name }}</option>
-        }
-      </select>
-    </div>
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().locationId"
+      (change)="onFilterLocationChange($any($event.target).value)"
+      id="batches-filter-location"
+    >
+      <option value="all">{{ 'filter.all_locations' | translate }}</option>
+      @for (loc of filterLocations(); track loc.id) {
+        <option [value]="loc.id">{{ loc.name }}</option>
+      }
+    </select>
+
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().unitId"
+      (change)="onFilterGreenhouseChange($any($event.target).value)"
+      id="batches-filter-greenhouse"
+    >
+      <option value="all">{{ 'filter.all_greenhouses' | translate }}</option>
+      @for (gh of filterGreenhouses(); track gh.id) {
+        <option [value]="gh.id">{{ gh.name }}</option>
+      }
+    </select>
+
+    <select
+      class="gh-filter-select"
+      [value]="facade.filters().cropTypeId"
+      (change)="updateCropFilter($any($event.target).value)"
+      id="batches-filter-crop"
+    >
+      <option value="">{{ 'batches.filter_all_crops' | translate }}</option>
+      @for (crop of filterCropTypes(); track crop.id) {
+        <option [value]="crop.id">{{ crop.name }}</option>
+      }
+    </select>
   </div>
 
   <div class="gh-card">
     @if (facade.filteredItems().length === 0) {
       <gh-empty-state [title]="'batches.empty' | translate"></gh-empty-state>
     } @else {
+      <div class="gh-table--rich-rows">
       <gh-table [striped]="true">
         <thead>
           <tr>
-            <th>{{ 'batches.col_number' | translate }}</th>
-            <th>{{ 'batches.col_crop' | translate }}</th>
-            <th>{{ 'batches.col_location' | translate }}</th>
-            <th>{{ 'batches.col_quantity' | translate }}</th>
-            <th>{{ 'batches.col_date' | translate }}</th>
-            <th>{{ 'batches.col_status' | translate }}</th>
-            <th>{{ 'batches.growth_stage' | translate }}</th>
+            <th>{{ 'batches.col_batch_crop' | translate }}</th>
+            <th>{{ 'batches.col_quantities' | translate }}</th>
+            <th>{{ 'batches.col_dates' | translate }}</th>
+            <th>{{ 'batches.col_status_growth' | translate }}</th>
             <th>{{ 'batches.col_actions' | translate }}</th>
           </tr>
         </thead>
         <tbody>
           @for (row of facade.filteredItems(); track row.id) {
-            <tr>
+            <tr class="gh-table__row">
+              <!-- Batch, crop & location -->
               <td>
-                <div class="cell-with-icon">
-                  <span class="cell-icon cell-icon--primary">📦</span>
-                  <span class="cell-name">{{ row.batchNumber }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="cell-muted">{{ row.cropType }}</span>
-              </td>
-              <td>
-                @if (row.locationName) {
-                  <div class="cell-with-icon">
-                    <span class="cell-icon-sm">📍</span>
-                    <span class="cell-text">{{ row.locationName }}</span>
-                  </div>
-                } @else {
-                  <span class="cell-muted">—</span>
-                }
-              </td>
-              <td>
-                <div class="batches-page__quantity-cell">
-                  <span class="batches-page__quantity">
-                    {{ row.quantity | number }} {{ 'batches.details_plants' | translate }}
-                  </span>
-                  <span class="batches-page__initial">
-                    {{ 'batches.quantity_of' | translate }} {{ row.initialQuantity | number }}
-                  </span>
-                </div>
-              </td>
-              <td>
-                @if (row.plantingDate) {
-                  <div class="cell-with-icon">
-                    <svg class="batches-page__date-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                    </svg>
-                    <span class="cell-text">{{ row.plantingDate | date:'d MMMM y':'':i18n.currentLang() }}</span>
-                  </div>
-                } @else {
-                  <span class="cell-muted">—</span>
-                }
-              </td>
-              <td>
-                <gh-badge [variant]="getStatusVariant(row.status)">
-                  {{ ('batches.status_' + row.status) | translate }}
-                </gh-badge>
-              </td>
-              <td>
-                <div class="batches-page__growth">
-                  <div class="batches-page__growth-header">
-                    <span class="batches-page__stage">{{ growthStageKey(row) | translate }}</span>
-                    @if (displayDays(row).total > 0) {
-                      <span class="batches-page__growth-days" [class]="growthDaysToneClass(row)">
-                        {{ displayDays(row).current }} / {{ displayDays(row).total }}
-                        {{ 'batches.days_suffix' | translate }}
+                <div class="gh-cell-entity-block">
+                  <span class="gh-entity-icon gh-entity-icon--mark" aria-hidden="true"></span>
+                  <div class="gh-cell-entity-block__body">
+                    <span class="gh-cell-entity-block__code">{{ row.batchNumber }}</span>
+                    <span class="gh-cell-entity-block__title">{{ row.cropType }}</span>
+                    @if (row.locationSite) {
+                      <span class="gh-cell-stack__secondary">
+                        <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                        </svg>
+                        <span>{{ row.locationSite }}</span>
+                      </span>
+                    }
+                    @if (row.greenhouseName) {
+                      <span class="gh-cell-stack__secondary">
+                        <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                        <span>{{ row.greenhouseName }}</span>
                       </span>
                     }
                   </div>
-                  <div class="batches-page__growth-bar" [class]="growthBarClass(row)">
-                    <gh-progress-bar
-                      [value]="row.growthPercent"
-                      [max]="100"
-                      variant="primary"
-                      size="sm" />
-                  </div>
-                  <span class="batches-page__percent">{{ row.growthPercent }}%</span>
                 </div>
               </td>
+
+              <!-- Quantities -->
+              <td>
+                <div class="gh-qty-cell gh-qty-cell--featured">
+                  <span class="gh-qty-cell__label">{{ 'batches.details_current_qty' | translate }}</span>
+                  <p class="gh-qty-cell__line">
+                    <span class="gh-qty-cell__value">{{ row.quantity | number }}</span>
+                    <span class="gh-qty-cell__meta">
+                      {{ 'batches.quantity_of' | translate }} {{ row.initialQuantity | number }}
+                    </span>
+                  </p>
+                  @if (displayLossCount(row) > 0) {
+                    <div class="gh-cell-alert">
+                      <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--warning" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      </svg>
+                      <span>
+                        {{ 'batches.loss_label' | translate }}:
+                        {{ displayLossCount(row) | number }}
+                        ({{ displayLossPercent(row) }}%)
+                      </span>
+                    </div>
+                  }
+                </div>
+              </td>
+
+              <!-- Dates -->
+              <td>
+                <div class="gh-cell-schedule">
+                  @if (row.plantingDate) {
+                    <div class="gh-cell-schedule__item">
+                      <span class="gh-cell-schedule__label">{{ 'batches.planting_date_label' | translate }}</span>
+                      <div class="gh-cell-schedule__row">
+                        <svg class="gh-cell-icon-svg gh-cell-icon-svg--muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                        </svg>
+                        <span class="gh-cell-schedule__value">{{ row.plantingDate | date:'d MMMM y':'':i18n.currentLang() }}</span>
+                      </div>
+                    </div>
+                  }
+                  @if (row.expectedHarvestDate) {
+                    <div class="gh-cell-schedule__item">
+                      <span class="gh-cell-schedule__label">{{ 'batches.expected_harvest_label' | translate }}</span>
+                      <div class="gh-cell-schedule__row">
+                        <svg class="gh-cell-icon-svg gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                        </svg>
+                        <span class="gh-cell-schedule__value">{{ row.expectedHarvestDate | date:'d MMMM y':'':i18n.currentLang() }}</span>
+                      </div>
+                    </div>
+                  }
+                  @if (!row.plantingDate && !row.expectedHarvestDate) {
+                    <span class="cell-muted">—</span>
+                  }
+                </div>
+              </td>
+
+              <!-- Status & growth -->
+              <td>
+                <div class="gh-status-panel">
+                  <div class="gh-status-panel__badge">
+                    <gh-badge [variant]="getStatusVariant(row.status)">
+                      {{ statusLabel(row.status) }}
+                    </gh-badge>
+                  </div>
+                  <div
+                    class="gh-growth-card"
+                    [class.gh-growth-card--success]="row.status === 'harvested'"
+                    [class.gh-growth-card--warning]="isOverdue(row)">
+                    <div class="gh-growth-card__row">
+                      <span class="gh-growth-card__label">{{ 'batches.age_label' | translate }}</span>
+                      @if (displayDays(row).total > 0 || row.daysPassed > 0) {
+                        <span class="gh-growth-card__value gh-growth-card__days">
+                          {{ displayDays(row).current }} {{ 'batches.days_suffix' | translate }}
+                          <svg class="gh-cell-icon-svg gh-cell-icon-svg--sm gh-cell-icon-svg--primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                          </svg>
+                        </span>
+                      } @else {
+                        <span class="gh-growth-card__value">—</span>
+                      }
+                    </div>
+                    <div class="gh-growth-card__row">
+                      <span class="gh-growth-card__label gh-growth-card__stage">{{ growthStageDisplay(row) }}</span>
+                      <span class="gh-growth-card__value gh-growth-card__pct">{{ displayProgressPercent(row) }}%</span>
+                    </div>
+                    <div class="gh-growth-card__progress-wrap">
+                      <div class="gh-growth-card__progress">
+                        <gh-progress-bar
+                          [value]="progressBarValue(row)"
+                          [max]="100"
+                          [variant]="growthProgressVariant(row)"
+                          size="md" />
+                      </div>
+                      <span class="gh-growth-card__marker">100%</span>
+                    </div>
+                    @if (row.growthDuration > 0) {
+                      <div class="gh-growth-card__footer">
+                        {{ row.growthDuration }} {{ 'batches.days_suffix' | translate }}
+                        ({{ 'batches.duration_expected' | translate }})
+                      </div>
+                    }
+                  </div>
+                </div>
+              </td>
+
               <!-- Actions -->
               <td>
-                <div class="cell-actions">
+                <div class="cell-actions cell-actions--stack">
                   <gh-button variant="ghost" size="sm" (click)="facade.openDetailsModal(row)">
-                    <svg class="batches-page__action-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <svg class="cell-actions__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                       <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     </svg>
                     {{ 'batches.btn_view' | translate }}
                   </gh-button>
-                  <gh-button variant="ghost" size="sm" (click)="facade.openDeleteModal(row)">
-                    🗑️ {{ 'batches.btn_delete' | translate }}
-                  </gh-button>
+                  @if (row.status === 'active') {
+                    <gh-button variant="ghost" size="sm" (click)="facade.openEditModal(row)">
+                      <svg class="cell-actions__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                      </svg>
+                      {{ 'common.edit' | translate }}
+                    </gh-button>
+                    <gh-button variant="ghost" size="sm" class="cell-actions--danger" (click)="facade.openDeleteModal(row)">
+                      <svg class="cell-actions__icon gh-cell-icon-svg--danger" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                      {{ 'batches.btn_delete' | translate }}
+                    </gh-button>
+                  }
                 </div>
               </td>
             </tr>
           }
         </tbody>
       </gh-table>
-      <gh-pagination
-        [currentPage]="facade.currentPage()"
-        [totalPages]="facade.totalPages()"
-        [totalCount]="facade.totalCount()"
-        [pageSize]="facade.pageSize()"
-        (pageChange)="facade.goToPage($event)" />
+      </div>
+      <div class="gh-card__footer">
+        <gh-pagination
+          [currentPage]="facade.currentPage()"
+          [totalPages]="facade.totalPages()"
+          [totalCount]="facade.totalCount()"
+          [itemCount]="facade.filteredItems().length"
+          [pageSize]="facade.pageSize()"
+          (pageChange)="facade.goToPage($event)"
+          (pageSizeChange)="facade.setPageSize($event)" />
+      </div>
     }
   </div>
 
@@ -154,8 +256,7 @@
     [isOpen]="facade.isDetailsModalOpen()"
     [title]="'batches.details_header' | translate"
     size="md"
-    (isOpenChange)="!$event && facade.closeDetailsModal()"
-    (closed)="facade.closeDetailsModal()">
+    (isOpenChange)="!$event && facade.closeDetailsModal()">
     @if (facade.viewingItem(); as item) {
       <div class="batches-page__details">
         <!-- Header -->
@@ -165,7 +266,7 @@
             <p class="batches-page__details-subtitle">{{ item.cropType }}</p>
           </div>
           <gh-badge [variant]="getStatusVariant(item.status)">
-            {{ ('batches.status_' + item.status) | translate }}
+            {{ statusLabel(item.status) }}
           </gh-badge>
         </div>
 
@@ -192,7 +293,7 @@
               <span class="batches-page__loc-value">{{ item.greenhouseName || ('batches.details_not_set' | translate) }}</span>
             </div>
           </div>
-          <div class="batches-page__loc-card batches-page__loc-card--full">
+          <!-- <div class="batches-page__loc-card batches-page__loc-card--full">
             <span class="batches-page__loc-label">
               <svg class="batches-page__loc-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0V15" />
@@ -200,7 +301,7 @@
               {{ 'batches.details_zone' | translate }}
             </span>
             <span class="batches-page__loc-value">{{ item.zoneName || ('batches.details_not_set' | translate) }}</span>
-          </div>
+          </div> -->
         </div>
 
         <div class="batches-page__details-section">
@@ -274,12 +375,12 @@
           </div>
           <div class="batches-page__details-progress" [attr.dir]="i18n.dir()">
             <div class="batches-page__details-progress-header">
-              <span class="batches-page__details-progress-stage">{{ growthStageKey(item) | translate }}</span>
-              <span class="batches-page__details-progress-pct">{{ item.growthPercent }}%</span>
+              <span class="batches-page__details-progress-stage">{{ growthStageDisplay(item) }}</span>
+              <span class="batches-page__details-progress-pct">{{ displayProgressPercent(item) }}%</span>
             </div>
             <div class="batches-page__growth-bar batches-page__growth-bar--modal" [class]="growthBarClass(item)">
               <gh-progress-bar
-                [value]="item.growthPercent"
+                [value]="progressBarValue(item)"
                 [max]="100"
                 variant="primary"
                 size="md" />
@@ -295,52 +396,54 @@
     </div>
   </gh-modal>
 
-  <!-- Create/Edit Modal -->
+  <!-- Edit Modal -->
   <gh-modal
     [isOpen]="facade.isModalOpen()"
-    [title]="(facade.editingItem() ? 'batches.modal_edit' : 'batches.modal_add') | translate"
+    [title]="'batches.modal_edit' | translate"
     size="md"
-    (closed)="facade.closeModal()">
-    <div [formGroup]="form" class="form-layout">
-      <gh-form-group
-        [label]="'batches.form_name' | translate"
-        [control]="form.get('name')!"
-        [errorMessage]="'batches.form_name_error' | translate">
-        <input ghInput formControlName="name" [placeholder]="'batches.form_name_placeholder' | translate" />
-      </gh-form-group>
-
-      <gh-form-group
-        [label]="'batches.form_crop_type' | translate"
-        [control]="form.get('cropTypeId')!"
-        [errorMessage]="'batches.form_crop_type_error' | translate">
-        <select ghInput formControlName="cropTypeId">
-          <option value="">{{ 'batches.form_crop_type_placeholder' | translate }}</option>
-          @for (crop of availableCropTypes(); track crop.id) {
-            <option [value]="crop.id">{{ crop.name }}</option>
-          }
-        </select>
-      </gh-form-group>
-
-      <gh-form-group
-        [label]="'batches.form_quantity' | translate"
-        [control]="form.get('quantity')!"
-        [errorMessage]="'batches.form_quantity_error' | translate">
-        <input ghInput type="number" formControlName="quantity" [placeholder]="'batches.form_quantity_placeholder' | translate" min="1" />
-      </gh-form-group>
-
-      @if (facade.editingItem()) {
-        <div class="form-note">
-          {{ 'batches.form_status_hint' | translate }}: {{ ('batches.status_' + facade.editingItem()!.status) | translate }}
+    (isOpenChange)="!$event && facade.closeModal()">
+    @if (facade.editingItem(); as item) {
+      <div [formGroup]="form" class="form-layout">
+        <div class="batches-page__edit-summary">
+          <span class="batches-page__edit-summary-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5a1.125 1.125 0 0 0-1.125-1.125H3.375a1.125 1.125 0 0 0-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+            </svg>
+          </span>
+          <div class="batches-page__edit-summary-body">
+            <span class="batches-page__edit-summary-label">{{ 'batches.edit_selected_batch' | translate }}</span>
+            <strong class="batches-page__edit-summary-id">{{ item.batchNumber }}</strong>
+            <span class="batches-page__edit-summary-location">
+              {{ 'batches.details_location_site' | translate }}: {{ editLocationLine(item) }}
+            </span>
+          </div>
         </div>
-      }
-    </div>
+
+        <gh-form-group
+          [label]="'batches.form_crop_type' | translate"
+          [control]="form.get('cropTypeId')!"
+          [errorMessage]="'batches.form_crop_type_error' | translate">
+          <select ghInput formControlName="cropTypeId">
+            <option value="">{{ 'batches.form_crop_type_placeholder' | translate }}</option>
+            @for (crop of modalCropTypes(); track crop.id) {
+              <option [value]="crop.id">{{ crop.name }}</option>
+            }
+          </select>
+        </gh-form-group>
+
+        <div class="gh-modal-hint" role="note">
+          <span class="gh-modal-hint__icon" aria-hidden="true">ℹ️</span>
+          <span>{{ 'batches.modal_edit_hint' | translate }}</span>
+        </div>
+      </div>
+    }
 
     <div slot="footer" class="modal-footer-actions">
       <gh-button variant="outline" (click)="facade.closeModal()">
         {{ 'common.cancel' | translate }}
       </gh-button>
       <gh-button variant="primary" [disabled]="form.invalid" (click)="submitForm()">
-        {{ (facade.editingItem() ? 'common.save' : 'common.add') | translate }}
+        {{ 'batches.save_edits' | translate }}
       </gh-button>
     </div>
   </gh-modal>

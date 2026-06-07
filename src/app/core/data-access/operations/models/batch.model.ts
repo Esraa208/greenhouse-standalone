@@ -1,4 +1,4 @@
-﻿export type BatchStatus = 'active' | 'harvested' | 'lost';
+export type BatchStatus = 'active' | 'harvested' | 'lost';
 
 /** Growth phases shown in the table (شتلات → حصاد). */
 export type BatchGrowthStageKey = 'seedlings' | 'early' | 'vegetative' | 'harvest';
@@ -16,9 +16,13 @@ export interface BatchRow {
   readonly growthDuration: number;
   readonly daysPassed: number;
   readonly growthStageKey: BatchGrowthStageKey;
-  /** 0–100 for progress bar (from `growthRate` or derived). */
+  /** API growth stage label (e.g. شتلات) when provided. */
+  readonly growthStageLabel?: string;
+  /** 0–100+ for progress bar (from API `progressPercent` or derived). */
   readonly growthPercent: number;
   readonly status: 'active' | 'harvested' | 'lost';
+  /** API `active` flag — editable independently of growth status. */
+  readonly isActive: boolean;
   /** Combined label for the table column. */
   readonly locationName?: string;
   readonly locationSite?: string;
@@ -39,6 +43,8 @@ export type BatchSortKey =
 export interface BatchFilters {
   searchQuery: string;
   status: 'all' | 'active' | 'harvested' | 'lost';
+  locationId: string;
+  unitId: string;
   cropTypeId: string;
   sortBy: string;
 }
@@ -46,6 +52,8 @@ export interface BatchFilters {
 export const DEFAULT_BATCH_FILTERS: BatchFilters = {
   searchQuery: '',
   status: 'all',
+  locationId: 'all',
+  unitId: 'all',
   cropTypeId: '',
   sortBy: 'all',
 };
@@ -60,6 +68,22 @@ export const BATCH_SORT_OPTIONS = [
   { value: 'progress-desc', translationKey: 'sort.progress_nearest' },
   { value: 'progress-asc', translationKey: 'sort.progress_farthest' },
 ] as const;
+
+/** Maps UI sort keys → API `SetOrder` values. */
+export function mapBatchSetOrder(sortBy: string): string | undefined {
+  if (!sortBy || sortBy === 'all') return undefined;
+  const map: Record<string, string> = {
+    'date-desc': 'newest',
+    'date-asc': 'oldest',
+    'quantity-desc': 'quantityDesc',
+    'quantity-asc': 'quantityAsc',
+    'progress-desc': 'harvestSoon',
+    'progress-asc': 'harvestFar',
+    'name-asc': 'asc',
+    'name-desc': 'desc',
+  };
+  return map[sortBy];
+}
 
 /** Per-layer planting allocation when creating a batch (wizard step 4). */
 export interface BatchLayerAllocation {
@@ -77,6 +101,9 @@ export interface CreateBatchDto {
 
 export interface UpdateBatchDto {
   cropTypeId: string;
+  /** Sent unchanged on edit — batch quantity is not editable in the UI. */
   quantity: number;
-  status: 'active' | 'harvested' | 'lost';
+  isActive: boolean;
+  /** Optional label merge after PUT when crop type changes. */
+  cropType?: string;
 }

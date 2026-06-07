@@ -4,7 +4,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { Subject } from 'rxjs';
 import { CropsRepository } from '../repositories/crops.repository';
-import { bindListReloadStream } from '../../infrastructure/entity-list-facade.helpers';
+import { DEFAULT_PAGE_SIZE } from '../../infrastructure/list-query';
+import { bindListReloadStream, applyListPaginationFromResult, changeListPageSize } from '../../infrastructure/entity-list-facade.helpers';
 import { GhToastService } from '@app/core';
 import { TranslationService } from '@app/core';
 import { normalizeAppError } from '@app/core/errors/app-error';
@@ -13,7 +14,8 @@ import {
   CropFilters, 
   DEFAULT_CROP_FILTERS, 
   CreateCropDto, 
-  UpdateCropDto 
+  UpdateCropDto,
+  mapCropSetOrder,
 } from '../models/crop.model';
 
 @Injectable({ providedIn: 'root' })
@@ -26,6 +28,7 @@ export class CropsFacade {
 
   // --- SECTION 2: Private writable signals ---
   readonly #items = signal<CropRow[]>([]);
+  readonly #selectItems = signal<CropRow[]>([]);
   readonly #filters = signal(DEFAULT_CROP_FILTERS);
   readonly #pageNumber = signal(1);
   readonly #editingItem = signal<CropRow | null>(null);
@@ -36,11 +39,12 @@ export class CropsFacade {
   readonly #error = signal<string | null>(null);
   readonly #totalCount = signal(0);
   readonly #totalPages = signal(1);
-  readonly #pageSize = signal(50);
+  readonly #pageSize = signal(DEFAULT_PAGE_SIZE);
   readonly #reloadNow$ = new Subject<void>();
   readonly #reloadSearch$ = new Subject<void>();
 
   // --- SECTION 3: Public readonly accessors ---
+  readonly selectItems = this.#selectItems.asReadonly();
   readonly filters = this.#filters.asReadonly();
   readonly editingItem = this.#editingItem.asReadonly();
   readonly deletingItem = this.#deletingItem.asReadonly();
@@ -78,11 +82,7 @@ export class CropsFacade {
       setItems: (items) => this.#items.set(items),
       setLoading: (v) => this.#isLoading.set(v),
       setError: (msg) => this.#error.set(msg),
-      setPagination: (p) => {
-        this.#totalCount.set(p.totalCount);
-        this.#totalPages.set(p.totalPages);
-        this.#pageSize.set(p.pageSize);
-      },
+      setPagination: (p) => applyListPaginationFromResult(p, this.#totalCount, this.#totalPages),
     });
   }
 
@@ -90,14 +90,24 @@ export class CropsFacade {
     const f = this.#filters();
     return {
       pageNumber: this.#pageNumber(),
+      pageSize: this.#pageSize(),
       search: f.searchQuery,
-      setOrder: f.sortBy === 'all' ? undefined : f.sortBy,
+      status: f.status,
+      setOrder: mapCropSetOrder(f.sortBy),
     };
   }
 
   /** Loads all records from repository (server-side search/sort applied). */
   loadAll(): void {
     this.#reloadNow$.next();
+  }
+
+  /** Active crop types for filter dropdowns and selects. */
+  loadActiveForSelect(): void {
+    this.#repo
+      .fetchActivePage(1)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({ next: (rows) => this.#selectItems.set(rows) });
   }
 
   /** Creates a new crop; list row uses `id` returned by the API. */
@@ -125,8 +135,17 @@ export class CropsFacade {
   /** Updates an existing crop with optimistic rollback support */
   update(id: string, dto: UpdateCropDto): void {
     const previousItems = this.#items();
-    this.#items.update(items => 
-      items.map(item => item.id === id ? { ...item, ...dto } : item)
+    this.#items.update(items =>
+      items.map(item =>
+        item.id === id
+          ? {
+              ...item,
+              name: dto.name,
+              growthDuration: dto.growthDuration,
+              status: dto.status,
+            }
+          : item
+      )
     );
     this.#isModalOpen.set(false);
 
@@ -167,6 +186,10 @@ export class CropsFacade {
     this.#reloadNow$.next();
   }
 
+  setPageSize(size: number): void {
+    changeListPageSize(size, this.#pageNumber, this.#pageSize, this.#reloadNow$);
+  }
+
   /** Patches partial filter state */
   patchFilters(patch: Partial<CropFilters>): void {
     this.#filters.update((f) => ({ ...f, ...patch }));
@@ -175,7 +198,7 @@ export class CropsFacade {
       this.#reloadSearch$.next();
       return;
     }
-    if (Object.prototype.hasOwnProperty.call(patch, 'sortBy')) {
+    if (Object.prototype.hasOwnProperty.call(patch, 'sortBy') || Object.prototype.hasOwnProperty.call(patch, 'status')) {
       this.#pageNumber.set(1);
       this.#reloadNow$.next();
     }
